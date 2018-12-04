@@ -74,7 +74,7 @@ curl -XPOST http://localhost:3000/graphql -H 'Content-Type: application/graphql'
 We'll search people with 'science' as substring of their email and as result we'll get only their name and last name.
 
 ```
-curl -XPOST http://localhost:3000/graphql -H 'Content-Type: application/graphql' -d '{ searchPerson(input:{field:email, value:{value:"%science%"}, operator:like}){ firstName lastName}}'
+curl -XPOST http://localhost:3000/graphql -H 'Content-Type: application/graphql' -d '{ people(search:{field:email, value:{value:"%science%"}, operator:like}){ firstName lastName}}'
 ```
 The result will be:
 
