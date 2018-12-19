@@ -13,18 +13,10 @@ After getting ready the generated code for the models, proceed with the server s
 
 ## Set up
 
-Install the mysql database and configure it:
-```
-$ mysqladmin -u root -p'<old_root_pwd>' password ''
-$ mysql -u root -e "create database database_development"
-```
-
 Clone the repository and run:
 ```
 $ npm install
-$ sd="node_modules/.bin/"
-$ ${sd}/sequelize init
-$ ${sd}/sequelize db:migrate
+$ node_modules/.bin/sequelize db:migrate
 $ npm start
 ```
 
