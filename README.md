@@ -24,7 +24,7 @@ $ npm start
 With credential as in ``` config/config.json``` file.
 
 ## NOTE 
-A data base should alreade be configured locally as in `config/config.json`
+A data base should be already configured locally as in `config/config.json`
 
 ## Example of use
 If you followed the example for generating the code described [here](https://github.com/ScienceDb/graphql-server-model-codegen), you can try the next queries and mutations. Otherwise, just adapt the same queries and mutations for your own models generated.
