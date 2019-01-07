@@ -6,6 +6,12 @@ const fs = require('fs')
 const awaitifyStream = require('awaitify-stream')
 
 
+/**
+ * replaceNullStringsWithLiteralNulls - Replace null entries of columns with literal null types
+ *
+ * @param  {array} arrOfObjs Each item correponds to a column represented as object.
+ * @return {array}           Each item corresponds to a column and all items have either a valid entry or null type.
+ */
 replaceNullStringsWithLiteralNulls = function(arrOfObjs) {
   console.log(typeof arrOfObjs, arrOfObjs);
   return arrOfObjs.map(function(csvRow) {
@@ -18,6 +24,15 @@ replaceNullStringsWithLiteralNulls = function(arrOfObjs) {
   });
 }
 
+
+/**
+ * parseCsv - parse csv file (string)
+ *
+ * @param  {string} csvStr Csv file converted to string.
+ * @param {string} delim Set the field delimiter in the csv file. One or multiple character.
+ * @param {array|boolean|function} cols Columns as in csv-parser options.(true if auto-discovered in the first CSV line).
+ * @return {array}        Each item correponds to a column represented as object and filtered with replaceNullStringsWithLiteralNulls function.
+ */
 exports.parseCsv = function(csvStr, delim, cols) {
   if (!delim) delim = ","
   if (typeof cols === 'undefined') cols = true
@@ -41,12 +56,12 @@ exports.parseXlsx = function(bstr) {
 }
 
 /**
-* Parse a csv file and create the records in the correspondant table
+* Parse by streaming a csv file and create the records in the correspondant table
 * @function
-* @param {string} csvFilePath - The path where the csv file is stored
-* @param {} model - Sequelize model, record will be created through this model
+* @param {string} csvFilePath - The path where the csv file is stored.
+* @param {object} model - Sequelize model, record will be created through this model.
 * @param {string} delim - Set the field delimiter in the csv file. One or multiple character.
-* @param {array|boolean|function} cols - Columns as in csv-parser options.(true if auto-discovered in the first CSV line)
+* @param {array|boolean|function} cols - Columns as in csv-parser options.(true if auto-discovered in the first CSV line).
 */
 exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
   if (!delim) delim = ","
