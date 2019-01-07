@@ -44,6 +44,13 @@ exports.parseCsv = function(csvStr, delim, cols) {
   )
 }
 
+
+/**
+ * parseXlsx - description
+ *
+ * @param  {string} bstr Xlsx file converted to string
+ * @return {array}      Each item correponds to a column represented as object and filtered with replaceNullStringsWithLiteralNulls function.
+ */
 exports.parseXlsx = function(bstr) {
   var workbook = XLSX.read(bstr, {
     type: "binary"
