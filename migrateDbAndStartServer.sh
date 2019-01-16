@@ -2,11 +2,11 @@
 
 # Wait until the relational database-server up and running
 waited=0
-until node ./utils/testSequelizeDbServerAvailable.js > /dev/null 2>&1
+until node ./utils/testSequelizeDbServerAvailable.js
 do
   if [ $waited == 240 ]; then
     echo -e '\nERROR: Time out reached while waiting for relational database server to be available.\n'
-    exit 0
+    exit 1
   fi
   sleep 2
   waited=$(expr $waited + 2)
