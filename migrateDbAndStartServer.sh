@@ -12,6 +12,10 @@ do
   waited=$(expr $waited + 2)
 done
 
-# Run the migrations and start GraphQL-server
-./node_modules/.bin/sequelize db:migrate && \
-  npm start
+# Run the migrations 
+if ! ./node_modules/.bin/sequelize db:migrate; then
+  exit 1
+fi
+
+# Start GraphQL-server
+npm start
