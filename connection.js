@@ -1,6 +1,6 @@
 const env = process.env.NODE_ENV || 'development';
 const path = require('path')
-const config = require(path.join(__dirname, 'config', 'sequelize_config.json'))[env];
+const config = require(path.join(__dirname, 'config', 'config.json'))[env];
 const Sequelize = require('sequelize');
 
 const Op = Sequelize.Op;
