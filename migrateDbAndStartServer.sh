@@ -14,6 +14,7 @@ done
 
 # Run the migrations 
 if ! ./node_modules/.bin/sequelize db:migrate; then
+  echo -e '\nERROR: Migrating the relational database(s) caused an error.\n'
   exit 1
 fi
 
