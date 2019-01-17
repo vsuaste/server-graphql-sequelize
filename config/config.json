@@ -3,7 +3,7 @@
     "username": "sciencedb",
     "password": "sciencedb",
     "database": "sciencedb_development",
-    "host": "postgres",
+    "host": "127.0.0.1",
     "dialect": "postgres",
     "operatorsAliases": false
   },
