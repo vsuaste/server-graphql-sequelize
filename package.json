@@ -12,6 +12,7 @@
   "dependencies": {
     "acl": "^0.4.11",
     "awaitify-stream": "^1.0.2",
+    "bcrypt": "^3.0.3",
     "bcryptjs": "^2.4.3",
     "chai": "^4.1.2",
     "cors": "^2.8.4",
@@ -25,14 +26,14 @@
     "lodash": "^4.17.5",
     "mathjs": "^5.2.0",
     "merge-graphql-schemas": "^1.5.1",
+    "mysql2": "^1.6.4",
     "pg": "^7.4.1",
     "pg-hstore": "^2.3.2",
     "sequelize": "^4.35.2",
     "sequelize-cli": "^4.0.0",
     "supertest": "^3.1.0",
     "uuidv4": "^2.0.0",
-    "xlsx": "^0.12.11",
-    "mysql2": "^1.6.4"
+    "xlsx": "^0.12.11"
   },
   "devDependencies": {
     "mocha": "^5.2.0"

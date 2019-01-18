@@ -106,40 +106,45 @@ module.exports = {
         order,
         pagination
     }, context) {
-        if (checkAuthorization(context, 'users', 'read') == true) {
-            let options = {};
-            if (search !== undefined) {
-                let arg = new searchArg(search);
-                let arg_sequelize = arg.toSequelize();
-                options['where'] = arg_sequelize;
-            }
 
-            return user.count(options).then(items => {
-                if (order !== undefined) {
-                    options['order'] = order.map((orderItem) => {
-                        return [orderItem.field, orderItem.order];
-                    });
-                }
+        return checkAuthorization(context, 'users', 'read').then( authorization =>{
+          if (authorization === true) {
+              let options = {};
+              if (search !== undefined) {
+                  let arg = new searchArg(search);
+                  let arg_sequelize = arg.toSequelize();
+                  options['where'] = arg_sequelize;
+              }
 
-                if (pagination !== undefined) {
-                    options['offset'] = pagination.offset === undefined ? 0 : pagination.offset;
-                    options['limit'] = pagination.limit === undefined ? (items - options['offset']) : pagination.limit;
-                } else {
-                    options['offset'] = 0;
-                    options['limit'] = items;
-                }
+              return user.count(options).then(items => {
+                  if (order !== undefined) {
+                      options['order'] = order.map((orderItem) => {
+                          return [orderItem.field, orderItem.order];
+                      });
+                  }
 
-                if (globals.LIMIT_RECORDS < options['limit']) {
-                    throw new Error(`Request of total users exceeds max limit of ${globals.LIMIT_RECORDS}. Please use pagination.`);
-                }
-                return user.findAll(options);
-            }).catch(error => {
-                console.log("Catched the error in users ", error);
-                return error;
-            });
-        } else {
-            return new Error("You don't have authorization to perform this action");
-        }
+                  if (pagination !== undefined) {
+                      options['offset'] = pagination.offset === undefined ? 0 : pagination.offset;
+                      options['limit'] = pagination.limit === undefined ? (items - options['offset']) : pagination.limit;
+                  } else {
+                      options['offset'] = 0;
+                      options['limit'] = items;
+                  }
+
+                  if (globals.LIMIT_RECORDS < options['limit']) {
+                      throw new Error(`Request of total users exceeds max limit of ${globals.LIMIT_RECORDS}. Please use pagination.`);
+                  }
+                  return user.findAll(options);
+              }).catch(error => {
+                  console.log("Catched the error in users ", error);
+                  return error;
+              });
+          } else {
+              return new Error("You don't have authorization to perform this action");
+          }
+        }).catch( error =>{
+            return error;
+        })
     },
 
     /**

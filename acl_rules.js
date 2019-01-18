@@ -1,8 +1,8 @@
 module.exports = {
   aclRules: [{
-    roles: 'administrator',
+    roles: 'admin',
     allows: [{
-      resources: '*',
+      resources: ['users', 'roles'],
       permissions: '*'
     }]
   },
