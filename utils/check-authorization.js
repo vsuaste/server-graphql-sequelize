@@ -16,8 +16,9 @@ module.exports =  function( context, resource, permission ) {
   //if there's not authorization rules set
   if (context.acl == null) return true;
 
-  let token =  context.request.headers["authorization"];
-  console.log("TOKEN",token);
+  let token_bearer =  context.request.headers["authorization"];
+  let token = token_bearer.replace("Bearer ","");
+  console.log("TOKEN",typeof token, token);
   try{
     //Identify user from context
     let decoded = jwt.verify(token, secret);

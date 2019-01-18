@@ -1,7 +1,11 @@
  var express = require('express');
  var path = require('path');
  var graphqlHTTP = require('express-graphql');
+ var jwt = require('express-jwt');
  const fileUpload = require('express-fileupload');
+ const auth = require('./utils/login');
+ const bodyParser = require('body-parser');
+
  var {
    buildSchema
  } = require('graphql');
@@ -57,6 +61,17 @@ console.log(merged_schema)
  //  'X-Requested-With,content-type,authorization,Authorization,accept,Accept');
  //  next();
  //});
+
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+app.use(jwt({ secret: 'something-secret'}).unless({path: ['/login']}));
+app.use('/login', cors(), (req, res)=>{
+
+  auth.login(req.body).then( (token) =>{
+    res.json(token);
+  });
+
+})
 
  app.use(fileUpload());
  /*request is passed as context by default */

@@ -15,7 +15,7 @@ module.exports = {
   login: async function({ email, password }) {
 
     const user_data = await user.findOne({ where: { email } })
-
+    console.log(user_data);
     if (!user_data) {
         throw new Error('No user with that email')
     }
