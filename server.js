@@ -14,6 +14,11 @@
 
  var cors = require('cors');
 
+
+ /* Server */
+ const APP_PORT = 3000;
+ const app = express();
+
  /* Temporary solution:  acl rules set */
  if (process.argv.length > 2 && process.argv[2] == 'acl') {
    var node_acl = require('acl');
@@ -26,9 +31,7 @@
    acl.allow(aclRules);
    console.log("Authoization rules set!");
 
-   /*For testing purposes*/
-   acl.addUserRoles(1, 'guest');
-   acl.addUserRoles(2, 'administrator');
+   app.use(jwt({ secret: 'something-secret'}).unless({path: ['/login']}));
  } else {
    console.log("Open server, no authorization rules");
  }
@@ -42,9 +45,7 @@ console.log(merged_schema)
  /* Resolvers*/
  var resolvers = require('./resolvers/index');
 
- /* Server */
- const APP_PORT = 3000;
- const app = express();
+
 
  //app.use((req, res, next)=> {
 
@@ -64,7 +65,7 @@ console.log(merged_schema)
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(jwt({ secret: 'something-secret'}).unless({path: ['/login']}));
+
 app.use('/login', cors(), (req, res)=>{
 
   auth.login(req.body).then( (token) =>{
