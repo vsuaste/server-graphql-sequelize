@@ -69,7 +69,10 @@ app.use(bodyParser.json());
 app.use('/login', cors(), (req, res)=>{
 
   auth.login(req.body).then( (token) =>{
-    res.json(token);
+    res.json({token: token});
+  }).catch((err) =>{
+    console.log(err)
+    res.status(500).send({error:"Wrong email or password. Please check your credentials."})
   });
 
 })
