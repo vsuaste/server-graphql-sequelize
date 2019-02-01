@@ -14,7 +14,10 @@ const secret = 'something-secret';
  */
 module.exports =  function( context, resource, permission ) {
   //if there's not authorization rules set
-  if (context.acl == null) return true;
+  if (context.acl == null) //return true;
+  {
+    return Promise.resolve(true);
+  }
 
   let token_bearer =  context.request.headers["authorization"];
   let token = token_bearer.replace("Bearer ","");
