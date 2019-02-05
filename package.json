@@ -34,7 +34,8 @@
     "sequelize-cli": "^4.0.0",
     "supertest": "^3.1.0",
     "uuidv4": "^2.0.0",
-    "xlsx": "^0.12.11"
+    "xlsx": "^0.12.11",
+    "sync-request": "^6.0.0"
   },
   "devDependencies": {
     "mocha": "^5.2.0"
