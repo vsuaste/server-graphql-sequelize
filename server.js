@@ -91,7 +91,7 @@ app.use('/login', cors(), (req, res)=>{
    formatError(error){
      return {
        message: error.message,
-       details: error.originalError.errors,
+       details: error.originalError && error.originalError.errors ? error.originalError.errors : "",
        path: error.path
      };
    }
