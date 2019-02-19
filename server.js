@@ -87,6 +87,13 @@ app.use('/login', cors(), (req, res)=>{
    context: {
      request: req,
      acl: acl
+   },
+   formatError(error){
+     return {
+       message: error.message,
+       details: error.originalError.errors,
+       path: error.path
+     };
    }
  })));
 
