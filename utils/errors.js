@@ -7,18 +7,15 @@ class customArrayError extends Error {
   }
 }
 
-class otherError extends Error {
-  constructor(oneError,message){
-    super();
-    this.message = message;
-    this.detail = oneError;
-  }
-}
-
 handleError = function(error){
   if(error.name === "SequelizeValidationError"){
-      throw new customArrayError(error.errors, "Validation error");
+      console.log("Validation error")
+      let errorC = new customArrayError(error.errors, "Validation error");
+      console.log( errorC );
+      throw errorC;
+
   }else{
+      console.log('Other error')
       throw new Error(error)
   }
 }
