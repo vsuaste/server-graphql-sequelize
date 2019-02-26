@@ -19,6 +19,22 @@
  const APP_PORT = 3000;
  const app = express();
 
+ app.use((req, res, next)=> {
+
+ // Website you wish to allow to connect
+ res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
+ //res.setHeader('Access-Control-Expose-Headers', 'Access-Control-Allow-Origin');
+
+ // Request methods you wish to allow
+ //res.setHeader('Access-Control-Allow-Methods',
+ //  'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+ // Request headers you wish to allow
+ //res.setHeader('Access-Control-Allow-Headers',
+ //  'X-Requested-With,content-type,authorization,Authorization,accept,Accept');
+   next();
+ });
+
  /* Temporary solution:  acl rules set */
  if (process.argv.length > 2 && process.argv[2] == 'acl') {
    var node_acl = require('acl');
@@ -47,21 +63,6 @@ console.log(merged_schema)
 
 
 
- //app.use((req, res, next)=> {
-
- // Website you wish to allow to connect
- //res.setHeader('Access-Control-Allow-Origin', '*');
- //res.setHeader('Access-Control-Expose-Headers', 'Access-Control-Allow-Origin');
-
- // Request methods you wish to allow
- //res.setHeader('Access-Control-Allow-Methods',
- //  'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-
- // Request headers you wish to allow
- //res.setHeader('Access-Control-Allow-Headers',
- //  'X-Requested-With,content-type,authorization,Authorization,accept,Accept');
- //  next();
- //});
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -78,7 +79,7 @@ app.use('/login', cors(), (req, res)=>{
 })
 
  app.use(fileUpload());
- /*request is passed as context by default */
+ /*request is passed as context by default  */
  app.use('/graphql', cors(), graphqlHTTP((req) => ({
    schema: Schema,
    rootValue: resolvers,
@@ -97,6 +98,15 @@ app.use('/login', cors(), (req, res)=>{
    }
  })));
 
+ // Error handling
+ app.use(function (err, req, res, next) {
+     if (err.name === 'UnauthorizedError') { // Send the error rather than to show it on the console
+         res.status(401).send(err);
+     }
+     else {
+         next(err);
+     }
+ });
 
  var server = app.listen(APP_PORT, () => {
    console.log(`App listening on port ${APP_PORT}`);
