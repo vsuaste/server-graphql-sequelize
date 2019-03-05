@@ -12,7 +12,11 @@
 
 module.exports.ifHasValidatorFunctionInvoke = function( validatorFunction, dataModel, data) {
     if (typeof dataModel.prototype[validatorFunction] === "function") {
-        return dataModel.prototype[validatorFunction](data).error;
+        if(validatorFunction === 'validatorForDelete'){
+            return dataModel.prototype[validatorFunction](dataModel);
+        }else{
+            return dataModel.prototype[validatorFunction](data).error;
+        }
     }
 };
 
