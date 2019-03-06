@@ -2,8 +2,9 @@ const XLSX = require('xlsx');
 const Promise = require('bluebird');
 const promise_csv_parse = Promise.promisify(require('csv-parse'));
 const csv_parse = require('csv-parse');
-const fs = require('fs')
-const awaitifyStream = require('awaitify-stream')
+const fs = require('fs');
+const awaitifyStream = require('awaitify-stream');
+const validatorUtil = require('./validatorUtil');
 
 
 /**
@@ -77,8 +78,7 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
   // Wrap all database actions within a transaction:
   let transaction = await model.sequelize.transaction();
   try {
-    // Pipe a file read-stream through a CSV-Reader and make the records
-    // handleable asynchronously:
+    // Pipe a file read-stream through a CSV-Reader and handle records asynchronously:
     let csvStream = awaitifyStream.createReader(
       fs.createReadStream(csvFilePath).pipe(
         csv_parse({
@@ -86,24 +86,32 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
           columns: cols
         })
       )
-    )
+    );
 
     let record;
     let errors = [];
 
     while (null !== (record = await csvStream.readAsync())) {
 
-      console.log(`Read record: ${JSON.stringify(record)}`);
-      await model.create(record, {
-        transaction: transaction
+        let error = validatorUtil.ifHasValidatorFunctionInvoke('validatorForCreate', model, record);
 
-      }).catch(error => {
+        if (!!error) {
 
-        console.log(`Caught error in while-loop: ${JSON.stringify(error)}`)
-        error.record = record;
-        errors.push(error);
+            console.log(`Validation error during CSV batch upload: ${JSON.stringify(error)}`);
+            error.record = record;
+            errors.push(error);
 
-      })
+        } else {
+
+            await model.create(record, {
+                transaction: transaction
+            }).catch(error => {
+                console.log(`Caught sequelize error during CSV batch upload: ${JSON.stringify(error)}`);
+                error.record = record;
+                errors.push(error);
+            })
+
+        }
     }
 
     if(errors.length > 0) {
