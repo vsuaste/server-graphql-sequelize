@@ -5,6 +5,7 @@
  const fileUpload = require('express-fileupload');
  const auth = require('./utils/login');
  const bodyParser = require('body-parser');
+ const Join = require('./utils/join-models');
 
  var {
    buildSchema
@@ -53,9 +54,9 @@
  }
 
  /* Schema */
-console.log('Merging Schema')
+ console.log('Merging Schema');
  var merged_schema = mergeSchema(path.join(__dirname, './schemas'));
-console.log(merged_schema)
+ console.log(merged_schema);
  var Schema = buildSchema(merged_schema);
 
  /* Resolvers*/
@@ -72,11 +73,38 @@ app.use('/login', cors(), (req, res)=>{
   auth.login(req.body).then( (token) =>{
     res.json({token: token});
   }).catch((err) =>{
-    console.log(err)
-    res.status(500).send({error:"Wrong email or password. Please check your credentials."})
+    console.log(err);
+    res.status(500).send({error: "Wrong email or password. Please check your credentials."})
   });
 
-})
+});
+
+
+
+
+app.use('/join', cors(), (req, res) => {
+
+    // check if the Content-Type is in JSON so that bodyParser can be applied automatically
+    if (!req.is('application/json'))
+        return res.status(415).send({error: "JSON Content-Type expected"});
+
+    Join.joinModels(req.body, res).then(() => {
+        console.log("joinModels success");
+        res.end();
+    }).catch(err => {
+        console.log(err);
+        res.status(500).send({error: err.message});
+    });
+});
+
+
+
+
+
+
+
+
+
 
  app.use(fileUpload());
  /*request is passed as context by default  */
