@@ -184,3 +184,5 @@ introspect = async function (head){
 constructRow = function(model_adj_head){
     return `raw constructed`;
 };
+
+// curl -d '[ { "name"  : "individual", "cur_id" : 1 } , { "name" : "transcript_count" , "cur_id" : 2} ]' -H "Content-Type: application/json" http://localhost:3000/join
