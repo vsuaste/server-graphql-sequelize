@@ -22,6 +22,10 @@ $ npm start
 
 ``` $ node_modules/.bin/sequelize db:migrate ``` command will create the tables specified in the ```migrations``` folder.
 With credential as in ``` config/config.json``` file.
+### ENVIRONMENT VARIABLES
+
+* `PORT` - The port where the app is listening, default value is `3000`
+* `ALLOW_ORIGIN` - In development mode we need to specify the header `Access-Control-Allow-Origin` so the SPA application can communicate with the server, default value `http://localhost:8080`.
 
 ## NOTE 
 A data base should be already configured locally as in `config/config.json`
