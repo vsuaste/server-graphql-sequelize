@@ -43,23 +43,20 @@ module.exports.joinModels = async function(modelAdjacencies, httpWritableStream)
         for(let attribute_name of Object.keys(model.rawAttributes))
             cur.model_adj.attributes.push(attribute_name);
 
-        // function that searches by criteria and offset instances of the given model_adj
-        cur.model_adj.func_findNext = defineFindNext(cur);
-
-        // generic function that searches for this model by criteria
-        cur.model_adj.func_findThis = resolvers[inflection.pluralize(cur.model_adj.name)];
-
-        // not used before offset for the current model
-        cur.model_adj.offset = 0;
-
-        // current data (at the moment of introspect - it's invalid, but at the moment of
-        // func_findNext - is valid)
+        // current data (is initialized by the 'func_find' call)
         cur.model_adj.data = null;
+
+        // in the case when SELECT query that is formed by func_find method can return
+        // a collection of database records, those can be filtered and ordered accordingly
+        // to "find_params" structure. This structure also includes "offset" initialized to 0
+        cur.model_adj.search_params = defineSearchParams(cur);
+
+        // function that searches by criteria and offset instances of the given model_adj
+        cur.model_adj.func_find = defineFindFunction(cur);
 
     }while(null !== (cur = cur.next));
 
-
-    // print list elements
+    //TODO: Kill this
     /*cur = list.head;
     do{
         console.log(cur.model_adj);
@@ -71,6 +68,11 @@ module.exports.joinModels = async function(modelAdjacencies, httpWritableStream)
     httpWritableStream.writeHead(200, {'Content-Type': 'application/force-download',
         'Content-disposition': `attachment; filename = ${timestamp}.json`});
 
+    //TODO: Remove user session stub!!!
+    let context = {
+        acl : null
+    };
+
     while(true){
         /*
         Function introspect will add "data" field to each adjacency
@@ -81,18 +83,30 @@ module.exports.joinModels = async function(modelAdjacencies, httpWritableStream)
 
         try {
 
-            list.head = await introspect(list.head);
+            // iterate over the list of associated models
+            cur = list.head;
+            do{
+                console.log(`Get data for: ${cur.model_adj.name}`);
+                cur = await cur.model_adj.func_find(cur, context);
 
-            if (list.head.model_adj.data !== null) {
+                // no data found for the cur element of association chain
+                if(cur.model_adj.data === null)
+                    break;
 
-                // send complete joined data raw to the end-user
-                let row_string = constructRow(list.head);
-                await httpWritableStream.write(row_string);
+            }while(null !== (cur = cur.next));
 
-            } else {
-                //TODO: redirect to success page from
-                break;
-            }
+            console.log("out from introspection iterator");
+
+            // the end of the introspection is reached when there is no mode data in the head
+            // list element
+            if(cur === list.head && cur.model_adj.data === null) break;
+
+            // send complete joined data raw to the end-user
+            // here the data line terminates with the first data == null and not
+            // necessary with the tail element
+            let row_string = constructRow(list.head);
+            await httpWritableStream.write(row_string);
+
         }catch(err){
             /*
                 We can't throw an error to Express at this stage because the response Content-Type
@@ -105,84 +119,144 @@ module.exports.joinModels = async function(modelAdjacencies, httpWritableStream)
     }
 };
 
-defineFindNext = function (cur){
+/*
+    Function use offset to retrieve corresponding data for the current list element according
+    to the current offset. This function will renew the cur.model_adj.data and augment
+    the cur.model_adj.offset field. If there is no data for the current offset, the
+    cur.model_adj.data will be set to null.
 
-    // get curr adjacency data and if not null - increment offset
-    // if id_ for the next adjacency is not null - return introspect
-    // if id_ for the next adjacency is null - do not increment anything and just return
-    // if we are on the first adjacency and the is a null result - just return false
-    // do not catch any errors - they will be cached automatically in the caller function
+    It is assumed, that cur->prev element has already initialized it's data field. If cur->prev is null, it means that
+    we are working with the list head. If after calling this function, the cur.model_adj.data is null,
+    it means that there is nothing mode to do, and the JOIN process has successfully completed.
+*/
 
-    // there is no findNext function for the list tail
-    if(cur.next === null)
-        return null;
+defineFindFunction = function (cur){
 
-    let cur_model = models[cur.model_adj.name];
-    let next_model = models[cur.next.model_adj.name];
 
-    // cur.model_adj.func_search = resolvers[inflection.pluralize(cur.model_adj.name)];
-    // model name that stores private keys of the given model_adj
-    // TODO: ...
+    if(cur.prev === null){
 
-    // returns modified model_adj_item (with offset moved, and data filled)
-      return function(cur){
+        // cur is the head element of the list
+        return async function(cur, context){
 
-          console.log(`findNext invoked for ${cur.model_adj.name}`);
-          //TODO: cur.next.model_adj.data = ...(cur.data ... cur.next.offset)...
-          //TODO: cur.next.model_adj.offset++;
-          //if(...data != null... && cur.next.func_findNext != null)
-          // cur.next.next = cur.next.func_findNext(cur.next);
+            // for head getter function has to be estimated just once
+            if( ! cur.model_adj.func_getter)
+                cur.model_adj.func_getter = resolvers[inflection.pluralize(cur.model_adj.name)];
 
-          console.log("PRINT ASSOCIATIONS");
-          console.log(cur_model.getAssociations(next_model)[0].);
-          console.log("<<<<<<<<<<<<<<<<<<<");
+            // database query
+            cur.model_adj.data =  await cur.model_adj.func_getter(cur.model_adj.search_params, context);
 
-          return cur.next;
-      }
+            //TODO: not a nice check
+            if( cur.model_adj.data.length === 0 ) {
+                cur.model_adj.data = null;
+            }else{
+                cur.model_adj.data = cur.model_adj.data[0];
+            }
+
+            // head offset never gets back to it's initial value of 0
+            cur.model_adj.search_params.pagination.offset++;
+
+            return cur;
+        }
+
+    } else {
+
+        let model_prev = models[cur.prev.model_adj.name];
+
+        //********************DRY CODE*****************************
+        //TODO: Add association information inside a model generator
+        const nameAssocLc = cur.model_adj.name;
+        const nameAssocPl = inflection.pluralize(nameAssocLc);
+
+        //TODO: Here are associoation name that sohuld not coincide with the target model name!!!
+        //<%- nameLc -%>.prototype.<%=associations_one[i].name%>
+        let func_toOneGetter = model_prev.prototype[nameAssocLc];
+
+        //<%- nameLc -%>.prototype.<%=associations_temp[i].name%>Filter --> associations_temp ???
+        let func_toManyGetter = model_prev.prototype[`${nameAssocPl}Filter`];
+        //********************^^^^^^^^^^*****************************
+
+
+        if(typeof func_toOneGetter === "function"){
+
+            // there is just one cur element can be found from the cur.prev that
+            // corresponds to the hasOne or belongsTo of the prev->cur association type
+            return async function(cur, context){
+                console.log(`Invoking func_toOneGetter stub`);
+                return cur;
+            }
+        } else if(typeof func_toManyGetter === "function"){
+            //TODO: Apply filters and ordering
+            // returns modified model_adj_item (with offset moved, and data filled)
+            return async function(cur, context){
+
+                // database query
+                cur.model_adj.data = await cur.prev.model_adj.data[`${inflection.pluralize(cur.model_adj.name)}Filter`](cur.model_adj.search_params, context);
+
+                //TODO: not a nice check
+                if( cur.model_adj.data.length === 0 ){
+                    cur.model_adj.data = null;
+                    cur.model_adj.search_params.pagination.offset = 0;
+                }else{
+                    cur.model_adj.search_params.pagination.offset++;
+                }
+
+                return cur;
+            }
+        } else{
+            //TODO: Ask if we are using always symmetrical associations? Add that to the documentation!!!
+            throw Error(`No association from ${cur.prev.model_adj.name} to ${cur.model_adj.name} was detected`);
+        }
+
+    }
+
 };
 
-/*
-    to find next data I need to have a valid cur data
- */
-introspect = async function (head){
 
-    let params = {};
+defineSearchParams = function(cur){
+    let search_params = {};
 
-    params.pagination = {
-        offset : head.model_adj.offset,
+    search_params.pagination = {
+        offset : 0,
         limit : 1
     };
 
-    if( ! head.model_adj.search)
-        params.search = head.model_adj.search;
+    //TODO: Test filtering
+    if( ! cur.model_adj.search )
+        search_params.search = cur.model_adj.search;
 
-    if( ! head.model_adj.order)
-        params.order = head.model_adj.order;
+    //TODO: Test ordering
+    if( ! cur.model_adj.order )
+        search_params.order = cur.model_adj.order;
 
-    //TODO: Remove user session stub!!!
-    let context = {
-        acl : null
-    };
-
-    head.model_adj.data = await head.model_adj.func_findThis(params, context);
-    if( head.model_adj.data.length === 0 ) head.model_adj.data = null;
-    head.model_adj.offset++;
-
-    //TODO: Remove this
-    //console.log("INTROSPECTION STARTED");
-    //console.log(head.model_adj.data);
-
-    // explore subsequent objects recursively
-    if(head.model_adj.data != null && head.model_adj.func_findNext != null)
-        head.next = head.model_adj.func_findNext(head);
-
-
-
-    return head;
+    return search_params;
 };
 
-constructRow = function(model_adj_head){
-    return `raw constructed`;
+
+
+
+
+
+
+constructRow = function(head){
+
+    let str = "";
+
+    let cur = head;
+    do{
+        str = str.concat(cur.model_adj.name);
+
+        if(cur.next.model_adj.data === null)
+            break;
+
+        if(cur.next !== null)
+            str = str.concat("->");
+
+    }while(null !== (cur = cur.next));
+
+    str = str.concat("\n");
+
+    return str;
 };
+
 
 // curl -d '[ { "name"  : "individual", "cur_id" : 1 } , { "name" : "transcript_count" , "cur_id" : 2} ]' -H "Content-Type: application/json" http://localhost:3000/join
