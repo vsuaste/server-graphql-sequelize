@@ -1,6 +1,7 @@
 module.exports = {
   LIMIT_RECORDS : process.env.LIMIT_RECORDS || 10000,
   PORT : process.env.PORT || 3000,
+  ALLOW_ORIGIN: process.env.ALLOW_ORIGIN || "http://localhost:8080",
   MAIL_SERVICE: "gmail",
   MAIL_HOST: "smtp.gmail.com",
   MAIL_ACCOUNT: "sci.db.service@gmail.com",
