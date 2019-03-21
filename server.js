@@ -5,6 +5,7 @@
  const fileUpload = require('express-fileupload');
  const auth = require('./utils/login');
  const bodyParser = require('body-parser');
+ const globals = require('./config/globals');
 
  var {
    buildSchema
@@ -16,13 +17,13 @@
 
 
  /* Server */
- const APP_PORT = 3000;
+ const APP_PORT = globals.PORT;
  const app = express();
 
  app.use((req, res, next)=> {
 
  // Website you wish to allow to connect
- res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
+ res.setHeader('Access-Control-Allow-Origin', globals.ALLOW_ORIGIN);
  //res.setHeader('Access-Control-Expose-Headers', 'Access-Control-Allow-Origin');
 
  // Request methods you wish to allow
