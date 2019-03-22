@@ -56,12 +56,6 @@ module.exports.joinModels = async function(modelAdjacencies, httpWritableStream)
 
     }while(null !== (cur = cur.next));
 
-    //TODO: Kill this
-    /*cur = list.head;
-    do{
-        console.log(cur.model_adj);
-    }while(null !== (cur = cur.next));*/
-
 
     // http send stream header
     let timestamp = new Date().getTime();
@@ -73,47 +67,76 @@ module.exports.joinModels = async function(modelAdjacencies, httpWritableStream)
         acl : null
     };
 
+    /*
+        This is the main introspection loop. On each iteration the user would receive
+        a new data raw. Accordingly to implementation of the constructRow function there
+        is a possibility to generate different output formats, hide unnecessary columns, etc.
+        This functionality is out of the scope of the current class and the constructRow
+        implementation has to be overloaded to output real data. See the child classes to get
+        more information.
+     */
     while(true){
-        /*
-        Function introspect will add "data" field to each adjacency
-        and will augment required offset for next call
 
-        In the case that there is no data, this function will return "false" object.
-         */
+        // entering into the iterations from the head element
+        cur = list.head;
 
         try {
 
-            // iterate over the list of associated models
-            cur = list.head;
-            do{
-                console.log(`Get data for: ${cur.model_adj.name}`);
+            while(true){
+                let rollback = false;
                 cur = await cur.model_adj.func_find(cur, context);
 
-                // no data found for the cur element of association chain
-                if(cur.model_adj.data === null)
+                // no data found for the cur element of association chain => print, rollback or exit
+                if(cur.model_adj.data === null){
+                    // cur element was visited for the first time: augment offset and print the line
+                    if(cur.model_adj.search_params.pagination.offset === 0){
+                        cur = augmentOffsetFlushTrailing(cur);
+                        break;
+                    // cur element was visited before and has no data
+                    }else{
+                        // head has no more data, terminate
+                        if(cur.prev === null){
+                            return;
+                        // cur has no data and was already printed
+                        // goto prev, augment it's offset and try again
+                        }else{
+                            cur = cur.prev;
+                            cur = augmentOffsetFlushTrailing(cur);
+                            rollback = true;
+                        }
+                    }
+                }
+
+                // the last element was reached and it has data != null
+                if(cur.next === null){
+                    cur = augmentOffsetFlushTrailing(cur);
                     break;
+                }
 
-            }while(null !== (cur = cur.next));
+                // if it's not a rollback run - explore the next element
+                if(!rollback)
+                    cur = cur.next;
+            }
 
-            console.log("out from introspection iterator");
+            /*
+                Send joined data raw to the end-user accordingly to the constructRow implementation.
 
-            // the end of the introspection is reached when there is no mode data in the head
-            // list element
-            if(cur === list.head && cur.model_adj.data === null) break;
+                It should be stressed, that after the first element with data == null, all subsequent elements
+                have no valid data. Also, as long as offsets are used to check if a given element was
+                already visited (printed) or not, the offsets should not be modified within constructRow function,
+                and it's interpretation is not direct.
+             */
 
-            // send complete joined data raw to the end-user
-            // here the data line terminates with the first data == null and not
-            // necessary with the tail element
             let row_string = constructRow(list.head);
             await httpWritableStream.write(row_string);
 
         }catch(err){
             /*
-                We can't throw an error to Express at this stage because the response Content-Type
+                We can't throw an error to Express server at this stage because the response Content-Type
                 was already sent. So we can try to attach it to the end of file.
              */
-            console.log(err.message);
-            await httpWritableStream.write(`{error : ${err.message}`);
+            console.log(err);
+            await httpWritableStream.write(`{error : ${err.message}}\n`);
             return;
         }
     }
@@ -142,18 +165,15 @@ defineFindFunction = function (cur){
             if( ! cur.model_adj.func_getter)
                 cur.model_adj.func_getter = resolvers[inflection.pluralize(cur.model_adj.name)];
 
-            // database query
+            // get record from database for the given offset
+            // an output is an array that have one or zero elements
             cur.model_adj.data =  await cur.model_adj.func_getter(cur.model_adj.search_params, context);
 
-            //TODO: not a nice check
             if( cur.model_adj.data.length === 0 ) {
                 cur.model_adj.data = null;
             }else{
                 cur.model_adj.data = cur.model_adj.data[0];
             }
-
-            // head offset never gets back to it's initial value of 0
-            cur.model_adj.search_params.pagination.offset++;
 
             return cur;
         }
@@ -189,21 +209,24 @@ defineFindFunction = function (cur){
             // returns modified model_adj_item (with offset moved, and data filled)
             return async function(cur, context){
 
-                // database query
+                // get record from database for the given offset
+                // an output is an array that have one or zero elements
                 cur.model_adj.data = await cur.prev.model_adj.data[`${inflection.pluralize(cur.model_adj.name)}Filter`](cur.model_adj.search_params, context);
 
-                //TODO: not a nice check
                 if( cur.model_adj.data.length === 0 ){
                     cur.model_adj.data = null;
-                    cur.model_adj.search_params.pagination.offset = 0;
                 }else{
-                    cur.model_adj.search_params.pagination.offset++;
+                    cur.model_adj.data = cur.model_adj.data[0];
                 }
 
                 return cur;
             }
         } else{
-            //TODO: Ask if we are using always symmetrical associations? Add that to the documentation!!!
+            /*
+             If you get this error, it means that there is no explicit link between cur.prev and cur elements.
+             For example, it is the case when
+            */
+
             throw Error(`No association from ${cur.prev.model_adj.name} to ${cur.model_adj.name} was detected`);
         }
 
@@ -211,7 +234,12 @@ defineFindFunction = function (cur){
 
 };
 
-
+/*
+    This helper function fills up a serach_params data structure. It's 'search' and 'order'
+    elements would never change during the given transmission session. However the pagination
+    parameter is important. The limit shell always be 1, and the offset is internal parameter of
+    the current algorithm. It is prohibited to alter offset values from the outside world.
+ */
 defineSearchParams = function(cur){
     let search_params = {};
 
@@ -231,11 +259,40 @@ defineSearchParams = function(cur){
     return search_params;
 };
 
+/*
+    This helper function is used to augment offset of the "cur" element.
+    In this case offsets and data of the all trailing elements became invalid
+    and shell be flushed.
+ */
+augmentOffsetFlushTrailing = function(cur){
+    cur.model_adj.search_params.pagination.offset++;
+    let next = cur.next;
+    while(next !== null){
+        next.model_adj.search_params.pagination.offset = 0;
+        next.model_adj.data = null;
+        next = next.next;
+    }
+    return cur;
+};
 
 
 
 
 
+/*
+    The basic implementation of the constructRow function that prints model names and id's
+    of the found elements. It is used for testing.
+
+    ...
+    individual[id:458] ->transcript_count[id:6]
+    individual[id:459] ->transcript_count[id:2]
+    individual[id:460]
+    individual[id:461]
+    individual[id:462] ->transcript_count[id:7]
+    individual[id:462] ->transcript_count[id:10]
+    individual[id:463] ->transcript_count[id:8]
+    ...
+ */
 
 constructRow = function(head){
 
@@ -243,9 +300,10 @@ constructRow = function(head){
 
     let cur = head;
     do{
-        str = str.concat(cur.model_adj.name);
+        str = str.concat(`${cur.model_adj.name}[`);
+        str = str.concat(`id:${cur.model_adj.data.id}] `);
 
-        if(cur.next.model_adj.data === null)
+        if(cur.next !== null && cur.next.model_adj.data === null)
             break;
 
         if(cur.next !== null)
@@ -259,4 +317,4 @@ constructRow = function(head){
 };
 
 
-// curl -d '[ { "name"  : "individual", "cur_id" : 1 } , { "name" : "transcript_count" , "cur_id" : 2} ]' -H "Content-Type: application/json" http://localhost:3000/join
+// curl -d '[ { "name"  : "individual"} , { "name" : "transcript_count"} ]' -H "Content-Type: application/json" http://localhost:3000/join
