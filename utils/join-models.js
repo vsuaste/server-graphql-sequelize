@@ -84,19 +84,25 @@ module.exports.joinModels = async function(modelAdjacencies, httpWritableStream)
 
             while(true){
                 let rollback = false;
+
+                // query the database (see defineFindFunction for details)
                 cur = await cur.model_adj.func_find(cur, context);
 
                 // no data found for the cur element of association chain => print, rollback or exit
                 if(cur.model_adj.data === null){
+
                     // cur element was visited for the first time: augment offset and print the line
                     if(cur.model_adj.search_params.pagination.offset === 0){
                         cur = augmentOffsetFlushTrailing(cur);
                         break;
+
                     // cur element was visited before and has no data
                     }else{
+
                         // head has no more data, terminate
                         if(cur.prev === null){
                             return;
+
                         // cur has no data and was already printed
                         // goto prev, augment it's offset and try again
                         }else{
