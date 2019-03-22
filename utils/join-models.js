@@ -9,11 +9,10 @@ Below goes an example of the currently supported parameter set:
 [ {
     "name" : "individual",               // Name of the model as it appears in the corresponding index.js
 
-    "assoc" : {                          // (REQUIRED UNTIL...) An "assoc" structure describe how the model
+    "assoc" : {                          // (REQUIRED) An "assoc" structure describe how the model
                                          // "individual" is associated with the model "transcript_count". This structure
                                          // is required until the corresponding data will appear in the
                                          // '../models/individual.js' file in future codegen releases.
-                                         // After that an "assoc" structure will not be required on the input.
 
         "as_name" : "transcript_counts", // (REQUIRED) There can be more than one association between two models,
                                          // the way to differ between these associations is an "as_name"
