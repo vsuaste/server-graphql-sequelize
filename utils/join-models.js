@@ -1,6 +1,13 @@
 
 /*
 
+// TODO: change assoc
+// TODO: extend class and use slash
+// TODO: add docks in standard format
+// TODO: document all in off. docs
+// TODO: close issue with single index and use it
+// TODO: write integration tests
+
 MODULE INPUT DESCRIPTION
 
 The "modelAdjacencies" input parameter is an ordered array of JSON objects that describe a JOIN chain.
