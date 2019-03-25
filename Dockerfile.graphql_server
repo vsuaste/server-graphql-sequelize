@@ -8,6 +8,7 @@ COPY . .
 
 # Clone the skeleton project and install dependencies
 RUN chmod u+x ./migrateDbAndStartServer.sh && \
+  rm .git* && \
   npm install
 
 EXPOSE 3000
