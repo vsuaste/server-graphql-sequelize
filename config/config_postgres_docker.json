@@ -3,7 +3,7 @@
     "username": "sciencedb",
     "password": "sciencedb",
     "database": "sciencedb_development",
-    "host": "postgres",
+    "host": "sdb_postgres",
     "dialect": "postgres",
     "operatorsAliases": false
   },
@@ -11,7 +11,7 @@
     "username": "sciencedb",
     "password": "sciencedb",
     "database": "sciencedb_test",
-    "host": "postgres",
+    "host": "sdb_postgres",
     "dialect": "postgres",
     "operatorsAliases": false
   },
@@ -19,7 +19,7 @@
     "username": "sciencedb",
     "password": "sciencedb",
     "database": "sciencedb_production",
-    "host": "postgres",
+    "host": "sdb_postgres",
     "dialect": "postgres",
     "operatorsAliases": false
   }
