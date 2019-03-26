@@ -1,7 +1,7 @@
 FROM node:11.12.0-stretch-slim
 
 # Create app directory
-WORKDIR /usr/src/app
+WORKDIR /usr/ScienceDbStarterPack/graphql-server
 
 # Copy generated code into the skeleton GraphQL-Server
 COPY . .
