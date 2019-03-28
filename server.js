@@ -5,7 +5,7 @@
  const fileUpload = require('express-fileupload');
  const auth = require('./utils/login');
  const bodyParser = require('body-parser');
- const Join = require('./utils/join-models');
+ const JOIN = require('./utils/join-models');
 
  var {
    buildSchema
@@ -88,8 +88,9 @@ app.use('/join', cors(), (req, res) => {
     if (!req.is('application/json'))
         return res.status(415).send({error: "JSON Content-Type expected"});
 
-    Join.joinModels(req.body, res).then(() => {
-        console.log("joinModels success");
+    let joinModels = new JOIN.JoinModels();
+
+    joinModels.run(req.body, res).then(() => {
         res.end();
     }).catch(err => {
         console.log(err);
