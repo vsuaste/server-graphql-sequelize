@@ -88,13 +88,22 @@ app.use('/join', cors(), (req, res) => {
     if (!req.is('application/json'))
         return res.status(415).send({error: "JSON Content-Type expected"});
 
-    let joinModels = new JOIN.JoinModels();
+    let context = {
+        request: req,
+            acl: acl
+    };
+
+    let joinModels = new JOIN.JoinModelsJSON(context);
 
     joinModels.run(req.body, res).then(() => {
         res.end();
-    }).catch(err => {
-        console.log(err);
-        res.status(500).send({error: err.message});
+    }).catch(error => {
+        let formattedError = {
+            message: error.message,
+            details: error.originalError && error.originalError.errors ? error.originalError.errors : "",
+            path: error.path
+        };
+        res.status(500).send(formattedError);
     });
 });
 

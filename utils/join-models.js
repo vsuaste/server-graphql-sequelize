@@ -1,14 +1,13 @@
 
 
 
-// TODO: document all in off. docs
-
-
 const _ = require('lodash');
 // TODO: Use generic index
+// const models = require('../models_index');
 const models = require('../models/index');
 const resolvers = require('../resolvers/index');
 const inflection = require('inflection');
+const checkAuthorization = require('./check-authorization');
 let LinkedList = require('linked-list');
 
 
@@ -64,6 +63,11 @@ let LinkedList = require('linked-list');
  * }
  * ]
  *
+ * PERMISSIONS
+ *
+ * The user role should have a "batch_download" permission for all models defined in the
+ * "modelAdjacencies" input parameter.
+ *
  */
 
 class JoinModels {
@@ -71,7 +75,7 @@ class JoinModels {
     /**
      * Internal class parameters
      */
-    constructor(){
+    constructor(context){
 
         // a linked list to be initialized from the input adjacency array
         // this list will always keep the current model and the next model that is more useful than
@@ -79,8 +83,7 @@ class JoinModels {
         this.list = new LinkedList;
 
         // request context
-        //TODO: Remove user session stub (this would require login session on the client side)
-        this.context = { acl : null };
+        this.context = context;
     }
 
     /**
@@ -111,6 +114,9 @@ class JoinModels {
         // iterate over the list and add some useful information to it's elements
         let cur = this.list.head;
         do{
+            // check for permission to make batch_download for all models listed
+            if( ! await checkAuthorization(this.context, cur.model_adj.name, 'batch_download'))
+                return new Error(`You don't have authorization to perform batch download for the ${cur.model_adj.name} model`);
 
             // required on this step input data validation
             if( ! cur.model_adj.name ) throw Error(`Model name is not defined in ${JSON.stringify(cur.model_adj)}`);
@@ -434,6 +440,14 @@ class JoinModels {
 
 
 class JoinModelsJSON extends JoinModels{
+
+    /**
+     * Internal class parameters
+     */
+    constructor(context){
+        super(context);
+    }
+
     /**
      * constructRow - create text string for the joined line in JSON format
      *
@@ -484,8 +498,8 @@ class JoinModelsCSV extends JoinModels{
     /**
      * Internal class parameters
      */
-    constructor(){
-        super();
+    constructor(context){
+        super(context);
 
         // in CSV format first line is the title
         this.csv_header = true;
