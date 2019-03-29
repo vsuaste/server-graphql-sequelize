@@ -38,7 +38,8 @@
     "sync-request": "^6.0.0",
     "nodemailer" : "^5.1.1",
     "nodemailer-smtp-transport": "^2.7.4",
-    "joi" : "^14.3.1"
+    "joi" : "^14.3.1",
+    "linked-list": "^2.0.0"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
