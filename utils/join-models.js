@@ -3,8 +3,8 @@
 
 const _ = require('lodash');
 // TODO: Use generic index
-// const models = require('../models_index');
-const models = require('../models/index');
+const models = require('../models_index');
+//const models = require('../models/index');
 const resolvers = require('../resolvers/index');
 const inflection = require('inflection');
 const checkAuthorization = require('./check-authorization');
