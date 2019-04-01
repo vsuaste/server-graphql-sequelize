@@ -1,6 +1,6 @@
-const bcrypt = require('bcrypt')
-const jsonwebtoken = require('jsonwebtoken')
-const user = require('../models/index').user
+const bcrypt = require('bcrypt');
+const jsonwebtoken = require('jsonwebtoken');
+const user = require('../models_index').user;
 
 module.exports = {
 

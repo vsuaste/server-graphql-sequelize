@@ -1,10 +1,14 @@
 
+// TODO: JOIN: do not print anything if there is no data found, print that there is no data found
+
+
+//TODO: Web service generates a class object that is incompatible with
+//TODO: sequelize object. All types of models shell have the same interface to
+//TODO: proceed with generic JOIN. That's clearly a new issue.
 
 
 const _ = require('lodash');
-// TODO: Use generic index
-// const models = require('../models_index');
-const models = require('../models/index');
+const models = require('../models_index');
 const resolvers = require('../resolvers/index');
 const inflection = require('inflection');
 const checkAuthorization = require('./check-authorization');
@@ -123,7 +127,9 @@ class JoinModels {
             if( ! models[cur.model_adj.name] ) throw Error(`Model with name ${cur.model_adj.name} not exist`);
 
             // store raw names of the model attributes if not given at input
+            console.log(cur.model_adj.name);
             let model = models[cur.model_adj.name];
+            console.log(model);
             if( ! cur.model_adj.attributes ) {
                 cur.model_adj.attributes = [];
                 for (let attribute_name of Object.keys(model.rawAttributes))

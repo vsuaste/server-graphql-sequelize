@@ -1,5 +1,5 @@
 const fs = require('fs');
-const path = require('path')
+const path = require('path');
 sequelize = require('./connection');
 
 var models = {};
@@ -14,6 +14,7 @@ fs.readdirSync("./models")
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
     .forEach(function(file) {
+        console.log(file);
         let model = sequelize['import'](path.join("./models", file));
 
 
