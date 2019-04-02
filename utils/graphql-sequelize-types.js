@@ -7,6 +7,7 @@ module.exports = {
   "Int" : 'INTEGER',
   "String": 'STRING',
   "Float": 'FLOAT',
+  "Boolean": 'BOOLEAN',
   "Date": "DATEONLY",
   "Time": "TIME",
   "DateTime": "DATE"
