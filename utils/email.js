@@ -1,9 +1,10 @@
 const NodeMailer = require('nodemailer');
 const SmtpTransport = require('nodemailer-smtp-transport');
 const Globals = require('../config/globals');
+const path = require('path');
 
 module.exports = {
-    sendEmail: function (dst_email, subject, message){
+    sendEmail: function (dst_email, subj, message, att){
         console.log(`${dst_email}, ${message}, ${Globals.MAIL_ACCOUNT}, ${Globals.MAIL_PASSWORD}`);
 
         let transporter = NodeMailer.createTransport(SmtpTransport({
@@ -19,16 +20,12 @@ module.exports = {
         let mailOptions = {
             from: Globals.MAIL_ACCOUNT,
             to: dst_email,
-            subject: subject,
-            text: message
+            subject: subj,
+            text: message,
+            attachments: att
         };
 
-        transporter.sendMail(mailOptions, function(error, info){
-            if (error) {
-                console.log(error);
-            } else {
-                console.log('Email sent: ' + info.response);
-            }
-        });
+
+        return transporter.sendMail(mailOptions);
     }
-}
+};

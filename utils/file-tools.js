@@ -5,6 +5,7 @@ const csv_parse = require('csv-parse');
 const fs = require('fs');
 const awaitifyStream = require('awaitify-stream');
 const validatorUtil = require('./validatorUtil');
+const admZip = require('adm-zip');
 
 
 /**
@@ -61,7 +62,14 @@ exports.parseXlsx = function(bstr) {
     XLSX.utils.sheet_to_json(
       workbook.Sheets[sheet_name_list[0]])
   );
-}
+};
+
+exports.deleteIfExists = function (path){
+    fs.exists(path, function(exists){
+        if(exists)
+            fs.unlinkSync(path);
+    });
+};
 
 /**
 * Parse by streaming a csv file and create the records in the correspondant table
@@ -77,6 +85,13 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
   console.log("TYPEOF", typeof model);
   // Wrap all database actions within a transaction:
   let transaction = await model.sequelize.transaction();
+
+  let addedFilePath = csvFilePath.substr(0, csvFilePath.lastIndexOf(".")) + ".json";
+  let addedZipFilePath = csvFilePath.substr(0, csvFilePath.lastIndexOf(".")) + ".zip";
+
+  console.log(addedFilePath);
+    console.log(addedZipFilePath);
+
   try {
     // Pipe a file read-stream through a CSV-Reader and handle records asynchronously:
     let csvStream = awaitifyStream.createReader(
@@ -86,6 +101,11 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
           columns: cols
         })
       )
+    );
+
+    // Create an output file stream
+    let addedRecords = awaitifyStream.createWriter(
+        fs.createWriteStream(addedFilePath)
     );
 
     let record;
@@ -105,6 +125,12 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
 
             await model.create(record, {
                 transaction: transaction
+            }).then(created => {
+
+                // this is async, here we just push new line into the parallel thread
+                // synchronization goes at endAsync;
+                addedRecords.writeAsync(`${JSON.stringify(created)}\n`);
+
             }).catch(error => {
                 console.log(`Caught sequelize error during CSV batch upload: ${JSON.stringify(error)}`);
                 error.record = record;
@@ -113,6 +139,9 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
 
         }
     }
+
+    // close the addedRecords file so it can be sent afterwards
+    await addedRecords.endAsync();
 
     if(errors.length > 0) {
       let message = "Some records could not be submitted. No database changes has been applied.\n";
@@ -127,8 +156,27 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
 
     await transaction.commit();
 
+    // zip comitted data and return a corresponding file path
+    let zipper = new admZip();
+    zipper.addLocalFile(addedFilePath);
+    await zipper.writeZip(addedZipFilePath);
+
+    console.log(addedZipFilePath);
+
+    // At this moment the parseCsvStream caller is responsible in deleting the
+    // addedZipFilePath
+    return addedZipFilePath;
+
   } catch (error) {
+
     await transaction.rollback();
+
+    exports.deleteIfExists(addedFilePath);
+    exports.deleteIfExists(addedZipFilePath);
+
     throw error;
+
+  } finally {
+      exports.deleteIfExists(addedFilePath);
   }
 };
