@@ -174,3 +174,70 @@ module.exports.vueTable = function(req, model, strAttributes) {
       }
     })
   }
+
+
+  /**
+   * modelAttributes - Return info about each column in the model's table
+   *
+   * @param  {Object} model Sequelize model from which the info will be given.
+   * @return {Array}       Array of objects, each object contains info for each attribute in the model
+   */
+  modelAttributes = function(model) {
+      return model.sequelize.query(
+        "SELECT column_name, data_type, is_nullable, column_default " +
+        "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" +
+        model.tableName + "'", {
+          type: model.sequelize.QueryTypes.SELECT
+        }
+      )
+    }
+
+  //attributes to discard
+  discardModelAttributes = ['createdAt', 'updatedAt']
+
+
+  /**
+   * filterModelAttributesForCsv - Filter attributes from a given model
+f   *
+   * @param  {Object} model        Sequelize model from which the attributes will be filtered
+   * @param  {Array} discardAttrs Array of attributes to discard
+   * @return {Array}              Filtered attributes
+   */
+  filterModelAttributesForCsv = function(model, discardAttrs) {
+    discardAttrs = discardAttrs || discardModelAttributes
+    modelPrimaryKey = model.primaryKeyField
+    if (modelPrimaryKey)
+      discardAttrs = discardAttrs.concat([modelPrimaryKey])
+    return modelAttributes(model).then(function(x) {
+      return x.filter(function(i) {
+        return discardAttrs.indexOf(i.column_name) < 0
+      })
+    })
+  }
+
+
+  /**
+   * csvTableTemplate - Returns template of model, i.e. header of each column an its type
+   *
+   * @param  {Object} model         Sequelize model from which the template will be returned.
+   * @param  {Array} discardAttrs Attributes to discard from the template
+   * @return {Array}              Array of strings, one for header and one for the attribute't type.
+   */   
+  module.exports.csvTableTemplate = function(model, discardAttrs) {
+    return filterModelAttributesForCsv(model,
+      discardAttrs).then(function(x) {
+      csvHeader = []
+      csvExmplRow = []
+      x.forEach(function(i) {
+        csvStr = i.data_type
+        if (i.is_nullable.toLowerCase() === 'false' || i.is_nullable.toLowerCase() ===
+          'no' || i.is_nullable === 0)
+          csvStr += ",required"
+        if (i.column_default)
+          csvStr += ",default:" + i.column_default
+        csvHeader = csvHeader.concat([i.column_name])
+        csvExmplRow = csvExmplRow.concat([csvStr])
+      })
+      return [csvHeader.join(','), csvExmplRow.join(',')]
+    })
+  }
