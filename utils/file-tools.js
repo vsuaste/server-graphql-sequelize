@@ -65,9 +65,9 @@ exports.parseXlsx = function(bstr) {
 };
 
 exports.deleteIfExists = function (path){
-    fs.exists(path, function(exists){
-        if(exists)
-            fs.unlinkSync(path);
+    console.log(`Removing ${path}`);
+    fs.unlink(path, function (err){
+        // file may be already deleted
     });
 };
 
