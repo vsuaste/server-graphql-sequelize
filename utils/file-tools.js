@@ -64,12 +64,41 @@ exports.parseXlsx = function(bstr) {
   );
 };
 
+/**
+ * Function that will delete a file if it exists and is insensitive to the
+ * case when a file not exist.
+ *
+ * @param {String} path - A path to the file
+ */
 exports.deleteIfExists = function (path){
     console.log(`Removing ${path}`);
     fs.unlink(path, function (err){
         // file may be already deleted
     });
 };
+
+/**
+ * Function deletes properties that contain string values "NULL" or "null".
+ *
+ * @param {Object} pojo - A plain old JavaScript object.
+ *
+ * @return {Object} A modified clone of the argument pojo in which all String
+ * "NULL" or "null" values are replaced with literal nulls.
+ */
+exports.replacePojoNullValueWithLiteralNull = function(pojo) {
+    if (pojo === null) {
+        return null
+    }
+    let res = Object.assign({}, pojo);
+    Object.keys(res).forEach((k) => {
+        if(res[k].localeCompare("NULL", undefined, { sensitivity: 'accent' }) === 0){
+            //res[k] = null
+            delete res[k];
+        }
+    });
+    return res
+};
+
 
 /**
 * Parse by streaming a csv file and create the records in the correspondant table
@@ -80,6 +109,7 @@ exports.deleteIfExists = function (path){
 * @param {array|boolean|function} cols - Columns as in csv-parser options.(true if auto-discovered in the first CSV line).
 */
 exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
+
   if (!delim) delim = ",";
   if (typeof cols === 'undefined') cols = true;
   console.log("TYPEOF", typeof model);
@@ -90,7 +120,7 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
   let addedZipFilePath = csvFilePath.substr(0, csvFilePath.lastIndexOf(".")) + ".zip";
 
   console.log(addedFilePath);
-    console.log(addedZipFilePath);
+  console.log(addedZipFilePath);
 
   try {
     // Pipe a file read-stream through a CSV-Reader and handle records asynchronously:
@@ -112,6 +142,10 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
     let errors = [];
 
     while (null !== (record = await csvStream.readAsync())) {
+
+        console.log(record);
+        record = exports.replacePojoNullValueWithLiteralNull(record);
+        console.log(record);
 
         let error = validatorUtil.ifHasValidatorFunctionInvoke('validatorForCreate', model, record);
 
