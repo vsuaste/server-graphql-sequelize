@@ -1,9 +1,9 @@
-const bcrypt = require('bcrypt');
-const jsonwebtoken = require('jsonwebtoken');
-const user = require('../models_index').user;
+const bcrypt = require('bcrypt')
+const jsonwebtoken = require('jsonwebtoken')
+const path = require('path')
+const user = require(path.join(__dirname, '..', 'models_index.js')).user
 
 module.exports = {
-
 
   /**
    * login - Search for email in users table and returns a webtoken if the password is valid.

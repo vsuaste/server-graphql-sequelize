@@ -8,8 +8,9 @@
 
 
 const _ = require('lodash');
-const models = require('../models_index');
-const resolvers = require('../resolvers/index');
+const path = require('path');
+const models = require(path.join(__dirname, '..', 'models_index.js'));
+const resolvers = require(path.join(__dirname, '..', 'resolvers', 'index.js'));
 const inflection = require('inflection');
 const checkAuthorization = require('./check-authorization');
 let LinkedList = require('linked-list');
