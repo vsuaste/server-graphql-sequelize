@@ -140,8 +140,6 @@ class JoinModels {
                     if( ! all_attributes.includes(attribute_name))
                         throw Error(`Requested attribute '${attribute_name}' is not defined in the model '${cur.model_adj.name}'`);
             }
-            //TODO: Kill this
-
 
             // current data (is initialized by the 'func_find' call)
             cur.model_adj.data = null;
@@ -345,7 +343,8 @@ class JoinModels {
                  Currently all associations are inverse, so this error should never happen.
                 */
 
-                throw Error(`No association from ${cur.prev.model_adj.name} to ${cur.model_adj.name} was detected`);
+                throw Error(`No association from ${cur.prev.model_adj.name} to ${cur.model_adj.name} was detected,` +
+                `please check for ${as_name} or ${as_name}Filter functions`);
             }
 
         }
