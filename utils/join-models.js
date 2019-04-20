@@ -13,6 +13,7 @@ const models = require(path.join(__dirname, '..', 'models_index.js'));
 const resolvers = require(path.join(__dirname, '..', 'resolvers', 'index.js'));
 const inflection = require('inflection');
 const checkAuthorization = require('./check-authorization');
+const schema = require('./graphql_schema');
 let LinkedList = require('linked-list');
 
 
@@ -128,19 +129,19 @@ class JoinModels {
             if( ! models[cur.model_adj.name] ) throw Error(`Model with name ${cur.model_adj.name} not exist`);
 
             // store raw names of the model attributes if not given at input
-            console.log(cur.model_adj.name);
-            let model = models[cur.model_adj.name];
-            console.log(model);
+            console.log("Starting");
+            let all_attributes = schema.getModelFieldByAnnotation(cur.model_adj.name,'@original-field');
+            console.log(`All attributes for model: ${cur.model_adj.name} are >>> ${all_attributes}`);
             if( ! cur.model_adj.attributes ) {
-                cur.model_adj.attributes = [];
-                for (let attribute_name of Object.keys(model.rawAttributes))
-                    cur.model_adj.attributes.push(attribute_name);
+                cur.model_adj.attributes = all_attributes;
             }else{
                 // check that specified attributes are correct
                 for (let attribute_name of cur.model_adj.attributes)
-                    if( ! model.rawAttributes[attribute_name])
+                    if( ! all_attributes.includes(attribute_name))
                         throw Error(`Requested attribute '${attribute_name}' is not defined in the model '${cur.model_adj.name}'`);
             }
+            //TODO: Kill this
+
 
             // current data (is initialized by the 'func_find' call)
             cur.model_adj.data = null;
@@ -583,4 +584,7 @@ curl -d '[ { "name"  : "transcript_count", "association_name" : "individual", "a
 
 
 curl -d '[ { "name" : "individual", "attributes" : ["id", "name"], "search" : { "field" : "name", "value" : {"value" : "A"}, "operator" : "like" }, "order" : [{"field" : "name", "order" : "ASC" }] } ]' -H "Content-Type: application/json" http://localhost:3000/join
+
+curl -d '[ { "name" : "transcript_count", "association_name" : "aminoacidsequence", "attributes" : [ "id", "gene"] } , {"name": "aminoacidsequence"} ]' -H "Content-Type: application/json" http://localhost:3000/join
+
 */
