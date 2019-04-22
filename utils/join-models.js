@@ -510,7 +510,7 @@ class JoinModelsJSON extends JoinModels{
     };
 };
 
-//TODO: add "..." for each column data
+
 class JoinModelsCSV extends JoinModels{
     /**
      * Internal class parameters
