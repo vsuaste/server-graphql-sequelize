@@ -94,8 +94,21 @@ app.use('/join', cors(), (req, res) => {
             acl: acl
     };
 
-    let joinModels = new JOIN.JoinModelsJSON(context);
+    // select the output format
+    let params = req.body;
+    let joinModels = {};
 
+    if(params.outputFormat === 'TEST'){
+        joinModels = new JOIN.JoinModels(context);
+    }else if(params.outputFormat === 'CSV'){
+        joinModels = new JOIN.JoinModelsCSV(context);
+    }else if(params.outputFormat === 'JSON'){
+        joinModels = new JOIN.JoinModelsJSON(context);
+    }else{
+        return res.status(415).send({error: "outputFormat = TEST/CSV/JSON is required"});
+    }
+
+    // start data transmission
     joinModels.run(req.body, res).then(() => {
         res.end();
     }).catch(error => {

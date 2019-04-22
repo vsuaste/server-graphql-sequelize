@@ -25,49 +25,58 @@ let LinkedList = require('linked-list');
  * The "modelAdjacencies" input parameter is an ordered array of JSON objects that describe a JOIN chain.
  * Below goes an example of the currently supported parameter set:
  *
- * [ {
- *   "name" : "individual",               // Name of the model as it appears in the corresponding index.js
- *
- *
- *   "association_name" : "transcript_counts",
- *                                        // (REQUIRED) There can be more than one association between two models,
- *                                        // the way to differ between these associations is an "as_name"
- *                                        // used by sequelize. This name is used by codegen to create resolvers and
- *                                        // is used here to find them.
- *
- *
- *
- *   "attributes" : [                     // (OPTIONAL - not implemented) The resolvers does not give possibility
- *                                        // to filter out unnecessary columns of the table. However, is is easy
- *                                        // to implement this functionality inside a "constructRow" function. This way
- *                                        // it can be possible to create different cut-offs of the database at the
- *                                        // presentation level and resolve the data analysis problem at a low cost.
- *       "name",
- *       "createdAt"
- *   ],
- *
- *   <, "search" : {...}, "order" : {...}>// (OPTIONAL) Can be specified to filter records at the head of the
- *                                        // JOIN chain.
- *
- *
- * },
  * {
- *   "name" : "transcript_count",
- *                                        // The last element of the association chain does not require an "assoc"
- *                                        // structure, it has no sense here and will be ignored if present.
  *
- *   "search" : {                         // (OPTIONAL) In the case when as_type of the previous element is "hasMany" or
- *                                        // "belongsToMany", there can be more than one "transcript_count" record
- *       "field" : "name",                // associated with the same "individual".
- *       "value" : {                      // The "transcript_count" records can be filtered and ordered
- *                   "value" : "%A%"      // correspondingly to these "search" and "order" parameters. In the case of
- *                  },                    // "hasOne" or "belongsToOne" as_type of the "individual", the "search" and
- *       "operator" : "like"              // "order" parameters will be ignored.
+ *   outputFormat = CSV                     // (REQUIRED) For the moment can be TEST, CSV or JSON only, see
+ *                                          // the corresponding module exports
+ *
+ *
+ *   modelAdjacencies =                     // (REQUIRED)
+ *   [
+ *   {
+ *     "name" : "individual",               // Name of the model as it appears in the corresponding index.js
+ *
+ *
+ *     "association_name" : "transcript_counts",
+ *                                          // (REQUIRED) There can be more than one association between two models,
+ *                                          // the way to differ between these associations is an "as_name"
+ *                                          // used by sequelize. This name is used by codegen to create resolvers and
+ *                                          // is used here to find them.
+ *
+ *
+ *
+ *     "attributes" : [                     // (OPTIONAL - not implemented) The resolvers does not give possibility
+ *                                          // to filter out unnecessary columns of the table. However, is is easy
+ *                                          // to implement this functionality inside a "constructRow" function. This way
+ *                                          // it can be possible to create different cut-offs of the database at the
+ *                                          // presentation level and resolve the data analysis problem at a low cost.
+ *         "name",
+ *         "createdAt"
+ *     ],
+ *
+ *     <, "search" : {...}, "order" : {...}>// (OPTIONAL) Can be specified to filter records at the head of the
+ *                                          // JOIN chain.
+ *
+ *
  *   },
+ *   {
+ *     "name" : "transcript_count",
+ *                                          // The last element of the association chain does not require an "assoc"
+ *                                          // structure, it has no sense here and will be ignored if present.
  *
- *   order: [{field: name, order: DESC}]  // (OPTIONAL) Ordering of the associated "transcript_count" records.
+ *     "search" : {                         // (OPTIONAL) In the case when as_type of the previous element is "hasMany" or
+ *                                          // "belongsToMany", there can be more than one "transcript_count" record
+ *         "field" : "name",                // associated with the same "individual".
+ *         "value" : {                      // The "transcript_count" records can be filtered and ordered
+ *                     "value" : "%A%"      // correspondingly to these "search" and "order" parameters. In the case of
+ *                    },                    // "hasOne" or "belongsToOne" as_type of the "individual", the "search" and
+ *         "operator" : "like"              // "order" parameters will be ignored.
+ *     },
+ *
+ *     order: [{field: name, order: DESC}]  // (OPTIONAL) Ordering of the associated "transcript_count" records.
+ *   }
+ *   ]
  * }
- * ]
  *
  * PERMISSIONS
  *
@@ -101,8 +110,9 @@ class JoinModels {
     * @returns {Promise}         generally a void function
     */
 
-    async run(modelAdjacencies, httpWritableStream) {
+    async run(params, httpWritableStream) {
 
+        let modelAdjacencies = params.modelAdjacencies;
         if ( ! modelAdjacencies || modelAdjacencies.length === 0)
             throw Error(`modelAdjacencies array is undefined`);
 
@@ -129,9 +139,7 @@ class JoinModels {
             if( ! models[cur.model_adj.name] ) throw Error(`Model with name ${cur.model_adj.name} not exist`);
 
             // store raw names of the model attributes if not given at input
-            console.log("Starting");
             let all_attributes = schema.getModelFieldByAnnotation(cur.model_adj.name,'@original-field');
-            console.log(`All attributes for model: ${cur.model_adj.name} are >>> ${all_attributes}`);
             if( ! cur.model_adj.attributes ) {
                 cur.model_adj.attributes = all_attributes;
             }else{
@@ -311,6 +319,8 @@ class JoinModels {
                         cur.model_adj.data = null;
                     }else{
                         cur.model_adj.data = await cur.prev.model_adj.data[as_name]("",context);
+                        if(!cur.model_adj.data)
+                            cur.model_adj.data = null;
                     }
 
                     return cur;
@@ -500,7 +510,7 @@ class JoinModelsJSON extends JoinModels{
     };
 };
 
-
+//TODO: add "..." for each column data
 class JoinModelsCSV extends JoinModels{
     /**
      * Internal class parameters
@@ -541,10 +551,10 @@ class JoinModelsCSV extends JoinModels{
                 if(this.csv_header)
                     header += cur.model_adj.name + "." + attr + ",";
 
-                if(cur.model_adj.data === null){
-                    str += "null,";
+                if(cur.model_adj.data === null || cur.model_adj.data[attr] === null){
+                    str += `"NULL",`;
                 }else{
-                    str += cur.model_adj.data[attr] + ",";
+                    str += `"${cur.model_adj.data[attr]}"` + ",";
                 }
             }
 
@@ -573,17 +583,17 @@ module.exports.JoinModelsCSV = JoinModelsCSV;
 
 CURL tests (copy-paste to console):
 
-curl -d '[ { "name"  : "individual", "association_name" : "transcript_counts" }, { "name" : "transcript_count"} ]' -H "Content-Type: application/json" http://localhost:3000/join
+curl -d '{"outputFormat" : "JSON", "modelAdjacencies" : [ { "name"  : "individual", "association_name" : "transcript_counts" }, { "name" : "transcript_count"} ]}' -H "Content-Type: application/json" http://localhost:3000/join
+
+curl -d '{"outputFormat" : "JSON", "modelAdjacencies" : [ { "name"  : "transcript_count", "association_name" : "individual" }, { "name" : "individual"} ]}' -H "Content-Type: application/json" http://localhost:3000/join
+
+curl -d '{"outputFormat" : "JSON", "modelAdjacencies" : [ { "name"  : "transcript_count", "association_name" : "individual", "attributes" : ["id"] }, { "name" : "individual", "attributes" : ["id"]} ]}' -H "Content-Type: application/json" http://localhost:3000/join
 
 
-curl -d '[ { "name"  : "transcript_count", "association_name" : "individual" }, { "name" : "individual"} ]' -H "Content-Type: application/json" http://localhost:3000/join
+curl -d '{"outputFormat" : "JSON", "modelAdjacencies" : [ { "name" : "individual", "attributes" : ["id", "name"], "search" : { "field" : "name", "value" : {"value" : "A"}, "operator" : "like" }, "order" : [{"field" : "name", "order" : "ASC" }] } ]}' -H "Content-Type: application/json" http://localhost:3000/join
 
+curl -d '{"outputFormat" : "JSON", "modelAdjacencies" : [ { "name" : "transcript_count", "association_name" : "aminoacidsequence", "attributes" : [ "id", "gene"] } , {"name": "aminoacidsequence"} ]}' -H "Content-Type: application/json" http://localhost:3000/join
 
-curl -d '[ { "name"  : "transcript_count", "association_name" : "individual", "attributes" : ["id"] }, { "name" : "individual", "attributes" : ["id"]} ]' -H "Content-Type: application/json" http://localhost:3000/join
-
-
-curl -d '[ { "name" : "individual", "attributes" : ["id", "name"], "search" : { "field" : "name", "value" : {"value" : "A"}, "operator" : "like" }, "order" : [{"field" : "name", "order" : "ASC" }] } ]' -H "Content-Type: application/json" http://localhost:3000/join
-
-curl -d '[ { "name" : "transcript_count", "association_name" : "aminoacidsequence", "attributes" : [ "id", "gene"] } , {"name": "aminoacidsequence"} ]' -H "Content-Type: application/json" http://localhost:3000/join
+curl -d '{"outputFormat" : "JSON", "modelAdjacencies" : [ { "name": "aminoacidsequence", "attributes" : [ "id"], "association_name" : "transcript_counts"}, { "name" : "transcript_count" } ]}' -H "Content-Type: application/json" http://localhost:3000/join
 
 */
