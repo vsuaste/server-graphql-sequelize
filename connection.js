@@ -10,7 +10,12 @@ config.operatorsAliases = {
   $or: Op.or,
   $like: Op.like,
   $between: Op.between,
-  $in: Op.in
+  $in: Op.in,
+  $gt: Op.gt,
+  $gte: Op.gte,
+  $lt: Op.lt,
+  $lte: Op.lte,
+  $ne: Op.ne
 };
 
 sequelize = new Sequelize(config);
