@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const Sequelize = require("sequelize");
 sequelize = require('./connection');
 
-var models = {};
+let models = {};
 
 
 // **********************************************************************************
@@ -15,8 +16,8 @@ fs.readdirSync("./models")
     })
     .forEach(function(file) {
         console.log(file);
-        let model = sequelize['import'](path.join("./models", file));
-
+        let model_file = rquire(path.join("./models", file));
+        let model = model_file.init(sequelize, Sequelize);
 
         let validator_patch = path.join('./validations', file);
         if(fs.existsSync(validator_patch)){
@@ -62,5 +63,3 @@ fs.readdirSync("./models-webservice")
     });
 
 module.exports = models;
-
-
