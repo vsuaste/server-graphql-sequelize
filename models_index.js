@@ -1,9 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const Sequelize = require("sequelize");
 sequelize = require('./connection');
 
-let models = {};
+var models = {};
 
 
 // **********************************************************************************
@@ -16,8 +15,8 @@ fs.readdirSync("./models")
     })
     .forEach(function(file) {
         console.log(file);
-        let model_file = rquire(path.join("./models", file));
-        let model = model_file.init(sequelize, Sequelize);
+        let model = equire(path.join(__dirname,'models', file));
+
 
         let validator_patch = path.join('./validations', file);
         if(fs.existsSync(validator_patch)){
