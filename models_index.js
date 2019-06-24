@@ -15,7 +15,8 @@ fs.readdirSync("./models")
     })
     .forEach(function(file) {
         console.log(file);
-        let model = require(path.join(__dirname,'models', file));
+        let model_file = require(path.join(__dirname,'models', file));
+        let model = model_file.init(sequelize, Sequelize);
 
 
         let validator_patch = path.join('./validations', file);
