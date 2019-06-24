@@ -1,8 +1,8 @@
 {
   "development": {
-    "username": "sciencedb",
-    "password": "sciencedb",
-    "database": "sciencedb_development",
+    "username": "test_code_gen",
+    "password": "test_code_gen",
+    "database": "test_code_gen",
     "host": "127.0.0.1",
     "dialect": "postgres",
     "operatorsAliases": false

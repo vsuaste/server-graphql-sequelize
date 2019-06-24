@@ -15,7 +15,7 @@ fs.readdirSync("./models")
     })
     .forEach(function(file) {
         console.log(file);
-        let model = equire(path.join(__dirname,'models', file));
+        let model = require(path.join(__dirname,'models', file));
 
 
         let validator_patch = path.join('./validations', file);
