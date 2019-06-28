@@ -6,13 +6,14 @@
  * @param  {string} validatorFunction Name of the validator function
  * @param  {object} dataModel The empty data model object
  * @param  {object} data JSON data to be inserted into the dataModel
- * @return {Error}  An error object if data is invalid or null otherwise
+ * @return {Promise} The result of invoking the respective validator, or
+ *                   undefined if no validator was found to be registered
  *
  */
 
-module.exports.ifHasValidatorFunctionInvoke = function( validatorFunction, dataModel, data) {
+module.exports.ifHasValidatorFunctionInvoke = async function( validatorFunction, dataModel, data) {
     if (typeof dataModel.prototype[validatorFunction] === "function") {
-        return dataModel.prototype[validatorFunction](data).error;
+        return await dataModel.prototype[validatorFunction](data);
     }
 };
 
