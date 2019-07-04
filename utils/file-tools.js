@@ -147,7 +147,7 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
         record = exports.replacePojoNullValueWithLiteralNull(record);
         console.log(record);
 
-        let error = validatorUtil.ifHasValidatorFunctionInvoke('validatorForCreate', model, record);
+        let error = validatorUtil.ifHasValidatorFunctionInvoke('validateForCreate', model, record);
 
         if (!!error) {
 
