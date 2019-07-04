@@ -13,7 +13,10 @@
 
 module.exports.ifHasValidatorFunctionInvoke = async function( validatorFunction, dataModel, data) {
     if (typeof dataModel.prototype[validatorFunction] === "function") {
+      try{
         return await dataModel.prototype[validatorFunction](data);
+      }catch( err) {
+        throw err;
+      }
     }
 };
-
