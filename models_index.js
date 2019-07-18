@@ -4,7 +4,7 @@ const Sequelize = require('sequelize');
 sequelize = require('./connection');
 
 var models = {};
-
+module.exports = models;
 
 // **********************************************************************************
 // IMPORT SEQUEILIZE MODELS
@@ -62,5 +62,3 @@ fs.readdirSync("./models-webservice")
 
         models[model.name] = model;
     });
-
-module.exports = models;
