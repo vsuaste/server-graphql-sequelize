@@ -7,6 +7,7 @@
  const bodyParser = require('body-parser');
  const globals = require('./config/globals');
  const JOIN = require('./utils/join-models');
+ const {GraphQLDateTime, GraphQLDate, GraphQLTime } = require('graphql-iso-date');
 
  var {
    buildSchema
@@ -59,6 +60,10 @@
  var merged_schema = mergeSchema(path.join(__dirname, './schemas'));
  console.log(merged_schema);
  var Schema = buildSchema(merged_schema);
+ /*set scalar types for dates */
+ Object.assign(Schema._typeMap.DateTime, GraphQLDateTime);
+ Object.assign(Schema._typeMap.Date, GraphQLDate);
+ Object.assign(Schema._typeMap.Time, GraphQLTime);
 
  /* Resolvers*/
  var resolvers = require('./resolvers/index');
