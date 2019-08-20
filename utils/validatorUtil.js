@@ -103,4 +103,6 @@ module.exports.addDateTimeAjvKeywords = function(ajv) {
     },
     errors: true
   })
+
+  return ajv
 }
