@@ -147,16 +147,10 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
         record = exports.replacePojoNullValueWithLiteralNull(record);
         console.log(record);
 
-        let error = validatorUtil.ifHasValidatorFunctionInvoke('validatorForCreate', model, record);
 
-        if (!!error) {
-
-            console.log(`Validation error during CSV batch upload: ${JSON.stringify(error)}`);
-            error.record = record;
-            errors.push(error);
-
-        } else {
-
+        try{
+            let result = await validatorUtil.ifHasValidatorFunctionInvoke('validateForCreate', model, record);
+            console.log(result);
             await model.create(record, {
                 transaction: transaction
             }).then(created => {
@@ -170,8 +164,13 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
                 error.record = record;
                 errors.push(error);
             })
+        }catch(error){
+          console.log(`Validation error during CSV batch upload: ${JSON.stringify(error.message)}`);
+          error['record'] = record;
+          errors.push(error);
 
         }
+
     }
 
     // close the addedRecords file so it can be sent afterwards

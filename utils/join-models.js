@@ -318,7 +318,7 @@ class JoinModels {
                     if(cur.model_adj.search_params.pagination.offset > 0){
                         cur.model_adj.data = null;
                     }else{
-                        cur.model_adj.data = await cur.prev.model_adj.data[as_name]("",context);
+                        cur.model_adj.data = await cur.prev.model_adj.data[as_name]({},context);
                         if(!cur.model_adj.data)
                             cur.model_adj.data = null;
                     }
