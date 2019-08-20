@@ -1,6 +1,0 @@
-models_index.js
-package.json
-server.js
-utils/file-tools.js
-utils/join-models.js
-utils/validatorUtil.js
