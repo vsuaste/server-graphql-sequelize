@@ -12,6 +12,7 @@ const Ajv = require('ajv')
  *                   undefined if no validator was found to be registered
  *
  */
+
 module.exports.ifHasValidatorFunctionInvoke = async function( validatorFunction, dataModel, data) {
     if (typeof dataModel.prototype[validatorFunction] === "function") {
       try{
