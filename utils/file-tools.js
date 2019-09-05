@@ -70,11 +70,11 @@ exports.parseXlsx = function(bstr) {
  *
  * @param {String} path - A path to the file
  */
-exports.deleteIfExists = function (path){
-    console.log(`Removing ${path}`);
-    fs.unlink(path, function (err){
-        // file may be already deleted
-    });
+exports.deleteIfExists = function(path) {
+  console.log(`Removing ${path}`);
+  fs.unlink(path, function(err) {
+    // file may be already deleted
+  });
 };
 
 /**
@@ -83,31 +83,30 @@ exports.deleteIfExists = function (path){
  * @param {Object} pojo - A plain old JavaScript object.
  *
  * @return {Object} A modified clone of the argument pojo in which all String
- * "NULL" or "null" values are replaced with literal nulls.
+ * "NULL" or "null" values are deleted.
  */
 exports.replacePojoNullValueWithLiteralNull = function(pojo) {
-    if (pojo === null) {
-        return null
+  if (pojo === null || pojo === undefined) {
+    return null
+  }
+  let res = Object.assign({}, pojo);
+  Object.keys(res).forEach((k) => {
+    if (typeof res[k] === "string" && res[k].match(/\s*null\s*/i)) {
+      delete res[k];
     }
-    let res = Object.assign({}, pojo);
-    Object.keys(res).forEach((k) => {
-        if(res[k].localeCompare("NULL", undefined, { sensitivity: 'accent' }) === 0){
-            //res[k] = null
-            delete res[k];
-        }
-    });
-    return res
+  });
+  return res
 };
 
 
 /**
-* Parse by streaming a csv file and create the records in the correspondant table
-* @function
-* @param {string} csvFilePath - The path where the csv file is stored.
-* @param {object} model - Sequelize model, record will be created through this model.
-* @param {string} delim - Set the field delimiter in the csv file. One or multiple character.
-* @param {array|boolean|function} cols - Columns as in csv-parser options.(true if auto-discovered in the first CSV line).
-*/
+ * Parse by streaming a csv file and create the records in the correspondant table
+ * @function
+ * @param {string} csvFilePath - The path where the csv file is stored.
+ * @param {object} model - Sequelize model, record will be created through this model.
+ * @param {string} delim - Set the field delimiter in the csv file. One or multiple character.
+ * @param {array|boolean|function} cols - Columns as in csv-parser options.(true if auto-discovered in the first CSV line).
+ */
 exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
 
   if (!delim) delim = ",";
@@ -116,8 +115,10 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
   // Wrap all database actions within a transaction:
   let transaction = await model.sequelize.transaction();
 
-  let addedFilePath = csvFilePath.substr(0, csvFilePath.lastIndexOf(".")) + ".json";
-  let addedZipFilePath = csvFilePath.substr(0, csvFilePath.lastIndexOf(".")) + ".zip";
+  let addedFilePath = csvFilePath.substr(0, csvFilePath.lastIndexOf(".")) +
+    ".json";
+  let addedZipFilePath = csvFilePath.substr(0, csvFilePath.lastIndexOf(".")) +
+    ".zip";
 
   console.log(addedFilePath);
   console.log(addedZipFilePath);
@@ -128,14 +129,15 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
       fs.createReadStream(csvFilePath).pipe(
         csv_parse({
           delimiter: delim,
-          columns: cols
+          columns: cols,
+          cast: true
         })
       )
     );
 
     // Create an output file stream
     let addedRecords = awaitifyStream.createWriter(
-        fs.createWriteStream(addedFilePath)
+      fs.createWriteStream(addedFilePath)
     );
 
     let record;
@@ -143,48 +145,59 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
 
     while (null !== (record = await csvStream.readAsync())) {
 
-        console.log(record);
-        record = exports.replacePojoNullValueWithLiteralNull(record);
-        console.log(record);
+      console.log(record);
+      record = exports.replacePojoNullValueWithLiteralNull(record);
+      console.log(record);
 
 
-        try{
-            let result = await validatorUtil.ifHasValidatorFunctionInvoke('validateForCreate', model, record);
-            console.log(result);
-            await model.create(record, {
-                transaction: transaction
-            }).then(created => {
+      try {
+        let result = await validatorUtil.ifHasValidatorFunctionInvoke(
+          'validateForCreate', model, record);
+        console.log(result);
+        await model.create(record, {
+          transaction: transaction
+        }).then(created => {
 
-                // this is async, here we just push new line into the parallel thread
-                // synchronization goes at endAsync;
-                addedRecords.writeAsync(`${JSON.stringify(created)}\n`);
+          // this is async, here we just push new line into the parallel thread
+          // synchronization goes at endAsync;
+          addedRecords.writeAsync(`${JSON.stringify(created)}\n`);
 
-            }).catch(error => {
-                console.log(`Caught sequelize error during CSV batch upload: ${JSON.stringify(error)}`);
-                error.record = record;
-                errors.push(error);
-            })
-        }catch(error){
-          console.log(`Validation error during CSV batch upload: ${JSON.stringify(error.message)}`);
-          error['record'] = record;
+        }).catch(error => {
+          console.log(
+            `Caught sequelize error during CSV batch upload: ${JSON.stringify(error)}`
+          );
+          error.record = record;
           errors.push(error);
+        })
+      } catch (error) {
+        console.log(
+          `Validation error during CSV batch upload: ${JSON.stringify(error)}`
+        );
+        error['record'] = record;
+        errors.push(error);
 
-        }
+      }
 
     }
 
     // close the addedRecords file so it can be sent afterwards
     await addedRecords.endAsync();
 
-    if(errors.length > 0) {
-      let message = "Some records could not be submitted. No database changes has been applied.\n";
+    if (errors.length > 0) {
+      let message =
+        "Some records could not be submitted. No database changes has been applied.\n";
       message += "Please see the next list for details:\n";
 
       errors.forEach(function(error) {
-        message += `record ${JSON.stringify(error.record)} ${error.message}; \n`;
+        valErrMessages = error.errors.reduce((acc, val) => {
+          return acc.concat(val.dataPath).concat(" ").concat(val.message)
+            .concat(" ")
+        })
+        message +=
+          `record ${JSON.stringify(error.record)} ${error.message}: ${valErrMessages}; \n`;
       });
 
-      throw new Error(message.slice(0, message.length-1));
+      throw new Error(message.slice(0, message.length - 1));
     }
 
     await transaction.commit();
@@ -210,6 +223,6 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
     throw error;
 
   } finally {
-      exports.deleteIfExists(addedFilePath);
+    exports.deleteIfExists(addedFilePath);
   }
 };
