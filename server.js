@@ -38,6 +38,9 @@
    next();
  });
 
+ // Force users to sign in to get access to anything else than '/login'
+ app.use(jwt({ secret: 'something-secret'}).unless({path: ['/login']}));
+
  /* Temporary solution:  acl rules set */
  if (process.argv.length > 2 && process.argv[2] == 'acl') {
    var node_acl = require('acl');
@@ -50,7 +53,6 @@
    acl.allow(aclRules);
    console.log("Authoization rules set!");
 
-   app.use(jwt({ secret: 'something-secret'}).unless({path: ['/login']}));
  } else {
    console.log("Open server, no authorization rules");
  }
