@@ -39,7 +39,11 @@
  });
 
  // Force users to sign in to get access to anything else than '/login'
- app.use(jwt({ secret: 'something-secret'}).unless({path: ['/login']}));
+ //
+ if(globals.REQUIRE_SIGN_IN){
+    app.use(jwt({ secret: 'something-secret'}).unless({path: ['/login']}));
+ }
+
 
  /* Temporary solution:  acl rules set */
  if (process.argv.length > 2 && process.argv[2] == 'acl') {
