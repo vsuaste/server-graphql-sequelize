@@ -1,4 +1,4 @@
-
+const path = require('path');
 const resolvers = require(path.join(__dirname, '..', 'resolvers', 'index.js'));
 const inflection = require('inflection');
 
@@ -18,15 +18,15 @@ module.exports = async function(context, body_info, writableStream ){
 
       // http send stream header
       let timestamp = new Date().getTime();
-      httpWritableStream.writeHead(200, {'Content-Type': 'application/force-download',
+      writableStream.writeHead(200, {'Content-Type': 'application/force-download',
           'Content-disposition': `attachment; filename = ${timestamp}.json`});
 
       while(batch_step.offset <= total_records){
 
         try{
-          await data = resolvers[getter_resolver]({pagination: batch_step});
+          await data = await resolvers[getter_resolver]({pagination: batch_step}, context);
           await writableStream.write(data);
-          batch_step.offset = batch_step.offset + limit;
+          batch_step.offset = batch_step.offset + batch_step.limit;
         }catch(err){
           /*
               We can't throw an error to Express server at this stage because the response Content-Type

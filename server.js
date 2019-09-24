@@ -7,6 +7,7 @@
  const bodyParser = require('body-parser');
  const globals = require('./config/globals');
  const JOIN = require('./utils/join-models');
+ const simpleExport = require('./utils/simple-export');
  const {GraphQLDateTime, GraphQLDate, GraphQLTime } = require('graphql-iso-date');
 
  var {
