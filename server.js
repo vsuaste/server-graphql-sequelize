@@ -40,7 +40,7 @@
 
  // Force users to sign in to get access to anything else than '/login'
  console.log("REQUIRE: ",globals.REQUIRE_SIGN_IN);
- if(globals.REQUIRE_SIGN_IN){
+ if(globals.REQUIRE_SIGN_IN === "true"){
     app.use(jwt({ secret: 'something-secret'}).unless({path: ['/login']}));
  }
 
