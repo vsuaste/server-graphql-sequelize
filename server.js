@@ -137,16 +137,12 @@ app.use('/join', cors(), (req, res) => {
 
 app.use('/export', cors(), (req, res) =>{
 
-  // check if the Content-Type is in JSON so that bodyParser can be applied automatically
-  if (!req.is('application/json'))
-      return res.status(415).send({error: "JSON Content-Type expected"});
-
   let context = {
     request: req,
     acl : acl
   }
 
-  let body_info = req.body;
+  let body_info = req.query;
 
   simpleExport(context, body_info ,res).then( () =>{
     res.end();
