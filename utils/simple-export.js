@@ -62,7 +62,7 @@ module.exports = async function(context, body_info, writableStream ){
       // http send stream header
       let timestamp = new Date().getTime();
       writableStream.writeHead(200, {'Content-Type': 'application/force-download',
-          'Content-disposition': `attachment; filename = ${timestamp}.json`});
+          'Content-disposition': `attachment; filename = ${timestamp}.csv`});
 
       //get attributes names
       let attributes = getAttributes(model_name);
