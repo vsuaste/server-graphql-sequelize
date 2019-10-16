@@ -27,4 +27,4 @@ if [ -d ./seeders ]; then
 fi
 
 # Start GraphQL-server
-npm start # acl
+npm start 2> /usr/src/app/error_server.log # acl
