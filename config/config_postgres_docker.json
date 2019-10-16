@@ -1,9 +1,9 @@
 {
   "development": {
-    "username": "test_code_gen",
-    "password": "test_code_gen",
-    "database": "test_code_gen",
-    "host": "127.0.0.1",
+    "username": "sciencedb",
+    "password": "sciencedb",
+    "database": "sciencedb_development",
+    "host": "sdb_postgres",
     "dialect": "postgres",
     "operatorsAliases": false
   },
@@ -11,7 +11,7 @@
     "username": "sciencedb",
     "password": "sciencedb",
     "database": "sciencedb_test",
-    "host": "postgres",
+    "host": "sdb_postgres",
     "dialect": "postgres",
     "operatorsAliases": false
   },
@@ -19,7 +19,7 @@
     "username": "sciencedb",
     "password": "sciencedb",
     "database": "sciencedb_production",
-    "host": "postgres",
+    "host": "sdb_postgres",
     "dialect": "postgres",
     "operatorsAliases": false
   }
