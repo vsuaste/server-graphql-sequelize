@@ -24,7 +24,7 @@
     "merge-graphql-schemas": "^1.5.1",
     "pg": "^7.4.1",
     "pg-hstore": "^2.3.2",
-    "sequelize": "^4.35.2",
+    "sequelize": "^5.15.1",
     "sequelize-cli": "^4.0.0",
     "supertest": "^3.1.0",
     "xlsx": "^0.12.11"
