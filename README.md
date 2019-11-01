@@ -25,9 +25,11 @@ With credential as in ``` config/config.json``` file.
 ### ENVIRONMENT VARIABLES
 
 * `PORT` - The port where the app is listening, default value is `3000`
-* `ALLOW_ORIGIN` - In development mode we need to specify the header `Access-Control-Allow-Origin` so the SPA application can communicate with the server, default value `http://localhost:8080`.
+* `ALLOW_ORIGIN` - In development mode we need to specify the header `Access-Control-Allow-Origin` so the SPA application can communicate with the server, default value is `http://localhost:8080`.
+* `LIMIT_RECORDS` - Maximum number of records that each request can return, default value is 10000.
+* `MAX_TIME_OUT` - Maximum number of milliseconds that a cenz server will wait to connect with another cenz server.
 
-## NOTE 
+## NOTE
 A data base should be already configured locally as in `config/config.json`
 
 ## Example of use
@@ -42,12 +44,12 @@ We will add the next 4 people to our table ``people``.
 | Vicent | van Gogh | vicent.vanGogh@art.com |
 | Ludwig | Beethoven  | ludwing.beethoven@art.com |
 
-#### CREATE PERSON 
+#### CREATE PERSON
 
 ```
 curl -XPOST http://localhost:3000/graphql -H 'Content-Type: application/graphql' -d 'mutation M { addPerson(firstName: "Albert", lastName: "Einstein", email: "albert.einstein@science.com"){ firstName email } }'
 ```
-As result we will get `firsName` and `email` of the person just created: 
+As result we will get `firsName` and `email` of the person just created:
 ```
 {
   "data": {
