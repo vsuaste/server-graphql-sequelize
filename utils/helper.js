@@ -250,29 +250,32 @@ f   *
    * @param  {Object} cursor Cursor record taken as start point(exclusive) to create the where statement
    * @return {Object}        Where statement to start retrieving records after the given cursor holding the order conditions.
    */
-  module.exports.parseOrderCursor = function(order, cursor){
+   module.exports.parseOrderCursor = function(order, cursor){
 
-    let index = order.length-2;
+     let last_index = order.length-1;
+     let start_index = order.length-2;
 
-    //at least one order field is expected
-    let strict_operator = order[ order.length-1 ][1] === 'ASC' ? '$gt' : '$lt';
-     let where_statement = {
-      [ order[order.length-1][0] ] :{  [strict_operator]: cursor[ order[order.length-1][0] ]  }
-    }
+     //at least one order field is expected
+     let operator = order[ last_index ][1] === 'ASC' ? '$gte' : '$lte';
+     if(order[last_index][0] === 'id' ){ operator = operator.substring(0, 3);}
+      let where_statement = {
+       [ order[last_index][0] ] :{  [operator]: cursor[ order[last_index][0] ]  }
+     }
 
-    for( let i= index; i>=0; i-- ){
-      let operator = order[i][1] === 'ASC' ? '$gte' : '$lte';
-       strict_operator = order[i][1] === 'ASC' ? '$gt' : '$lt';
+     for( let i= start_index; i>=0; i-- ){
+         operator = order[i][1] === 'ASC' ? '$gte' : '$lte';
+        let strict_operator = order[i][1] === 'ASC' ? '$gt' : '$lt';
+        //strict operator if we are ordering by id
+        if(order[i][0] === 'id' ){ operator = operator.substring(0, 3);}
+       where_statement = {
+         ['$and'] :[
+           { [order[i][0] ] : { [ operator ]: cursor[ order[i][0] ] } },
+           {['$or'] : [ {[order[i][0]]: { [strict_operator]: cursor[ order[i][0] ]} } , where_statement  ] }
+         ]
+       }
 
-      where_statement = {
-        ['$and'] :[
-          { [order[i][0] ] : { [ operator ]: cursor[ order[i][0] ] } },
-          {['$or'] : [ {[order[i][0]]: { [strict_operator]: cursor[ order[i][0] ]} } , where_statement  ] }
-        ]
-      }
+     }
 
-    }
+     return where_statement;
 
-    return where_statement;
-
-  }
+   }
