@@ -222,7 +222,7 @@ f   *
    * @param  {Object} model         Sequelize model from which the template will be returned.
    * @param  {Array} discardAttrs Attributes to discard from the template
    * @return {Array}              Array of strings, one for header and one for the attribute't type.
-   */   
+   */
   module.exports.csvTableTemplate = function(model, discardAttrs) {
     return filterModelAttributesForCsv(model,
       discardAttrs).then(function(x) {
@@ -241,3 +241,41 @@ f   *
       return [csvHeader.join(','), csvExmplRow.join(',')]
     })
   }
+
+
+  /**
+   * parseOrderCursor - Parse the order options and return the where statement for cursor based pagination
+   *
+   * @param  {Array} order  Order options to translate to a where statement used by sequelize.
+   * @param  {Object} cursor Cursor record taken as start point(exclusive) to create the where statement
+   * @return {Object}        Where statement to start retrieving records after the given cursor holding the order conditions.
+   */
+   module.exports.parseOrderCursor = function(order, cursor){
+
+     let last_index = order.length-1;
+     let start_index = order.length-2;
+
+     //at least one order field is expected
+     let operator = order[ last_index ][1] === 'ASC' ? '$gte' : '$lte';
+     if(order[last_index][0] === 'id' ){ operator = operator.substring(0, 3);}
+      let where_statement = {
+       [ order[last_index][0] ] :{  [operator]: cursor[ order[last_index][0] ]  }
+     }
+
+     for( let i= start_index; i>=0; i-- ){
+         operator = order[i][1] === 'ASC' ? '$gte' : '$lte';
+        let strict_operator = order[i][1] === 'ASC' ? '$gt' : '$lt';
+        //strict operator if we are ordering by id
+        if(order[i][0] === 'id' ){ operator = operator.substring(0, 3);}
+       where_statement = {
+         ['$and'] :[
+           { [order[i][0] ] : { [ operator ]: cursor[ order[i][0] ] } },
+           {['$or'] : [ {[order[i][0]]: { [strict_operator]: cursor[ order[i][0] ]} } , where_statement  ] }
+         ]
+       }
+
+     }
+
+     return where_statement;
+
+   }
