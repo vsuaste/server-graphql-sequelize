@@ -31,6 +31,7 @@
     "lodash": "^4.17.5",
     "mathjs": "^5.2.0",
     "merge-graphql-schemas": "^1.5.1",
+    "moment": "^2.24.0",
     "mysql2": "^1.6.4",
     "nodemailer": "^5.1.1",
     "nodemailer-smtp-transport": "^2.7.4",
