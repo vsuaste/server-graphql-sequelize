@@ -1,5 +1,6 @@
 const objectAssign = require('object-assign');
 const math = require('mathjs');
+const _ = require('lodash');
 
 
   /**
@@ -279,3 +280,55 @@ f   *
      return where_statement;
 
    }
+
+
+   /**
+   * orderedRecords - javaScript function for ordering of records based on GraphQL orderInput for local post-processing
+   *
+   * @param  {Array} matchingRecords  List of records to be ordered
+   * @param  {Object} order GraphQL order options to be used
+   * @return {Array}        order List of records
+   */
+  module.exports.orderRecords = function(matchingRecords, order = [{field, order}]) {
+    return _.orderBy(matchingRecords,_.map(order,'field'),_.map(order,'order').map(orderArg => orderArg.toLowerCase()));
+    //This could be sped up by to O(n*m), m = # of remote servers by using merge sort
+  }
+
+
+  /**
+   * paginateRecords - post-precossing pagination of ordered records
+   *
+   * @param  {Array} orderedRecords  List of records to be paginated
+   * @param  {Object} paginate GraphQL paginate argument
+   * @return {Array}        paginated List of records
+   */
+  module.exports.paginateRecords = function(orderedRecords, {first, cursor}) {
+    return orderedRecords.slice(0,first); //do we need cursor? orderedRecords will already begin at cursor
+  }
+
+
+  /**
+   * toGraphQLConnectionObject - translate an array of records into a GraphQL connection
+   *
+   * @param  {Array} paginatedRecords  List of records to be translated
+   * @return {Array}        
+   */
+  module.exports.toGraphQLConnectionObject = function(paginatedRecords, model) {
+    let data_edges = paginatedRecords.edges;
+    let edges = data_edges.map(e => {
+        return {
+            node: new model(e.node), //maybe generate this for every model?
+            cursor: e.cursor
+        }
+    })
+
+    let pageInfo = {
+      hasNextPage: false,
+      endCursor: edges[edges.length - 1].cursor
+    }
+
+    return {
+        edges,
+        pageInfo
+    };
+  }
