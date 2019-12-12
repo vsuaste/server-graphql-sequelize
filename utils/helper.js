@@ -308,27 +308,29 @@ f   *
 
 
   /**
-  * toGraphQLConnectionObject - translate an array of records into a GraphQL connection
-  *
-  * @param  {Array} paginatedRecords  List of records to be translated
-  * @return {Array}
-  */
- module.exports.toGraphQLConnectionObject = function(paginatedRecords, model) {
-   let edges = paginatedRecords.map(e => {
-       let temp_node = new model(e);
-       return {
-           node: temp_node,
-           cursor: temp_node.base64Enconde()
-       }
-   })
+   * toGraphQLConnectionObject - translate an array of records into a GraphQL connection
+   *
+   * @param  {Array} paginatedRecords List of records to be translated
+   * @param  {Object} model            Record's type
+   * @param  {Boolean} hasNextPage      hasNextPage parameter for pagination info
+   * @return {type}                  description
+   */
+  module.exports.toGraphQLConnectionObject = function(paginatedRecords, model, hasNextPage) {
+    let edges = paginatedRecords.map(e => {
+        let temp_node = new model(e);
+        return {
+            node: temp_node,
+            cursor: temp_node.base64Enconde()
+        }
+    })
 
-   let pageInfo = {
-     hasNextPage: false,
-     endCursor: edges[edges.length - 1].cursor
-   }
+    let pageInfo = {
+      hasNextPage: hasNextPage,
+      endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null
+    }
 
-   return {
-       edges,
-       pageInfo
-   };
- }
+    return {
+        edges,
+        pageInfo
+    };
+  }
