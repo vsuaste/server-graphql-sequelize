@@ -299,3 +299,16 @@ f   *
 
      return result;
    }
+
+
+   module.exports.checkExistence = function(ids_to_add, model){
+
+     let ids = Array.isArray(ids_to_add) ? ids_to_add : [ ids_to_add ];
+     let promises = ids.map( id => { return model.countRecords({field: "id", value:{value: id }, operator: 'eq' })  } );
+
+
+      return Promise.all(promises).then( result =>{
+        return result.map( (r, index)=>{ return r === 0 ? ids[index] : false } ).filter( r =>{return r !== false});
+      })
+
+   }
