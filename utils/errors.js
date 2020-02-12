@@ -8,7 +8,9 @@ class customArrayError extends Error {
 }
 
 handleError = function(error){
-  if(error.name === "SequelizeValidationError"){
+  if(error.message === 'validation failed'){
+    throw new customArrayError(error.errors, error.message);
+  }else if(error.name === "SequelizeValidationError"){
       throw new customArrayError(error.errors, "Validation error");
   }else if(error.code === 'ECONNABORTED' && error.url!== undefined){
     throw new Error(`Time out exceeded trying to reach server ${error.url}`);
@@ -16,5 +18,4 @@ handleError = function(error){
       throw new Error(error)
   }
 }
-
 module.exports = { handleError}
