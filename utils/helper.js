@@ -1,5 +1,6 @@
 const objectAssign = require('object-assign');
 const math = require('mathjs');
+const _ = require('lodash');
 
 
   /**
@@ -280,7 +281,6 @@ f   *
 
    }
 
-
    module.exports.checkInverseAssociation = async function( from_model , to_model, search_model_name, foreign_key, id_toadd ){
      let result = false;
 
@@ -312,3 +312,56 @@ f   *
       })
 
    }
+
+   /**
+   * orderedRecords - javaScript function for ordering of records based on GraphQL orderInput for local post-processing
+   *
+   * @param  {Array} matchingRecords  List of records to be ordered
+   * @param  {Object} order GraphQL order options to be used
+   * @return {Array}        order List of records
+   */
+  module.exports.orderRecords = function(matchingRecords, order = [{field, order}]) {
+    return _.orderBy(matchingRecords,_.map(order,'field'),_.map(order,'order').map(orderArg => orderArg.toLowerCase()));
+    //This could be sped up by to O(n*m), m = # of remote servers by using merge sort
+  }
+
+
+  /**
+   * paginateRecords - post-precossing pagination of ordered records
+   *
+   * @param  {Array} orderedRecords  List of records to be paginated
+   * @param  {Object} paginate GraphQL paginate argument
+   * @return {Array}        paginated List of records
+   */
+  module.exports.paginateRecords = function(orderedRecords, first) {
+    return orderedRecords.slice(0,first);
+  }
+
+
+  /**
+   * toGraphQLConnectionObject - translate an array of records into a GraphQL connection
+   *
+   * @param  {Array} paginatedRecords List of records to be translated
+   * @param  {Object} model            Record's type
+   * @param  {Boolean} hasNextPage      hasNextPage parameter for pagination info
+   * @return {type}                  description
+   */
+  module.exports.toGraphQLConnectionObject = function(paginatedRecords, model, hasNextPage) {
+    let edges = paginatedRecords.map(e => {
+        let temp_node = new model(e);
+        return {
+            node: temp_node,
+            cursor: temp_node.base64Enconde()
+        }
+    })
+
+    let pageInfo = {
+      hasNextPage: hasNextPage,
+      endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null
+    }
+
+    return {
+        edges,
+        pageInfo
+    };
+  }

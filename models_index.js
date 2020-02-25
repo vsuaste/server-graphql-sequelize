@@ -63,18 +63,34 @@ fs.readdirSync("./models-webservice")
         models[model.name] = model;
     });
 
+// **********************************************************************************
+// IMPORT CENZ SERVICES
+
+fs.readdirSync("./models-cenz-server")
+    .filter(function(file) {
+        return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
+    })
+    .forEach(function(file) {
+        let model = require(`./${path.join("./models-cenz-server", file)}`);
+
+        if(models[model.name])
+            throw Error(`Duplicated model name ${model.name}`);
+
+        models[model.name] = model;
+    });
+
     // **********************************************************************************
-    // IMPORT CENZ SERVICES
+// IMPORT DISTRIBUTED MODELS
 
-    fs.readdirSync("./models-cenz-server")
-        .filter(function(file) {
-            return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
-        })
-        .forEach(function(file) {
-            let model = require(`./${path.join("./models-cenz-server", file)}`);
+fs.readdirSync("./models-distributed")
+    .filter(function(file) {
+        return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
+    })
+    .forEach(function(file) {
+        let model = require(`./${path.join("./models-distributed", file)}`);
 
-            if(models[model.name])
-                throw Error(`Duplicated model name ${model.name}`);
+        if(models[model.name])
+            throw Error(`Duplicated model name ${model.name}`);
 
-            models[model.name] = model;
-        });
+        models[model.name] = model;
+    });
