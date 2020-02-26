@@ -304,7 +304,7 @@ f   *
    module.exports.checkExistence = function(ids_to_add, model){
 
      let ids = Array.isArray(ids_to_add) ? ids_to_add : [ ids_to_add ];
-     let promises = ids.map( id => { return model.countRecords({field: "id", value:{value: id }, operator: 'eq' })  } );
+     let promises = ids.map( id => { return model.countRecords({field: model.idAttribute(), value:{value: id }, operator: 'eq' })  } );
 
 
       return Promise.all(promises).then( result =>{
