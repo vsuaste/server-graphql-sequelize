@@ -243,43 +243,87 @@ f   *
     })
   }
 
-
   /**
-   * parseOrderCursor - Parse the order options and return the where statement for cursor based pagination
+   * parseOrderCursor - Parse the order options and return the where statement for cursor based pagination (forward)
    *
    * @param  {Array} order  Order options to translate to a where statement used by sequelize.
-   * @param  {Object} cursor Cursor record taken as start point(exclusive) to create the where statement
+   * @param  {Object} cursor Cursor record taken as start point(exclusive) to create the where statement.
+   * @param  {String} idAttribute  id attribute of the calling model.
    * @return {Object}        Where statement to start retrieving records after the given cursor holding the order conditions.
    */
-   module.exports.parseOrderCursor = function(order, cursor, idAttribute){
+  module.exports.parseOrderCursor = function(order, cursor, idAttribute){
+    //check: at least one order field is expected
+    if(order.length <= 0) { return {}; }
 
-     let last_index = order.length-1;
-     let start_index = order.length-2;
+    let last_index = order.length-1;
+    let start_index = order.length-2;
+    
+    //set operator for last-index
+    let operator = order[last_index][1] === 'ASC' ? '$gte' : '$lte';
+    if (order[last_index][0] === idAttribute) { operator = operator.substring(0, 3); }
+    
+    //add condition for last-index
+    let where_statement = {
+      [order[last_index][0]]: { [operator]: cursor[order[last_index][0]] }
+    }
 
-     //at least one order field is expected
-     let operator = order[ last_index ][1] === 'ASC' ? '$gte' : '$lte';
-     if(order[last_index][0] === idAttribute ){ operator = operator.substring(0, 3);}
-      let where_statement = {
-       [ order[last_index][0] ] :{  [operator]: cursor[ order[last_index][0] ]  }
-     }
+    //set the other conditions
+    for( let i= start_index; i>=0; i-- ){
+      operator = order[i][1] === 'ASC' ? '$gte' : '$lte';
+      let strict_operator = order[i][1] === 'ASC' ? '$gt' : '$lt';
+      //strict operator if we are ordering by id
+      if(order[i][0] === idAttribute){ operator = operator.substring(0, 3);}
+      
+      where_statement = {
+        ['$and'] :[
+          { [order[i][0] ] : { [ operator ]: cursor[ order[i][0] ] } },
+          {['$or'] : [ {[order[i][0]]: { [strict_operator]: cursor[ order[i][0] ]} } , where_statement  ] }
+        ]
+      }
+    }
+    return where_statement;
+  }
 
-     for( let i= start_index; i>=0; i-- ){
-         operator = order[i][1] === 'ASC' ? '$gte' : '$lte';
-        let strict_operator = order[i][1] === 'ASC' ? '$gt' : '$lt';
-        //strict operator if we are ordering by id
-        if(order[i][0] === idAttribute ){ operator = operator.substring(0, 3);}
+  /**
+   * parseOrderCursorBefore - Parse the order options and return the where statement for cursor based pagination (backward)
+   *
+   * @param  {Array} order  Order options to translate to a where statement used by sequelize.
+   * @param  {Object} cursor Before-cursor record taken as start point(exclusive) to create the where statement
+   * @param  {String} idAttribute  id attribute of the calling model.
+   * @return {Object}        Where statement to start retrieving records before the given cursor holding the order conditions.
+   */
+  module.exports.parseOrderCursorBefore = function(order, cursor, idAttribute){
+    //check: at least one order field is expected
+    if(order.length <= 0) { return {}; }
+
+    let last_index = order.length-1;
+    let start_index = order.length-2;
+    
+    //set operator for last-index
+    let operator = order[last_index][1] === 'ASC' ? '$lte' : '$gte';
+    if(order[last_index][0] === idAttribute) { operator = operator.substring(0, 3); }
+    
+    //add condition for last-index
+    let where_statement = {
+      [order[last_index][0]]: { [operator]: cursor[order[last_index][0]] }
+    }
+
+    //process the other indexes
+    for( let i= start_index; i>=0; i-- ){
+      operator = order[i][1] === 'ASC' ? '$lte' : '$gte';
+      let strict_operator = order[i][1] === 'ASC' ? '$lt' : '$gt';
+      //strict operator if we are ordering by id
+      if(order[i][0] === idAttribute){ operator = operator.substring(0, 3);}
+      
        where_statement = {
-         ['$and'] :[
-           { [order[i][0] ] : { [ operator ]: cursor[ order[i][0] ] } },
-           {['$or'] : [ {[order[i][0]]: { [strict_operator]: cursor[ order[i][0] ]} } , where_statement  ] }
-         ]
-       }
-
-     }
-
-     return where_statement;
-
-   }
+        ['$and'] :[
+          { [order[i][0] ] : { [ operator ]: cursor[ order[i][0] ] } },
+          {['$or'] : [ {[order[i][0]]: { [strict_operator]: cursor[ order[i][0] ]} } , where_statement  ] }
+        ]
+      }
+    }
+    return where_statement;
+  }
 
    module.exports.checkExistence = function(ids_to_add, model){
 
