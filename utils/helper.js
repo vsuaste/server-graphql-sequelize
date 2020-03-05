@@ -251,14 +251,14 @@ f   *
    * @param  {Object} cursor Cursor record taken as start point(exclusive) to create the where statement
    * @return {Object}        Where statement to start retrieving records after the given cursor holding the order conditions.
    */
-   module.exports.parseOrderCursor = function(order, cursor){
+   module.exports.parseOrderCursor = function(order, cursor, idAttribute){
 
      let last_index = order.length-1;
      let start_index = order.length-2;
 
      //at least one order field is expected
      let operator = order[ last_index ][1] === 'ASC' ? '$gte' : '$lte';
-     if(order[last_index][0] === 'id' ){ operator = operator.substring(0, 3);}
+     if(order[last_index][0] === idAttribute ){ operator = operator.substring(0, 3);}
       let where_statement = {
        [ order[last_index][0] ] :{  [operator]: cursor[ order[last_index][0] ]  }
      }
@@ -267,7 +267,7 @@ f   *
          operator = order[i][1] === 'ASC' ? '$gte' : '$lte';
         let strict_operator = order[i][1] === 'ASC' ? '$gt' : '$lt';
         //strict operator if we are ordering by id
-        if(order[i][0] === 'id' ){ operator = operator.substring(0, 3);}
+        if(order[i][0] === idAttribute ){ operator = operator.substring(0, 3);}
        where_statement = {
          ['$and'] :[
            { [order[i][0] ] : { [ operator ]: cursor[ order[i][0] ] } },
@@ -280,26 +280,6 @@ f   *
      return where_statement;
 
    }
-
-   module.exports.checkInverseAssociation = async function( from_model , to_model, search_model_name, foreign_key, id_toadd ){
-     let result = false;
-
-     if(from_model.name === search_model_name){
-       let associated = await from_model.findOne({where:{ personId: id_toadd }});
-       let exists = await to_model.findOne({where:{id: id_toadd}});
-       result =  !associated && exists;
-     }else{
-        let exists  = await to_model.findOne({where: {id : id_toadd}});
-        result =  exists && exists[foreign_key] === null;
-     }
-
-     if(!result){
-        throw new Error("Item intended to associate either it doesn't exists or it's already associated");
-     }
-
-     return result;
-   }
-
 
    module.exports.checkExistence = function(ids_to_add, model){
 
