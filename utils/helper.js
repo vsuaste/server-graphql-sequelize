@@ -245,35 +245,85 @@ f   *
 
   /**
    * parseOrderCursor - Parse the order options and return the where statement for cursor based pagination (forward)
+   * 
+   * Returns a set of {AND / OR} conditions that cause a ‘WHERE’ clause to deliver only the records ‘greater that’ a given cursor.
+   * 
+   * The meaning of a record being ‘greater than’ a given cursor is that any of the following conditions are fullfilled for the given cursor, 
+   * order set and idAttribute:
+   * 
+   *    (1) At least the idAttribute of the record is greater than the idAttribute of the cursor if the idAttribute’s order is ASC, 
+   *    or smaller than if it is DESC.
+   * 
+   *    (2) If other fields different from idAttribute are given on the order set, as entries of the form [value, ORDER], then, starting from 
+   *    the first entry, we test the following condition on it:
+   * 
+   *        a) If record.value  is   [ > on ASC, or  < on DESC] ,  cursor.value  then this record is greater than the given cursor.
+   *        b) If record.value  is equal to  cursor.value,  then: 
+   *            i) test the next value on cursor set to determine if it fullfils condition 1) or some of the subconditions 2).[a, b, c].
+   *        c) else: this record is not greater than the given cursor.
+   * 
+   * 
    *
-   * @param  {Array} order  Order options to translate to a where statement used by sequelize.
+   * @param  {Array} order  Order entries. Must contains at least the entry for 'idAttribute'.
    * @param  {Object} cursor Cursor record taken as start point(exclusive) to create the where statement.
-   * @param  {String} idAttribute  id attribute of the calling model.
+   * @param  {String} idAttribute  idAttribute of the calling model.
    * @return {Object}        Where statement to start retrieving records after the given cursor holding the order conditions.
    */
   module.exports.parseOrderCursor = function(order, cursor, idAttribute){
-    //check: at least one order field is expected
-    if(order.length <= 0) { return {}; }
+    /**
+     * Checks
+     */
+    //idAttribute
+    if(idAttribute===undefined||idAttribute===null||idAttribute===''){ 
+      return {}; 
+    }
+    //order
+    if(!order||!order.length||order.length===0||
+      !order.map( orderItem=>{return orderItem[0] }).includes(idAttribute)) { 
+        return {}; 
+    }
+    //cursor
+    if(cursor===undefined||cursor===null||typeof cursor!=='object'||!cursor.hasOwnProperty(idAttribute)){ 
+      return {}; 
+    }
 
+    /**
+     * Construct AND/OR conditions using left-recursion.
+     * 
+     * Where the base step of the recursion is the last order-array entry's AND/OR condition.
+     * And there is a recursion step for each of the other entries, starting from the last to the first (from right to left).   
+     * 
+     */
+    //index of base step
     let last_index = order.length-1;
+    //index of the starting recursive step
     let start_index = order.length-2;
     
-    //set operator for last-index
+    /*
+     * Base step.
+     */
+    //set operator according to order type.
     let operator = order[last_index][1] === 'ASC' ? '$gte' : '$lte';
+    //set strictly '>' or '<' for idAttribute (condition (1)).
     if (order[last_index][0] === idAttribute) { operator = operator.substring(0, 3); }
     
-    //add condition for last-index
+    //do: AND/OR condition for the base step.
     let where_statement = {
       [order[last_index][0]]: { [operator]: cursor[order[last_index][0]] }
     }
 
-    //set the other conditions
+    /*
+     * Recursive steps.
+     */
     for( let i= start_index; i>=0; i-- ){
+      //set operator according to order type.
       operator = order[i][1] === 'ASC' ? '$gte' : '$lte';
+      //set strict operator '>' or '<' for condition (2.a).
       let strict_operator = order[i][1] === 'ASC' ? '$gt' : '$lt';
-      //strict operator if we are ordering by id
+      //set strictly '>' or '<' for idAttribute (condition (1)).
       if(order[i][0] === idAttribute){ operator = operator.substring(0, 3);}
       
+      //do: AND/OR condition for the recursive step.
       where_statement = {
         ['$and'] :[
           { [order[i][0] ] : { [ operator ]: cursor[ order[i][0] ] } },
