@@ -263,7 +263,8 @@ f   *
    * 
    *        a) If record.value  is [ > on ASC, or  < on DESC] than cursor.value, then this record is greater than the given cursor.
    *        b) If record.value  is equal to  cursor.value,  then: 
-   *            i) test the next value on cursor set to determine if it fullfils condition 1) or some of the subconditions 2).[a, b, c].
+   *            i) test the next value on cursor set to determine if it fullfils condition 1) or some of the subconditions 2).[a, b, c],
+   *               in order tho determine if the record is 'greater than', or not, the given cursor.
    *        c) else: this record is not greater than the given cursor.
    * 
    * 
@@ -271,9 +272,10 @@ f   *
    * @param  {Array} order  Order entries. Must contains at least the entry for 'idAttribute'.
    * @param  {Object} cursor Cursor record taken as start point(exclusive) to create the where statement.
    * @param  {String} idAttribute  idAttribute of the calling model.
+   * @param  {Boolean} includeCursor Boolean flag that indicates if a strict or relaxed operator must be used for produce idAttribute conditions.
    * @return {Object}        Where statement to start retrieving records after the given cursor holding the order conditions.
    */
-  module.exports.parseOrderCursor = function(order, cursor, idAttribute){
+  module.exports.parseOrderCursor = function(order, cursor, idAttribute, includeCursor){
     /**
      * Checks
      */
@@ -318,7 +320,7 @@ f   *
     //set operator according to order type.
     let operator = order[last_index][1] === 'ASC' ? '$gte' : '$lte';
     //set strictly '>' or '<' for idAttribute (condition (1)).
-    if (order[last_index][0] === idAttribute) { operator = operator.substring(0, 3); }
+    if (!includeCursor && order[last_index][0] === idAttribute) { operator = operator.substring(0, 3); }
     
       /*
        * Produce condition for base step. 
@@ -340,7 +342,7 @@ f   *
       //set strict operator '>' or '<' for condition (2.a).
       let strict_operator = order[i][1] === 'ASC' ? '$gt' : '$lt';
       //set strictly '>' or '<' for idAttribute (condition (1)).
-      if(order[i][0] === idAttribute){ operator = operator.substring(0, 3);}
+      if(!includeCursor && order[i][0] === idAttribute){ operator = operator.substring(0, 3);}
       
       /**
        * Produce: AND/OR conditions
@@ -394,7 +396,8 @@ f   *
    * 
    *        a) If record.value  is   [ > on DESC, or  < on ASC] than cursor.value, then this record is lesser than the given cursor.
    *        b) If record.value  is equal to  cursor.value,  then: 
-   *            i) test the next value on cursor set to determine if it fullfils condition 1) or some of the subconditions 2).[a, b, c].
+   *            i) test the next value on cursor set to determine if it fullfils condition 1) or some of the subconditions 2).[a, b, c],
+   *               in order tho determine if the record is 'lesser than', or not, the given cursor.
    *        c) else: this record is not lesser than the given cursor.
    * 
    * 
@@ -402,9 +405,10 @@ f   *
    * @param  {Array} order  Order entries. Must contains at least the entry for 'idAttribute'.
    * @param  {Object} cursor Cursor record taken as start point(exclusive) to create the where statement.
    * @param  {String} idAttribute  idAttribute of the calling model.
+   * @param  {Boolean} includeCursor Boolean flag that indicates if a strict or relaxed operator must be used for produce idAttribute conditions.
    * @return {Object}        Where statement to start retrieving records after the given cursor holding the order conditions.
    */
-  module.exports.parseOrderCursorBefore = function(order, cursor, idAttribute){
+  module.exports.parseOrderCursorBefore = function(order, cursor, idAttribute, includeCursor){
     /**
      * Checks
      */
@@ -449,7 +453,7 @@ f   *
     //set operator according to order type.
     let operator = order[last_index][1] === 'ASC' ? '$lte' : '$gte';
     //set strictly '>' or '<' for idAttribute (condition (1)).
-    if (order[last_index][0] === idAttribute) { operator = operator.substring(0, 3); }
+    if (!includeCursor && order[last_index][0] === idAttribute) { operator = operator.substring(0, 3); }
     
       /*
        * Produce condition for base step. 
@@ -471,7 +475,7 @@ f   *
       //set strict operator '>' or '<' for condition (2.a).
       let strict_operator = order[i][1] === 'ASC' ? '$lt' : '$gt';
       //set strictly '>' or '<' for idAttribute (condition (1)).
-      if(order[i][0] === idAttribute){ operator = operator.substring(0, 3);}
+      if(!includeCursor && order[i][0] === idAttribute){ operator = operator.substring(0, 3);}
       
       /**
        * Produce: AND/OR conditions
