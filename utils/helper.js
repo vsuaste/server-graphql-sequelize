@@ -554,7 +554,7 @@ f   *
    * @param  {Boolean} hasNextPage      hasNextPage parameter for pagination info
    * @return {type}                  description
    */
-  module.exports.toGraphQLConnectionObject = function(paginatedRecords, model, hasNextPage) {
+  module.exports.toGraphQLConnectionObject = function(paginatedRecords, model, hasNextPage, hasPreviousPage) {
     let edges = paginatedRecords.map(e => {
         let temp_node = new model(e);
         return {
@@ -565,7 +565,9 @@ f   *
 
     let pageInfo = {
       hasNextPage: hasNextPage,
-      endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null
+      hasPreviousPage: hasPreviousPage,
+      endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
+      startCursor: edges.length > 0 ? edges[0].cursor : null
     }
 
     return {
