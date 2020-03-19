@@ -15,7 +15,7 @@ fs.readdirSync("./models")
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
     .forEach(function(file) {
-        console.log(file);
+        console.log("loaded model: " + file);
         let model_file = require(path.join(__dirname,'models', file));
         let model = model_file.init(sequelize, Sequelize);
 
@@ -55,6 +55,7 @@ fs.readdirSync("./models-webservice")
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
     .forEach(function(file) {
+        console.log("loaded model: " + file);
         let model = require(`./${path.join("./models-webservice", file)}`);
 
         if(models[model.name])
@@ -71,6 +72,7 @@ fs.readdirSync("./models-cenz-server")
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
     .forEach(function(file) {
+        console.log("loaded model: " + file);
         let model = require(`./${path.join("./models-cenz-server", file)}`);
 
         if(models[model.name])
@@ -87,6 +89,7 @@ fs.readdirSync("./models-distributed")
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
     .forEach(function(file) {
+        console.log("loaded model: " + file);
         let model = require(`./${path.join("./models-distributed", file)}`);
 
         if(models[model.name])
