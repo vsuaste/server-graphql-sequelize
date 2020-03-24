@@ -1,3 +1,4 @@
+const checkAuthorization = require('./check-authorization');
 const objectAssign = require('object-assign');
 const math = require('mathjs');
 const _ = require('lodash');
@@ -597,4 +598,39 @@ f   *
     for (let index = 0; index < array.length; index++) {
       await callback(array[index], index, array);
     }
+  }
+
+  /**
+   * Checks authorization for the adapters of the current logged in user
+   * (context) for the action (permission).
+   *
+   * @param {object} context - The GraphQL context passed to the resolver
+   * @param {array} adapters - Array of adapters (see Cenzontle distributed data
+   * models)
+   * @param {string} permission - The action the user wants to perform on the
+   * resources (adapters).
+   *
+   * @return {object} The return value of this function has two properties:
+   * 'authorizedAdapters' is an array of those adapters that passed the
+   * authorization check, and 'authorizationErrors' is an array of Error objects
+   * created for those adapters the user (context) has no authorization for given
+   * the requested permission (action).
+   */
+  module.exports.authorizedAdapters = async function(context, adapters, permission) {
+    let result = {
+      authorizedAdapters: [],
+      authorizationErrors: []
+    }
+    for (let i = 0; i < adapters.length; i++) {
+      let currAdapter = adapters[i]
+      if (await module.exports.checkAuthorization(context, currAdapter.name,
+          permission) === true) {
+        result.authorizedAdapters.push(currAdapter)
+      } else {
+        result.authorizationErrors.push(new Error(
+          `You don't have authorization to perform ${permission} on ${currAdapter.name}`
+        ))
+      }
+    }
+    return result
   }
