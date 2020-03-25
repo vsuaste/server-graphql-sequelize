@@ -21,7 +21,7 @@
     "csv-parse": "^2.2.0",
     "express": "^4.16.2",
     "express-fileupload": "^0.4.0",
-    "express-graphql": "^0.6.12",
+    "express-graphql": "^0.9.0",
     "express-jwt": "^5.3.1",
     "faker": "^4.1.0",
     "graphql": "^0.13.1",
@@ -42,7 +42,8 @@
     "supertest": "^3.1.0",
     "sync-request": "^6.0.0",
     "uuidv4": "^2.0.0",
-    "xlsx": "^0.12.11"
+    "xlsx": "^0.12.11",
+    "rewire": "^5.0.0"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
