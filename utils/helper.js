@@ -623,13 +623,57 @@ f   *
     }
     for (let i = 0; i < adapters.length; i++) {
       let currAdapter = adapters[i]
-      if (await module.exports.checkAuthorization(context, currAdapter.name,
+      if (await checkAuthorization(context, currAdapter.name,
           permission) === true) {
         result.authorizedAdapters.push(currAdapter)
       } else {
         result.authorizationErrors.push(new Error(
           `You don't have authorization to perform ${permission} on ${currAdapter.name}`
         ))
+      }
+    }
+    return result
+  }
+
+  /**
+   * Returns a new array instance with the set of adapters that remains after 
+   * remove all excluded adapters, specified on the search.excludeAdapterNames
+   * input, from the @adapters array. 
+   * 
+   * This function does not modify the @adapter param, but instead, returns a new
+   * array instance.
+   *
+   * @param {object} search - The GraphQL context passed to the resolver
+   * @param {array} adapters - Array of registered adapters (see Cenzontle distributed data
+   * models)
+   *
+   * @return {array} Array of resulting adapters, after removing those specified
+   * on the search.excludeAdapterNames input. If search.excludeAdapterNames is not
+   * defined or is empty, the array returned will be equal to the @adapters array.
+   */
+  module.exports.removeExcludedAdapters = async function(search, adapters) {
+    let result = Array.from(adapters);
+
+    //check: @adapters
+    if(adapters.length === 0) {
+      return result;
+    }//else
+    
+    //check: @search
+    if(!search || typeof search !== 'object' || !search.hasOwnProperty('excludeAdapterNames')
+    || search.excludeAdapterNames.length === 0) {
+      return result;
+    }//else
+    
+    //do: exclusion
+    let i = 0;
+    while (i < result.length) {
+      if(search.excludeAdapterNames.includes(result[i].name)) {
+        //remove adapter
+        result.splice(i,1);
+      } else {
+        //next
+        i++;
       }
     }
     return result
