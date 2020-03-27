@@ -620,11 +620,11 @@ f   *
     let result = {
       authorizedAdapters: [],
       authorizationErrors: []
-    }
+    };
+
     for (let i = 0; i < adapters.length; i++) {
-      let currAdapter = adapters[i]
-      if (await checkAuthorization(context, currAdapter.adapterName,
-          permission) === true) {
+      let currAdapter = adapters[i];
+      if (await checkAuthorization(context, currAdapter.adapterName, permission) === true) {
         result.authorizedAdapters.push(currAdapter)
       } else {
         result.authorizationErrors.push(new Error(
@@ -632,7 +632,7 @@ f   *
         ))
       }
     }
-    return result
+    return result;
   }
 
   /**
@@ -656,7 +656,7 @@ f   *
 
     //check: @adapters
     if(adapters.length === 0) {
-      return result;
+      return [];
     }//else
     
     //check: @search
