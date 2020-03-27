@@ -290,7 +290,7 @@ f   *
         return {};
     }
     //cursor: must have idAttribute
-    if(cursor===undefined||cursor===null||typeof cursor!=='object'||!cursor.hasOwnProperty(idAttribute)){
+    if(cursor===undefined||cursor===null||typeof cursor!=='object'||cursor.idAttribute === undefined){
       return {};
     }
 
@@ -423,7 +423,7 @@ f   *
         return {};
     }
     //cursor: must have idAttribute
-    if(cursor===undefined||cursor===null||typeof cursor!=='object'||!cursor.hasOwnProperty(idAttribute)){
+    if(cursor===undefined||cursor===null||typeof cursor!=='object'||cursor.idAttribute === undefined){
       return {};
     }
 
@@ -660,8 +660,10 @@ f   *
     }//else
     
     //check: @search
-    if(!search || typeof search !== 'object' || !search.hasOwnProperty('excludeAdapterNames')
-    || search.excludeAdapterNames.length === 0) {
+    if((!search || typeof search !== 'object') //has not search object
+      || (!search.excludeAdapterNames //or has search object but has not exclusions
+          || !Array.isArray(search.excludeAdapterNames) 
+          || search.excludeAdapterNames.length === 0)) {
       return result;
     }//else
     
