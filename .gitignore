@@ -15,3 +15,5 @@ schemas
 test
 validations
 patches
+adapters
+seeders

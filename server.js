@@ -183,6 +183,10 @@ app.use('/export', cors(), (req, res) =>{
    }
  })));
 
+ app.post('/meta_query', function(req, res) {
+  res.send('This is the meta query route!\n');
+ });
+
  // Error handling
  app.use(function (err, req, res, next) {
      if (err.name === 'UnauthorizedError') { // Send the error rather than to show it on the console
