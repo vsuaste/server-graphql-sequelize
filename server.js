@@ -11,7 +11,7 @@
  const {GraphQLDateTime, GraphQLDate, GraphQLTime } = require('graphql-iso-date');
 
  var {
-   buildSchema
+   graphql, buildSchema
  } = require('graphql');
  var mergeSchema = require('./utils/merge-schemas');
  var acl = null;
@@ -183,8 +183,25 @@ app.use('/export', cors(), (req, res) =>{
    }
  })));
 
- app.post('/meta_query', function(req, res) {
+ app.post('/meta_query', cors(), async (req, res) => {
   res.send('This is the meta query route!\n');
+  let context = {
+    request: req,
+    acl: acl
+  }
+  if (req != null) {
+    let queries = req.queries;
+    let jq = req.jq;
+    let jsonPath = req.jsonPath;
+    //let queriesJSON = JSON.parse(queries);
+    let gqlRes = await graphql(Schema, queries, resolvers, context);
+    console.log(`${JSON.stringify(gqlRes)}`)
+    res.send(`${JSON.stringify(gqlRes)}`)
+    if ((jq != null) && (jsonPath != null)) {
+      return res.status(415).send({error: "jq and jsonPath must not be given both!"});
+    }
+
+  }
  });
 
  // Error handling
