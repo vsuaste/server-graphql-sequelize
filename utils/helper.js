@@ -623,12 +623,12 @@ f   *
     }
     for (let i = 0; i < adapters.length; i++) {
       let currAdapter = adapters[i]
-      if (await checkAuthorization(context, currAdapter.name,
+      if (await checkAuthorization(context, currAdapter.adapterName,
           permission) === true) {
         result.authorizedAdapters.push(currAdapter)
       } else {
         result.authorizationErrors.push(new Error(
-          `You don't have authorization to perform ${permission} on ${currAdapter.name}`
+          `You don't have authorization to perform ${permission} on ${currAdapter.adapterName}`
         ))
       }
     }
@@ -668,7 +668,7 @@ f   *
     //do: exclusion
     let i = 0;
     while (i < result.length) {
-      if(search.excludeAdapterNames.includes(result[i].name)) {
+      if(search.excludeAdapterNames.includes(result[i].adapterName)) {
         //remove adapter
         result.splice(i,1);
       } else {
