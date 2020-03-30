@@ -104,7 +104,8 @@ app.use('/join', cors(), (req, res) => {
 
     let context = {
         request: req,
-            acl: acl
+            acl: acl,
+            benignErrors: []
     };
 
     // select the output format
@@ -174,7 +175,8 @@ app.use('/export', cors(), (req, res) =>{
    graphiql: true,
    context: {
      request: req,
-     acl: acl
+     acl: acl,
+     benignErrors: []
    },
    customExecuteFn: execute.execute,
    formatError(error){
