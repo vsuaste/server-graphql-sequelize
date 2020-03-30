@@ -188,23 +188,44 @@ app.use('/export', cors(), (req, res) =>{
    }
  })));
 
- app.post('/meta_query', cors(), async (req, res) => {
-  let context = {
-    request: req,
-    acl: acl
-  }
-  if (req != null) {
-    let queries = req.queries;
-    let jq = req.jq;
-    let jsonPath = req.jsonPath;
-    //let queriesJSON = JSON.parse(queries);
-    let gqlRes = await graphql(Schema, queries, resolvers, context);
-    
-    if ((jq != null) && (jsonPath != null)) {
-      return res.status(415).send({error: "jq and jsonPath must not be given both!"});
+ app.post('/meta_query', cors(), async (req, res, next) => {
+   try {
+    let context = {
+      request: req,
+      acl: acl,
+      benignErrors: []
     }
-    console.log(`${JSON.stringify(gqlRes)}`)
-    res.send(`${JSON.stringify(gqlRes)}`)
+    if (req != null) {
+      /*if (req.body != null) {
+        console.log('Body: ' + JSON.stringify(req.body));
+      }
+      if (req.query != null) {
+        console.log('Query: ' + JSON.stringify(req.query));
+      }*/
+      let queries = req.body.queries;
+      let jq = req.body.jq;
+      let jsonPath = req.body.jsonPath;
+      let responses = [];
+      if (typeof queries !== 'object') {
+        let newQueries = [queries];
+        queries = newQueries;
+      }
+      for await (let query of queries) {
+        let singleResponse = await graphql(Schema, query, resolvers, context);
+        responses.push(singleResponse);
+      }
+      //let gqlRes = await graphql(Schema, queries, resolvers, context);
+      
+      if ((jq != null) && (jsonPath != null)) {
+        return res.status(415).send({error: "jq and jsonPath must not be given both!"});
+      }
+      console.log(`${JSON.stringify(responses)}`)
+      console.log("Item: " + JSON.stringify(responses[0]));
+      res.send(`${JSON.stringify(responses)}`)
+      next();
+    }
+  } catch (error) {
+    next(error);
   }
  });
 
