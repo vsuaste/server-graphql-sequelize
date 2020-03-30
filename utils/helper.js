@@ -1,7 +1,7 @@
+const checkAuthorization = require('./check-authorization');
 const objectAssign = require('object-assign');
 const math = require('mathjs');
 const _ = require('lodash');
-
 
   /**
    * paginate - Creates pagination argument as needed in sequelize cotaining limit and offset accordingly to the current
@@ -21,8 +21,6 @@ const _ = require('lodash');
     return selectOpts
   }
 
-
-
   /**
    * requestedUrl - Recover baseUrl from the request.
    *
@@ -37,8 +35,6 @@ const _ = require('lodash');
       //(port == 80 || port == 443 ? '' : ':' + port) +
       req.baseUrl;
   }
-
-
 
   /**
    * prevNextPageUrl - Creates request string for previous or next page int the vue-table data object.
@@ -66,7 +62,6 @@ const _ = require('lodash');
     return baseUrl
   }
 
-
   /**
    * sort - Creates sort argument as needed in sequelize and accordingly to the order implicit in the resquest info.
    *
@@ -82,7 +77,6 @@ const _ = require('lodash');
     }
     return sortOpts
   }
-
 
   /**
    * search - Creates search argument as needed in sequelize and accordingly to the filter string implicit in the resquest info.
@@ -176,7 +170,6 @@ module.exports.vueTable = function(req, model, strAttributes) {
     })
   }
 
-
   /**
    * modelAttributes - Return info about each column in the model's table
    *
@@ -196,10 +189,9 @@ module.exports.vueTable = function(req, model, strAttributes) {
   //attributes to discard
   discardModelAttributes = ['createdAt', 'updatedAt']
 
-
   /**
    * filterModelAttributesForCsv - Filter attributes from a given model
-f   *
+   *
    * @param  {Object} model        Sequelize model from which the attributes will be filtered
    * @param  {Array} discardAttrs Array of attributes to discard
    * @return {Array}              Filtered attributes
@@ -215,7 +207,6 @@ f   *
       })
     })
   }
-
 
   /**
    * csvTableTemplate - Returns template of model, i.e. header of each column an its type
@@ -289,7 +280,7 @@ f   *
         return {};
     }
     //cursor: must have idAttribute
-    if(cursor===undefined||cursor===null||typeof cursor!=='object'||!cursor.hasOwnProperty(idAttribute)){
+    if(cursor===undefined||cursor===null||typeof cursor!=='object'||cursor.idAttribute === undefined){
       return {};
     }
 
@@ -422,7 +413,7 @@ f   *
         return {};
     }
     //cursor: must have idAttribute
-    if(cursor===undefined||cursor===null||typeof cursor!=='object'||!cursor.hasOwnProperty(idAttribute)){
+    if(cursor===undefined||cursor===null||typeof cursor!=='object'||cursor.idAttribute === undefined){
       return {};
     }
 
@@ -509,17 +500,30 @@ f   *
     return where_statement;
   }
 
-   module.exports.checkExistence = function(ids_to_add, model){
+  module.exports.checkExistence = function(ids_to_add, model){
+    //check
+    if (ids_to_add===null || ids_to_add===undefined) { 
+      throw new Error(`Invalid arguments on checkExistence(), 'ids' argument should not be 'null' or 'undefined'`);
+    }
+    //check existence by count
+    let ids = Array.isArray(ids_to_add) ? ids_to_add : [ ids_to_add ];
+    let promises = ids.map( id => { 
+      let responsibleAdapter = model.registeredAdapters[model.adapterForIri(id)];
+      let search =  {field: model.idAttribute(), value:{value: id }, operator: 'eq' };
+      return model.countRecords(search, [responsibleAdapter]);
+    });
 
-     let ids = Array.isArray(ids_to_add) ? ids_to_add : [ ids_to_add ];
-     let promises = ids.map( id => { return model.countRecords({field: model.idAttribute(), value:{value: id }, operator: 'eq' })  } );
-
-
-      return Promise.all(promises).then( result =>{
-        return result.map( (r, index)=>{ return r === 0 ? ids[index] : false } ).filter( r =>{return r !== false});
-      })
-
-   }
+    return Promise.all(promises).then( results =>{
+      return results.filter( (r, index)=>{
+        //check
+        if (typeof r !== 'number') { 
+          throw new Error(`Invalid response from remote cenz-server`);
+        }
+        //filter not found ids
+        return (r === 0); 
+      });
+    })
+  }
 
    /**
    * orderedRecords - javaScript function for ordering of records based on GraphQL orderInput for local post-processing
@@ -544,6 +548,7 @@ f   *
    module.exports.paginateRecordsCursor = function(orderedRecords, first) {
      return orderedRecords.slice(0,first);
    }
+
  /**
   * paginateRecordsBefore - post-precossing pagination of ordered records (backwards)
   *
@@ -554,7 +559,6 @@ f   *
    module.exports.paginateRecordsBefore = function(orderedRecords, last) {
      return orderedRecords.slice(Math.max(orderedRecords.length - last,0));
    }
-
 
   /**
    * toGraphQLConnectionObject - translate an array of records into a GraphQL connection
@@ -586,7 +590,6 @@ f   *
     };
   }
 
-
   /**
    * asyncForEach - Asynchronous for each
    *
@@ -597,4 +600,86 @@ f   *
     for (let index = 0; index < array.length; index++) {
       await callback(array[index], index, array);
     }
+  }
+
+  /**
+   * Checks authorization for the adapters of the current logged in user
+   * (context) for the action (permission).
+   *
+   * @param {object} context - The GraphQL context passed to the resolver
+   * @param {array} adapters - Array of adapters (see Cenzontle distributed data
+   * models)
+   * @param {string} permission - The action the user wants to perform on the
+   * resources (adapters).
+   *
+   * @return {object} The return value of this function has two properties:
+   * 'authorizedAdapters' is an array of those adapters that passed the
+   * authorization check, and 'authorizationErrors' is an array of Error objects
+   * created for those adapters the user (context) has no authorization for given
+   * the requested permission (action).
+   */
+  module.exports.authorizedAdapters = async function(context, adapters, permission) {
+    let result = {
+      authorizedAdapters: [],
+      authorizationErrors: []
+    };
+
+    for (let i = 0; i < adapters.length; i++) {
+      let currAdapter = adapters[i];
+
+      if (await checkAuthorization(context, currAdapter.adapterName, permission) === true) {
+        result.authorizedAdapters.push(currAdapter)
+      } else {
+        result.authorizationErrors.push(new Error(
+          `You don't have authorization to perform ${permission} on ${currAdapter.adapterName}`
+        ))
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Returns a new array instance with the set of adapters that remains after 
+   * remove all excluded adapters, specified on the search.excludeAdapterNames
+   * input, from the @adapters array. 
+   * 
+   * This function does not modify the @adapter param, but instead, returns a new
+   * array instance.
+   *
+   * @param {object} search - The GraphQL context passed to the resolver
+   * @param {array} adapters - Array of registered adapters (see Cenzontle distributed data
+   * models)
+   *
+   * @return {array} Array of resulting adapters, after removing those specified
+   * on the search.excludeAdapterNames input. If search.excludeAdapterNames is not
+   * defined or is empty, the array returned will be equal to the @adapters array.
+   */
+  module.exports.removeExcludedAdapters = async function(search, adapters) {
+    let result = Array.from(adapters);
+    
+    //check: @adapters
+    if(adapters.length === 0) {
+      return [];
+    }//else
+    
+    //check: @search
+    if((!search || typeof search !== 'object') //has not search object
+      || (!search.excludeAdapterNames //or has search object but has not exclusions
+          || !Array.isArray(search.excludeAdapterNames) 
+          || search.excludeAdapterNames.length === 0)) {
+      return result;
+    }//else
+    
+    //do: exclusion
+    let i = 0;
+    while (i < result.length) {
+      if(search.excludeAdapterNames.includes(result[i].adapterName)) {
+        //remove adapter
+        result.splice(i,1);
+      } else {
+        //next
+        i++;
+      }
+    }
+    return result
   }

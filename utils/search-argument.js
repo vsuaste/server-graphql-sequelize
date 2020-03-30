@@ -9,8 +9,8 @@ module.exports = class search{
    * constructor - Creates an instace with the given arguments
    *
    * @param  {string} field   field to filter.
-   * @param  {object} value    value contains type(i.e. array, string) and actual value to match in the filter.
-   * @param  {string} operator operator used to perform the filter.
+   * @param  {object} value    value contains type(i.e. array, string) and actual value to match in the filter. Must be defined.
+   * @param  {string} operator operator used to perform the filter. Must be defined.
    * @param  {object} search  recursive search instance.
    * @return {object}          instace of search class.
    */
@@ -49,20 +49,23 @@ module.exports = class search{
   toSequelize(){
     let searchsInSequelize = {};
 
-    if(this.search === undefined && this.field === undefined)
-    {
+    if (this.value === undefined || this.operator === undefined) {
+      return searchsInSequelize;
+
+    } else if(this.search === undefined && this.field === undefined){
       searchsInSequelize['$'+this.operator] = this.value;
 
-    }else if(this.search === undefined)
-    {
+    }else if(this.search === undefined){
       searchsInSequelize[this.field] = {
          ['$'+this.operator] : this.value
       };
+
     }else if(this.field === undefined){
       searchsInSequelize['$'+this.operator] = this.search.map(sa => {
         let new_sa = new search(sa);
         return new_sa.toSequelize();
       });
+      
     }else{
        searchsInSequelize[this.field] = {
          ['$'+this.operator] : this.search.map(sa => {

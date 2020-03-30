@@ -9,6 +9,7 @@
  const JOIN = require('./utils/join-models');
  const simpleExport = require('./utils/simple-export');
  const {GraphQLDateTime, GraphQLDate, GraphQLTime } = require('graphql-iso-date');
+ const execute = require('./utils/custom-graphql-execute');
 
  var {
    graphql, buildSchema
@@ -103,7 +104,8 @@ app.use('/join', cors(), (req, res) => {
 
     let context = {
         request: req,
-            acl: acl
+            acl: acl,
+            benignErrors: []
     };
 
     // select the output format
@@ -139,7 +141,8 @@ app.use('/export', cors(), (req, res) =>{
 
   let context = {
     request: req,
-    acl : acl
+    acl : acl,
+    benignErrors: []
   }
 
   let body_info = req.query;
@@ -172,8 +175,10 @@ app.use('/export', cors(), (req, res) =>{
    graphiql: true,
    context: {
      request: req,
-     acl: acl
+     acl: acl,
+     benignErrors: []
    },
+   customExecuteFn: execute.execute,
    formatError(error){
      return {
        message: error.message,
