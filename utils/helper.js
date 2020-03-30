@@ -3,7 +3,6 @@ const objectAssign = require('object-assign');
 const math = require('mathjs');
 const _ = require('lodash');
 
-
   /**
    * paginate - Creates pagination argument as needed in sequelize cotaining limit and offset accordingly to the current
    * page implicit in the request info.
@@ -22,8 +21,6 @@ const _ = require('lodash');
     return selectOpts
   }
 
-
-
   /**
    * requestedUrl - Recover baseUrl from the request.
    *
@@ -38,8 +35,6 @@ const _ = require('lodash');
       //(port == 80 || port == 443 ? '' : ':' + port) +
       req.baseUrl;
   }
-
-
 
   /**
    * prevNextPageUrl - Creates request string for previous or next page int the vue-table data object.
@@ -67,7 +62,6 @@ const _ = require('lodash');
     return baseUrl
   }
 
-
   /**
    * sort - Creates sort argument as needed in sequelize and accordingly to the order implicit in the resquest info.
    *
@@ -83,7 +77,6 @@ const _ = require('lodash');
     }
     return sortOpts
   }
-
 
   /**
    * search - Creates search argument as needed in sequelize and accordingly to the filter string implicit in the resquest info.
@@ -177,7 +170,6 @@ module.exports.vueTable = function(req, model, strAttributes) {
     })
   }
 
-
   /**
    * modelAttributes - Return info about each column in the model's table
    *
@@ -197,10 +189,9 @@ module.exports.vueTable = function(req, model, strAttributes) {
   //attributes to discard
   discardModelAttributes = ['createdAt', 'updatedAt']
 
-
   /**
    * filterModelAttributesForCsv - Filter attributes from a given model
-f   *
+   *
    * @param  {Object} model        Sequelize model from which the attributes will be filtered
    * @param  {Array} discardAttrs Array of attributes to discard
    * @return {Array}              Filtered attributes
@@ -216,7 +207,6 @@ f   *
       })
     })
   }
-
 
   /**
    * csvTableTemplate - Returns template of model, i.e. header of each column an its type
@@ -510,17 +500,30 @@ f   *
     return where_statement;
   }
 
-   module.exports.checkExistence = function(ids_to_add, model){
+  module.exports.checkExistence = function(ids_to_add, model){
+    //check
+    if (ids_to_add===null || ids_to_add===undefined) { 
+      throw new Error(`Invalid arguments on checkExistence(), 'ids' argument should not be 'null' or 'undefined'`);
+    }
+    //check existence by count
+    let ids = Array.isArray(ids_to_add) ? ids_to_add : [ ids_to_add ];
+    let promises = ids.map( id => { 
+      let responsibleAdapter = model.registeredAdapters[model.adapterForIri(id)];
+      let search =  {field: model.idAttribute(), value:{value: id }, operator: 'eq' };
+      return model.countRecords(search, [responsibleAdapter]);
+    });
 
-     let ids = Array.isArray(ids_to_add) ? ids_to_add : [ ids_to_add ];
-     let promises = ids.map( id => { return model.countRecords({field: model.idAttribute(), value:{value: id }, operator: 'eq' })  } );
-
-
-      return Promise.all(promises).then( result =>{
-        return result.map( (r, index)=>{ return r === 0 ? ids[index] : false } ).filter( r =>{return r !== false});
-      })
-
-   }
+    return Promise.all(promises).then( results =>{
+      return results.filter( (r, index)=>{
+        //check
+        if (typeof r !== 'number') { 
+          throw new Error(`Invalid response from remote cenz-server`);
+        }
+        //filter not found ids
+        return (r === 0); 
+      });
+    })
+  }
 
    /**
    * orderedRecords - javaScript function for ordering of records based on GraphQL orderInput for local post-processing
@@ -545,6 +548,7 @@ f   *
    module.exports.paginateRecordsCursor = function(orderedRecords, first) {
      return orderedRecords.slice(0,first);
    }
+
  /**
   * paginateRecordsBefore - post-precossing pagination of ordered records (backwards)
   *
@@ -555,7 +559,6 @@ f   *
    module.exports.paginateRecordsBefore = function(orderedRecords, last) {
      return orderedRecords.slice(Math.max(orderedRecords.length - last,0));
    }
-
 
   /**
    * toGraphQLConnectionObject - translate an array of records into a GraphQL connection
@@ -586,7 +589,6 @@ f   *
         pageInfo
     };
   }
-
 
   /**
    * asyncForEach - Asynchronous for each
@@ -624,6 +626,7 @@ f   *
 
     for (let i = 0; i < adapters.length; i++) {
       let currAdapter = adapters[i];
+
       if (await checkAuthorization(context, currAdapter.adapterName, permission) === true) {
         result.authorizedAdapters.push(currAdapter)
       } else {
@@ -653,7 +656,7 @@ f   *
    */
   module.exports.removeExcludedAdapters = async function(search, adapters) {
     let result = Array.from(adapters);
-
+    
     //check: @adapters
     if(adapters.length === 0) {
       return [];
