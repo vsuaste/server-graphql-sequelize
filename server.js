@@ -10,6 +10,7 @@
  const simpleExport = require('./utils/simple-export');
  const {GraphQLDateTime, GraphQLDate, GraphQLTime } = require('graphql-iso-date');
  const execute = require('./utils/custom-graphql-execute');
+ const checkAuthorization = require('./utils/check-authorization');
 
  var {
    graphql, buildSchema
@@ -202,27 +203,33 @@ app.use('/export', cors(), (req, res) =>{
       if (req.query != null) {
         console.log('Query: ' + JSON.stringify(req.query));
       }*/
-      let queries = req.body.queries;
-      let jq = req.body.jq;
-      let jsonPath = req.body.jsonPath;
-      let responses = [];
-      if (typeof queries !== 'object') {
-        let newQueries = [queries];
-        queries = newQueries;
-      }
-      for await (let query of queries) {
-        let singleResponse = await graphql(Schema, query, resolvers, context);
-        responses.push(singleResponse);
-      }
-      //let gqlRes = await graphql(Schema, queries, resolvers, context);
-      
-      if ((jq != null) && (jsonPath != null)) {
-        return res.status(415).send({error: "jq and jsonPath must not be given both!"});
-      }
-      console.log(`${JSON.stringify(responses)}`)
-      console.log("Item: " + JSON.stringify(responses[0]));
-      res.send(`${JSON.stringify(responses)}`)
-      next();
+      await checkAuthorization(context, 'meta_query', '').then(async authorization => {
+        if (authorization === true) {
+          let queries = req.body.queries;
+          let jq = req.body.jq;
+          let jsonPath = req.body.jsonPath;
+          let responses = [];
+          if (typeof queries !== 'object') {
+            let newQueries = [queries];
+            queries = newQueries;
+          }
+          for (let query of queries) {
+            let singleResponse = await graphql(Schema, query, resolvers, context);
+            responses.push(singleResponse);
+          }
+          //let gqlRes = await graphql(Schema, queries, resolvers, context);
+          
+          if ((jq != null) && (jsonPath != null)) {
+            return res.status(415).send({error: "jq and jsonPath must not be given both!"});
+          }
+          console.log(`${JSON.stringify(responses)}`)
+          console.log("Item: " + JSON.stringify(responses[0]));
+          res.send(`${JSON.stringify(responses)}`)
+          next();
+        } else {
+            throw new Error("You don't have authorization to perform this action");
+       }
+     })
     }
   } catch (error) {
     next(error);
