@@ -618,7 +618,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * created for those adapters the user (context) has no authorization for given
    * the requested permission (action).
    */
-  module.exports.authorizedAdapters = async function(context, adapters, permission) {
+  module.exports.authorizedAdapters = function(context, adapters, permission) {
     let result = {
       authorizedAdapters: [],
       authorizationErrors: []
@@ -654,7 +654,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * on the search.excludeAdapterNames input. If search.excludeAdapterNames is not
    * defined or is empty, the array returned will be equal to the @adapters array.
    */
-  module.exports.removeExcludedAdapters = async function(search, adapters) {
+  module.exports.removeExcludedAdapters = function(search, adapters) {
     let result = Array.from(adapters);
     
     //check: @adapters
@@ -696,7 +696,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * attribute @excludeAdapterNames. This functions does not modify the @search object,
    * instead a new one is returned. 
    */
-  module.exports.addExclusions = async function(search, currentAdapterName, registeredAdapters) {
+  module.exports.addExclusions = function(search, currentAdapterName, registeredAdapters) {
     let nsearch = {};
 
     //check
