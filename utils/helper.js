@@ -618,7 +618,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * created for those adapters the user (context) has no authorization for given
    * the requested permission (action).
    */
-  module.exports.authorizedAdapters = function(context, adapters, permission) {
+  module.exports.authorizedAdapters = async function(context, adapters, permission) {
     let result = {
       authorizedAdapters: [],
       authorizationErrors: []
@@ -736,4 +736,6 @@ module.exports.vueTable = function(req, model, strAttributes) {
         nsearch.excludeAdapterNames.push(a.adapterName);
       }
     });
+
+    return nsearch;
   }
