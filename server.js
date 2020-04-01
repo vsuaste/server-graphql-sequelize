@@ -12,6 +12,7 @@
  const execute = require('./utils/custom-graphql-execute');
  const checkAuthorization = require('./utils/check-authorization');
  const nodejq = require('node-jq')
+ const {JSONPath} = require('jsonpath-plus');
 
  var {
    graphql, buildSchema
@@ -223,19 +224,21 @@ app.use('/export', cors(), (req, res) =>{
           }
           
           if ((jq != null) && (jsonPath != null)) {
-            return res.status(415).send({error: "jq and jsonPath must not be given both!"});
+            throw new Error("jq and jsonPath must not be given both!");
           }
           if ((jq == null) && (jsonPath == null)) {
-            return res.status(415).send({error: "Either jq or jsonPath must be given"});
+            throw new Error("Either jq or jsonPath must be given");
           }
           console.log(`${JSON.stringify(responses)}`)
           console.log("Item: " + JSON.stringify(responses[0]));
-          if (jq != null) {
+          if (jq != null) { // jq
               let output = await nodejq.run(jq, {data: responses, errors: queryErrors}, { input: 'json'});
               console.log('The output is: ' + output);
               res.json(output);
-          } else {
-            res.json(results);
+          } else { // JSONPath
+            let output = JSONPath({path: jsonPath, json: {data: responses, errors: queryErrors}, wrap: false});
+            console.log('The output is: ' + JSON.stringify(output));
+            res.json(output);
           }
           next();
         } else {
@@ -243,6 +246,7 @@ app.use('/export', cors(), (req, res) =>{
        }
     }
   } catch (error) {
+    console.log('Error: ' + error);
     res.json( { data: null, errors: [error] });
   }
  });
