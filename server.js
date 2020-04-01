@@ -11,6 +11,7 @@
  const {GraphQLDateTime, GraphQLDate, GraphQLTime } = require('graphql-iso-date');
  const execute = require('./utils/custom-graphql-execute');
  const checkAuthorization = require('./utils/check-authorization');
+ const nodejq = require('node-jq')
 
  var {
    graphql, buildSchema
@@ -203,8 +204,7 @@ app.use('/export', cors(), (req, res) =>{
       if (req.query != null) {
         console.log('Query: ' + JSON.stringify(req.query));
       }*/
-      await checkAuthorization(context, 'meta_query', '').then(async authorization => {
-        if (authorization === true) {
+        if (await checkAuthorization(context, 'meta_query', '') === true) {
           let queries = req.body.queries;
           let jq = req.body.jq;
           let jsonPath = req.body.jsonPath;
@@ -213,26 +213,37 @@ app.use('/export', cors(), (req, res) =>{
             let newQueries = [queries];
             queries = newQueries;
           }
+          let queryErrors = [];
           for (let query of queries) {
             let singleResponse = await graphql(Schema, query, resolvers, context);
-            responses.push(singleResponse);
+            if (singleResponse.errors != null) {
+              queryErrors.push(singleResponse.errors);
+            }
+            responses.push(singleResponse.data);
           }
-          //let gqlRes = await graphql(Schema, queries, resolvers, context);
           
           if ((jq != null) && (jsonPath != null)) {
             return res.status(415).send({error: "jq and jsonPath must not be given both!"});
           }
+          if ((jq == null) && (jsonPath == null)) {
+            return res.status(415).send({error: "Either jq or jsonPath must be given"});
+          }
           console.log(`${JSON.stringify(responses)}`)
           console.log("Item: " + JSON.stringify(responses[0]));
-          res.send(`${JSON.stringify(responses)}`)
+          if (jq != null) {
+              let output = await nodejq.run(jq, {data: responses, errors: queryErrors}, { input: 'json'});
+              console.log('The output is: ' + output);
+              res.json(output);
+          } else {
+            res.json(results);
+          }
           next();
         } else {
             throw new Error("You don't have authorization to perform this action");
        }
-     })
     }
   } catch (error) {
-    next(error);
+    res.json( { data: null, errors: [error] });
   }
  });
 
