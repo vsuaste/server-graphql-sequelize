@@ -209,7 +209,7 @@ app.use('/export', cors(), (req, res) =>{
           let jq = req.body.jq;
           let jsonPath = req.body.jsonPath;
           let responses = [];
-          if (typeof queries !== 'object') {
+          if (!Array.isArray(queries)) {
             let newQueries = [queries];
             queries = newQueries;
           }
