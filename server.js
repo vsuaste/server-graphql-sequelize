@@ -192,6 +192,30 @@ app.use('/export', cors(), (req, res) =>{
    }
  })));
 
+ // '==' checks for both 'null' and 'undefined'
+ function eitherJqOrJsonpath(jqInput, jsonpathInput) {
+   if ((jqInput != null) && (jsonpathInput != null)) {
+    throw new Error("jq and jsonPath must not be given both!");
+   }
+   if ((jqInput == null) && (jsonpathInput == null)) {
+    throw new Error("Either jq or jsonPath must be given");
+   }
+ }
+
+ async function handleGraphQlQueriesForMetaQuery(queries, context) {
+   let compositeResponses = {};
+   compositeResponses.data = [];
+   compositeResponses.errors = [];
+   for (let query of queries) {
+     let singleResponse = await graphql(Schema, query, resolvers, context);
+     if (singleResponse.errors != null) {
+       compositeResponses.errors.push(singleResponse.errors);
+     }
+     compositeResponses.data.push(singleResponse.data);
+   }
+   return compositeResponses;
+ }
+
  app.post('/meta_query', cors(), async (req, res, next) => {
    try {
     let context = {
@@ -200,48 +224,29 @@ app.use('/export', cors(), (req, res) =>{
       benignErrors: []
     }
     if (req != null) {
-      /*if (req.body != null) {
-        console.log('Body: ' + JSON.stringify(req.body));
-      }
-      if (req.query != null) {
-        console.log('Query: ' + JSON.stringify(req.query));
-      }*/
         if (await checkAuthorization(context, 'meta_query', '') === true) {
           let queries = req.body.queries;
           let jq = req.body.jq;
           let jsonPath = req.body.jsonPath;
-          let responses = [];
+          eitherJqOrJsonpath(jq, jsonPath);
+
           if (!Array.isArray(queries)) {
             let newQueries = [queries];
             queries = newQueries;
           }
-          let queryErrors = [];
-          for (let query of queries) {
-            let singleResponse = await graphql(Schema, query, resolvers, context);
-            if (singleResponse.errors != null) {
-              queryErrors.push(singleResponse.errors);
-            }
-            responses.push(singleResponse.data);
-          }
-          
-          // '==' checks for both 'null' and 'undefined'
-          if ((jq != null) && (jsonPath != null)) {
-            throw new Error("jq and jsonPath must not be given both!");
-          }
-          if ((jq == null) && (jsonPath == null)) {
-            throw new Error("Either jq or jsonPath must be given");
-          }
-          console.log(`${JSON.stringify(responses)}`)
-          console.log("Item: " + JSON.stringify(responses[0]));
+
+          let graphQlResponses = await handleGraphQlQueriesForMetaQuery(queries, context);          
+          console.log(`${JSON.stringify(graphQlResponses.data)}`)
+          console.log("Item: " + JSON.stringify(graphQlResponses.data[0]));
+          let output;
           if (jq != null) { // jq
-              let output = await nodejq.run(jq, {data: responses, errors: queryErrors}, { input: 'json'});
-              console.log('The output is: ' + output);
-              res.json(output);
+            output = await nodejq.run(jq, graphQlResponses, { input: 'json'});
+            console.log('The output is: ' + output);
           } else { // JSONPath
-            let output = JSONPath({path: jsonPath, json: {data: responses, errors: queryErrors}, wrap: false});
+            output = JSONPath({path: jsonPath, json: graphQlResponses, wrap: false});
             console.log('The output is: ' + JSON.stringify(output));
-            res.json(output);
           }
+          res.json(output);
           next();
         } else {
             throw new Error("You don't have authorization to perform this action");
