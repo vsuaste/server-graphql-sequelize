@@ -13,6 +13,7 @@
  const checkAuthorization = require('./utils/check-authorization');
  const nodejq = require('node-jq')
  const {JSONPath} = require('jsonpath-plus');
+ const graphqlFormatError = require('./node_modules/graphql/error/formatError');
 
  var {
    graphql, buildSchema
@@ -223,6 +224,7 @@ app.use('/export', cors(), (req, res) =>{
             responses.push(singleResponse.data);
           }
           
+          // '==' checks for both 'null' and 'undefined'
           if ((jq != null) && (jsonPath != null)) {
             throw new Error("jq and jsonPath must not be given both!");
           }
@@ -247,7 +249,7 @@ app.use('/export', cors(), (req, res) =>{
     }
   } catch (error) {
     console.log('Error: ' + error);
-    res.json( { data: null, errors: [error] });
+    res.json( { data: null, errors: [graphqlFormatError.formatError(error)] });
   }
  });
 
