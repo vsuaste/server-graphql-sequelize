@@ -194,11 +194,12 @@ app.use('/export', cors(), (req, res) =>{
 
  // '==' checks for both 'null' and 'undefined'
  function eitherJqOrJsonpath(jqInput, jsonpathInput) {
+   let errorString = "State either 'jq' or 'jsonPath' expressions, never both.";
    if ((jqInput != null) && (jsonpathInput != null)) {
-    throw new Error("jq and jsonPath must not be given both!");
+    throw new Error(errorString);
    }
    if ((jqInput == null) && (jsonpathInput == null)) {
-    throw new Error("Either jq or jsonPath must be given");
+    throw new Error(errorString);
    }
  }
 
@@ -209,7 +210,7 @@ app.use('/export', cors(), (req, res) =>{
    for (let query of queries) {
      let singleResponse = await graphql(Schema, query, resolvers, context);
      if (singleResponse.errors != null) {
-       compositeResponses.errors.push(singleResponse.errors);
+       compositeResponses.errors.push(...singleResponse.errors);
      }
      compositeResponses.data.push(singleResponse.data);
    }
@@ -236,15 +237,11 @@ app.use('/export', cors(), (req, res) =>{
           }
 
           let graphQlResponses = await handleGraphQlQueriesForMetaQuery(queries, context);          
-          console.log(`${JSON.stringify(graphQlResponses.data)}`)
-          console.log("Item: " + JSON.stringify(graphQlResponses.data[0]));
           let output;
           if (jq != null) { // jq
             output = await nodejq.run(jq, graphQlResponses, { input: 'json'});
-            console.log('The output is: ' + output);
           } else { // JSONPath
             output = JSONPath({path: jsonPath, json: graphQlResponses, wrap: false});
-            console.log('The output is: ' + JSON.stringify(output));
           }
           res.json(output);
           next();
@@ -253,7 +250,6 @@ app.use('/export', cors(), (req, res) =>{
        }
     }
   } catch (error) {
-    console.log('Error: ' + error);
     res.json( { data: null, errors: [graphqlFormatError.formatError(error)] });
   }
  });
