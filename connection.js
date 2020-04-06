@@ -15,7 +15,9 @@ config.operatorsAliases = {
   $gte: Op.gte,
   $lt: Op.lt,
   $lte: Op.lte,
-  $ne: Op.ne
+  $ne: Op.ne,
+  $regexp: Op.regexp,
+  $notRegexp: Op.notRegexp
 };
 
 sequelize = new Sequelize(config);
