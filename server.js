@@ -239,7 +239,7 @@ app.use('/export', cors(), (req, res) =>{
           let graphQlResponses = await handleGraphQlQueriesForMetaQuery(queries, context);          
           let output;
           if (jq != null) { // jq
-            output = await nodejq.run(jq, graphQlResponses, { input: 'json', output: 'string'});
+            output = await nodejq.run(jq, graphQlResponses, { input: 'json', output: 'json'});
           } else { // JSONPath
             output = JSONPath({path: jsonPath, json: graphQlResponses, wrap: false});
           }
