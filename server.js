@@ -229,6 +229,9 @@ app.use('/export', cors(), (req, res) =>{
           let queries = req.body.queries;
           let jq = req.body.jq;
           let jsonPath = req.body.jsonPath;
+          console.log(`The queries are: ${queries}`);
+          console.log(`jq is ${jq}`);
+          console.log(`jsonPath is ${jsonPath}`);
           eitherJqOrJsonpath(jq, jsonPath);
 
           if (!Array.isArray(queries)) {
