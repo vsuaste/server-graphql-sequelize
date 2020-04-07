@@ -196,10 +196,10 @@ app.use('/export', cors(), (req, res) =>{
  function eitherJqOrJsonpath(jqInput, jsonpathInput) {
    let errorString = "State either 'jq' or 'jsonPath' expressions, never both.";
    if ((jqInput != null) && (jsonpathInput != null)) {
-    throw new Error(errorString);
+    throw new Error(`${errorString} - jq is ${jq} and jsonPath is ${jsonPath}`);
    }
    if ((jqInput == null) && (jsonpathInput == null)) {
-    throw new Error(errorString);
+    throw new Error(`${errorString} - both are null or undefined`);
    }
  }
 
@@ -229,9 +229,6 @@ app.use('/export', cors(), (req, res) =>{
           let queries = req.body.queries;
           let jq = req.body.jq;
           let jsonPath = req.body.jsonPath;
-          console.log(`The queries are: ${queries}`);
-          console.log(`jq is ${jq}`);
-          console.log(`jsonPath is ${jsonPath}`);
           eitherJqOrJsonpath(jq, jsonPath);
 
           if (!Array.isArray(queries)) {
