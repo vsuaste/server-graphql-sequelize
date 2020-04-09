@@ -110,7 +110,7 @@ app.use('/join', cors(), (req, res) => {
        request: req,
            acl: acl,
            benignErrors: [],
-           recordsLimit: globals.RECORD_LIMIT
+           recordsLimit: globals.LIMIT_RECORDS
    };
 
    // select the output format
@@ -148,7 +148,7 @@ app.use('/export', cors(), (req, res) =>{
    request: req,
    acl : acl,
    benignErrors: [],
-   recordsLimit: globals.RECORD_LIMIT
+   recordsLimit: globals.LIMIT_RECORDS
  }
 
  let body_info = req.query;
@@ -183,7 +183,7 @@ app.use('/export', cors(), (req, res) =>{
      request: req,
      acl: acl,
      benignErrors: [],
-     recordsLimit: globals.RECORD_LIMIT
+     recordsLimit: globals.LIMIT_RECORDS
    },
    customExecuteFn: execute.execute,
    formatError(error){
@@ -226,7 +226,7 @@ app.use('/export', cors(), (req, res) =>{
       request: req,
       acl: acl,
       benignErrors: [],
-      recordsLimit: globals.RECORD_LIMIT
+      recordsLimit: globals.LIMIT_RECORDS
     }
     if (req != null) {
         if (await checkAuthorization(context, 'meta_query', '') === true) {
