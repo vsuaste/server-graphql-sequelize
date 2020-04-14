@@ -1,5 +1,5 @@
 module.exports = {
-  LIMIT_RECORDS : process.env.LIMIT_RECORDS || 10000,
+  LIMIT_RECORDS : process.env.LIMIT_RECORDS || 25,
   PORT : process.env.PORT || 3000,
   ALLOW_ORIGIN: process.env.ALLOW_ORIGIN || "http://localhost:8080",
   REQUIRE_SIGN_IN: process.env.REQUIRE_SIGN_IN || "true",
