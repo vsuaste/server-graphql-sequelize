@@ -84,7 +84,7 @@ var resolvers = require('./resolvers/index');
 
 
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: globals.POST_REQUEST_MAX_BODY_SIZE}));
 
 app.use('/login', cors(), (req, res)=>{
 
