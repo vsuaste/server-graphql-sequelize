@@ -1,5 +1,6 @@
 const expect = require('chai').expect;
 const helper = require('../utils/helper');
+const resolvers = require('../resolvers/index');
 
 describe('Non-empty array', function() {
     it('1. Undefined', function() {
@@ -79,3 +80,18 @@ describe('Not undefined and not null', function() {
         expect(helper.isNotUndefinedAndNotNull(val)).to.be.true;
     })
 })
+
+describe('Cumulated Associated Arguments Exceed Record Limit', function() {
+    it('1. Integers expect pass', function() {
+        expect(helper.cumulatedAssocArgsExceedRecordLimit({addDogs: 2, addCats: 1}, 2, ['addDogs', 'addCats'])).to.be.false;
+    })
+    it('2. Integer expect fail', function() {
+        expect(helper.cumulatedAssocArgsExceedRecordLimit({addDogs: 2, addCats: 1, addHamsters: 1}, 2, ['addDogs', 'addCats', 'addHamsters'])).to.be.true;
+    })
+    it('3. Arrays expect pass', function() {
+        expect(helper.cumulatedAssocArgsExceedRecordLimit({addDogs: [4, 2], addCats: 1}, 3, ['addDogs', 'addCats'])).to.be.false;
+    })
+    it('4. Arrays expect pass', function() {
+        expect(helper.cumulatedAssocArgsExceedRecordLimit({addDogs: [4, 2], addCats: 1, addHamsters: 1}, 3, ['addDogs', 'addCats', 'addHamsters'])).to.be.true;
+    })
+});

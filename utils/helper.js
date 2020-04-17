@@ -846,23 +846,27 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return nsearch;
   }
 
-  module.exports.cumulatedAssocArgsExceedRecordLimit = function(input, recordLimit, argNamesArray) {
-    let numberOfRecords = 0;
-    argNamesArray.forEach(argName => {
-        let elements = input[`${argName}`];
-        if (this.isNonEmptyArray(elements)) {
-            numberOfRecords += elements.length;
-        } else if (this.isNotUndefinedAndNotNull(elements)) {
-            numberOfRecords++;
-        }
-    });
-    return (numberOfRecords > recordLimit);
-  }
-
-  module.exports.isNonEmptyArray = function(a) {
+  function isNonEmptyArray(a) {
     return (a !== undefined && Array.isArray(a) && a.length > 0);
   }
 
-  module.exports.isNotUndefinedAndNotNull = function(v) {
+  function isNotUndefinedAndNotNull(v) {
     return (v !== undefined && v !== null);
   }
+
+  module.exports.cumulatedAssocArgsExceedRecordLimit = function(input, recordLimit, argNamesArray) {
+    return argNamesArray.reduce( function(acc, curr) {
+      let element = input[`${curr}`];
+      if (isNonEmptyArray(element)) {
+        return (acc + element.length);
+      } else if (isNotUndefinedAndNotNull(element)) {
+        return (acc + 1);
+      } else {
+        return acc;
+      }
+    }, 0) > recordLimit;
+  }
+
+  module.exports.isNonEmptyArray = isNonEmptyArray
+
+  module.exports.isNotUndefinedAndNotNull = isNotUndefinedAndNotNull
