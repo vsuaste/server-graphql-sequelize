@@ -854,8 +854,22 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return (v !== undefined && v !== null);
   }
 
-  module.exports.unique = function(inputArray) {
+  function unique(inputArray) {
     return [...new Set(inputArray)];
+  }
+
+  module.exports.sanitizeAssociationArguments = function(input, argNamesArray) {
+    let sanitizedInput = {};
+    let inputCopy = Object.assign({}, input);
+    for (let argument of argNamesArray) {
+      let element = inputCopy[`${argument}`];
+      if (isNonEmptyArray(element)) {
+        sanitizedInput[`${argument}`] = unique(inputCopy[`${argument}`]);
+      } else if (isNotUndefinedAndNotNull(element)) {
+        sanitizedInput[`${argument}`] = element;
+      }
+    }
+    return sanitizedInput;
   }
 
   module.exports.countRecordsInAssociationArgs = function(input, argNamesArray) {
@@ -870,6 +884,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
       }
     }, 0);
   }
+
+  module.exports.unique = unique
 
   module.exports.isNonEmptyArray = isNonEmptyArray
 
