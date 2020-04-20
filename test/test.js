@@ -95,3 +95,13 @@ describe('Count Records in Association Arguments', function() {
         expect(helper.countRecordsInAssociationArgs({addDogs: [4, 2], addCats: 1, addHamsters: 1}, ['addDogs', 'addCats', 'addHamsters'])).to.equal(4);
     })
 });
+
+describe('Unique', function() {
+    it('1. Unique array test', function() {
+        expect(helper.unique([1, 1, 2, 3, 2])).to.deep.equal([1, 2, 3]);
+    });
+
+    it('2. Unique without sorting', function() {
+        expect(helper.unique([2, 3, 2, 4, 1, 5])).to.deep.equal([2, 3, 4, 1, 5]);
+    })
+})
