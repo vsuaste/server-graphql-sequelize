@@ -854,7 +854,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return (v !== undefined && v !== null);
   }
 
-  module.exports.cumulatedAssocArgsExceedRecordLimit = function(input, recordLimit, argNamesArray) {
+  module.exports.countRecordsInAssociationArgs = function(input, argNamesArray) {
     return argNamesArray.reduce( function(acc, curr) {
       let element = input[`${curr}`];
       if (isNonEmptyArray(element)) {
@@ -864,7 +864,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
       } else {
         return acc;
       }
-    }, 0) > recordLimit;
+    }, 0);
   }
 
   module.exports.isNonEmptyArray = isNonEmptyArray

@@ -81,17 +81,17 @@ describe('Not undefined and not null', function() {
     })
 })
 
-describe('Cumulated Associated Arguments Exceed Record Limit', function() {
-    it('1. Integers expect pass', function() {
-        expect(helper.cumulatedAssocArgsExceedRecordLimit({addDogs: 2, addCats: 1}, 2, ['addDogs', 'addCats'])).to.be.false;
+describe('Count Records in Association Arguments', function() {
+    it('1. Integers first test', function() {
+        expect(helper.countRecordsInAssociationArgs({addDogs: 2, addCats: 1}, ['addDogs', 'addCats'])).to.equal(2);
     })
-    it('2. Integer expect fail', function() {
-        expect(helper.cumulatedAssocArgsExceedRecordLimit({addDogs: 2, addCats: 1, addHamsters: 1}, 2, ['addDogs', 'addCats', 'addHamsters'])).to.be.true;
+    it('2. Integer second test', function() {
+        expect(helper.countRecordsInAssociationArgs({addDogs: 2, addCats: 1, addHamsters: 1}, ['addDogs', 'addCats', 'addHamsters'])).to.equal(3);
     })
-    it('3. Arrays expect pass', function() {
-        expect(helper.cumulatedAssocArgsExceedRecordLimit({addDogs: [4, 2], addCats: 1}, 3, ['addDogs', 'addCats'])).to.be.false;
+    it('3. Arrays first test', function() {
+        expect(helper.countRecordsInAssociationArgs({addDogs: [4, 2], addCats: 1}, ['addDogs', 'addCats'])).to.equal(3);
     })
-    it('4. Arrays expect pass', function() {
-        expect(helper.cumulatedAssocArgsExceedRecordLimit({addDogs: [4, 2], addCats: 1, addHamsters: 1}, 3, ['addDogs', 'addCats', 'addHamsters'])).to.be.true;
+    it('4. Arrays second test', function() {
+        expect(helper.countRecordsInAssociationArgs({addDogs: [4, 2], addCats: 1, addHamsters: 1}, ['addDogs', 'addCats', 'addHamsters'])).to.equal(4);
     })
 });
