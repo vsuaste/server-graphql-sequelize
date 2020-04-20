@@ -854,6 +854,10 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return (v !== undefined && v !== null);
   }
 
+  module.exports.unique = function(inputArray) {
+    return [...new Set(inputArray)];
+  }
+
   module.exports.countRecordsInAssociationArgs = function(input, argNamesArray) {
     return argNamesArray.reduce( function(acc, curr) {
       let element = input[`${curr}`];
