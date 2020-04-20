@@ -1070,6 +1070,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
     }, 0);
   }
 
+  module.exports.unique = unique
+
   module.exports.isNonEmptyArray = isNonEmptyArray
 
   module.exports.isNotUndefinedAndNotNull = isNotUndefinedAndNotNull
