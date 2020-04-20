@@ -2,6 +2,8 @@ const checkAuthorization = require('./check-authorization');
 const objectAssign = require('object-assign');
 const math = require('mathjs');
 const _ = require('lodash');
+const models_index = require('../models_index');
+const adapter_index = require('../adapters/index');
 
   /**
    * paginate - Creates pagination argument as needed in sequelize cotaining limit and offset accordingly to the current
@@ -883,6 +885,41 @@ module.exports.vueTable = function(req, model, strAttributes) {
         return acc;
       }
     }, 0);
+  }
+
+  module.exports.checkAuthorizationIncludingAssocArgs = function( input, context, associationArgsDef, permissions = ['read', 'update'] ) {
+  
+    Object.keys(associationArgsDef).reduce( function(acc, curr) {
+      let hasInputForAssoc = isNonEmptyArray(input[curr]) || isNotUndefinedAndNotNull(input[curr])
+      if (hasInputForAssoc) {
+        let targetModelName = associationArgsDef[curr]
+        let targetModel = models_index[`${targetModelName}`];
+        let storageType = targetModel.definition.storageType;
+
+        // Look into the definition of the associated data model and ask for its storage type.
+        // TWO CASES: 
+        // 1) target model storage type: NON distributed (any other)
+        if (storageType !== 'distributed-data-model') {
+          return permissions.reduce( (acc, curr) =>
+            acc && checkAuthorization(context, targetModelName, curr ),
+            true
+          )
+        }
+        // 2) target model storage type: distributed model (DDM)
+        // Get mathematical set of responsible adapters for Ids in input
+        // check 'permissions' on these adapters
+        // Difference to above is getting Adapters for provided association IRIs (IDs)
+        // and check the argument permissions on each of those
+        let currAssocIds = input[curr];
+        if (! isNonEmptyArray( currAssocIds ) ) { currAssocIds = [ currAssocIds ] }
+        let currAdapters = currAssocIds.map(id => targetModel.registeredAdapters[targetModel.adapterForIri(id)]);
+        return permissions.reduce((acc, curr) => 
+          acc && this.authorizedAdapters(context, currAdapters, curr).authorizationErrors !== [], true);
+      } else {
+       return acc
+      
+      }
+    }, true);
   }
 
   module.exports.unique = unique
