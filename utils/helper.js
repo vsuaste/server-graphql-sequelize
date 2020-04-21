@@ -671,6 +671,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return result;
   }
 
+  module.exports.authorizedAdapters = authorizedAdapters;
+
   /**
    * Returns a new array instance with the set of adapters that remains after 
    * remove all excluded adapters, specified on the search.excludeAdapterNames
@@ -1071,8 +1073,9 @@ module.exports.vueTable = function(req, model, strAttributes) {
   }
 
   module.exports.checkAuthorizationIncludingAssocArgs = function( input, context, associationArgsDef, permissions = ['read', 'update'] ) {
+    let errors = [];
   
-    Object.keys(associationArgsDef).reduce( function(acc, curr) {
+    let allowed = Object.keys(associationArgsDef).reduce( function(acc, curr) {
       let hasInputForAssoc = isNonEmptyArray(input[curr]) || isNotUndefinedAndNotNull(input[curr])
       if (hasInputForAssoc) {
         let targetModelName = associationArgsDef[curr]
@@ -1096,13 +1099,21 @@ module.exports.vueTable = function(req, model, strAttributes) {
         let currAssocIds = input[curr];
         if (! isNonEmptyArray( currAssocIds ) ) { currAssocIds = [ currAssocIds ] }
         let currAdapters = currAssocIds.map(id => targetModel.registeredAdapters[targetModel.adapterForIri(id)]);
-        return permissions.reduce((acc, curr) => 
-          acc && this.authorizedAdapters(context, currAdapters, curr).authorizationErrors !== [], true);
+        return permissions.reduce((acc, curr) =>  {
+          let newErrors = authorizedAdapters(context, currAdapters, curr).authorizationErrors;
+          if (isNonEmptyArray(newErrors)) {
+            errors.push(...newErrors);
+          }
+          acc && newErrors !== [], true; })
       } else {
        return acc
       
       }
     }, true);
+    if (isNonEmptyArray(errors)) {
+      throw new Error(errors[0]);
+    }
+    return allowed;
   }
 
   module.exports.unique = unique
