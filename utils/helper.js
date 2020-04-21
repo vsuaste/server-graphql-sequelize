@@ -883,12 +883,11 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @returns {object} The pruned input object
    */
   module.exports.sanitizeAssociationArguments = function(input, argNamesArray) {
-    let sanitizedInput = {};
-    let inputCopy = Object.assign({}, input);
+    let sanitizedInput = Object.assign({}, input);
     for (let argument of argNamesArray) {
-      let element = inputCopy[`${argument}`];
+      let element = input[`${argument}`];
       if (module.exports.isNonEmptyArray(element)) {
-        sanitizedInput[`${argument}`] = module.exports.unique(inputCopy[`${argument}`]);
+        sanitizedInput[`${argument}`] = module.exports.unique(input[`${argument}`]);
       } else if (module.exports.isNotUndefinedAndNotNull(element)) {
         sanitizedInput[`${argument}`] = element;
       }
