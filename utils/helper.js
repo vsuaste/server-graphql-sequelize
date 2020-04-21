@@ -1072,6 +1072,15 @@ module.exports.vueTable = function(req, model, strAttributes) {
     }, 0);
   }
 
+  /**
+   * checkAuthorizationIncludingAssocArgs - Check the authorization for all involved models / adapters
+   * @param {object} input The input object
+   * @param {object} context The context object
+   * @param {object} associationArgsDef The definition of the association arguments
+   * @param {array} permissions The permissions to be checked
+   * @returns {boolean} Is the procedure allowed?
+   * @throws If this is not allowed, throw the first error
+   */
   module.exports.checkAuthorizationIncludingAssocArgs = function( input, context, associationArgsDef, permissions = ['read', 'update'] ) {
     let errors = [];
   
