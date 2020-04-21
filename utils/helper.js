@@ -614,7 +614,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param {string} permission - The action the user wants to perform on the
    * resources (adapters).
    *
-   * @return {object} The return value of this function has two properties:
+   * @return {Promise<object>} The return value of this function has two properties:
    * 'authorizedAdapters' is an array of those adapters that passed the
    * authorization check, and 'authorizationErrors' is an array of Error objects
    * created for those adapters the user (context) has no authorization for given
@@ -923,7 +923,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param {object} context The context object
    * @param {object} associationArgsDef The definition of the association arguments
    * @param {array} permissions The permissions to be checked
-   * @returns {boolean} Is the procedure allowed?
+   * @returns {Promise<boolean>} Is the procedure allowed?
    * @throws If this is not allowed, throw the first error
    */
   module.exports.checkAuthorizationIncludingAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'] ) {
