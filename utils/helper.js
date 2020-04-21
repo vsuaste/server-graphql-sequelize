@@ -671,8 +671,6 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return result;
   }
 
-  module.exports.authorizedAdapters = authorizedAdapters;
-
   /**
    * Returns a new array instance with the set of adapters that remains after 
    * remove all excluded adapters, specified on the search.excludeAdapterNames
@@ -1064,7 +1062,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
       let element = input[`${curr}`];
       if (isNonEmptyArray(element)) {
         return (acc + element.length);
-      } else if (isNotUndefinedAndNotNull(element)) {
+      } else if (module.exports.isNotUndefinedAndNotNull(element)) {
         return (acc + 1);
       } else {
         return acc;
@@ -1084,7 +1082,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
   module.exports.checkAuthorizationIncludingAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'] ) {
     return await Object.keys(associationArgsDef).reduce(async function(prev, curr) {
       let acc = await prev;
-      let hasInputForAssoc = isNonEmptyArray(input[curr]) || isNotUndefinedAndNotNull(input[curr])
+      let hasInputForAssoc = module.exports.isNonEmptyArray(input[curr]) || module.exports.isNotUndefinedAndNotNull(input[curr])
       if (hasInputForAssoc) {
         let targetModelName = associationArgsDef[curr]
         let targetModel = models_index[`${targetModelName}`];
@@ -1106,12 +1104,12 @@ module.exports.vueTable = function(req, model, strAttributes) {
         // Difference to above is getting Adapters for provided association IRIs (IDs)
         // and check the argument permissions on each of those
         let currAssocIds = input[curr];
-        if (! isNonEmptyArray( currAssocIds ) ) { currAssocIds = [ currAssocIds ] }
+        if (! module.exports.isNonEmptyArray( currAssocIds ) ) { currAssocIds = [ currAssocIds ] }
         let currAdapters = currAssocIds.map(id => targetModel.registeredAdapters[targetModel.adapterForIri(id)]);
         return await permissions.reduce(async (prev, curr) =>  {
           let acc = await prev;
-          let newErrors = await authorizedAdapters(context, currAdapters, curr).authorizationErrors;
-          if (isNonEmptyArray(newErrors)) {
+          let newErrors = await module.exports.authorizedAdapters(context, currAdapters, curr).authorizationErrors;
+          if (module.exports.isNonEmptyArray(newErrors)) {
             throw new Error(newErrors[0]);
           }
           return acc && newErrors !== []; 
@@ -1122,9 +1120,3 @@ module.exports.vueTable = function(req, model, strAttributes) {
       }
     }, Promise.resolve(true));
   }
-
-  module.exports.unique = unique
-
-  module.exports.isNonEmptyArray = isNonEmptyArray
-
-  module.exports.isNotUndefinedAndNotNull = isNotUndefinedAndNotNull
