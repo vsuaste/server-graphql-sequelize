@@ -1076,16 +1076,17 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param {object} context The context object
    * @param {object} associationArgsDef The definition of the association arguments
    * @param {array} permissions The permissions to be checked
+   * @param {object} modelsIndex The index of the models
    * @returns {Promise<boolean>} Is the procedure allowed?
    * @throws If this is not allowed, throw the first error
    */
-  module.exports.checkAuthorizationIncludingAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'] ) {
+  module.exports.checkAuthorizationIncludingAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'], modelsIndex = models_index ) {
     return await Object.keys(associationArgsDef).reduce(async function(prev, curr) {
       let acc = await prev;
       let hasInputForAssoc = module.exports.isNonEmptyArray(input[curr]) || module.exports.isNotUndefinedAndNotNull(input[curr])
       if (hasInputForAssoc) {
         let targetModelName = associationArgsDef[curr]
-        let targetModel = models_index[`${targetModelName}`];
+        let targetModel = modelsIndex[`${targetModelName}`];
         let storageType = targetModel.definition.storageType;
 
         // Look into the definition of the associated data model and ask for its storage type.
