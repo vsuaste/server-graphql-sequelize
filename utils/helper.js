@@ -926,10 +926,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @returns {boolean} Is the procedure allowed?
    * @throws If this is not allowed, throw the first error
    */
-  module.exports.checkAuthorizationIncludingAssocArgs = function( input, context, associationArgsDef, permissions = ['read', 'update'] ) {
-    let errors = [];
-  
-    let allowed = Object.keys(associationArgsDef).reduce( function(acc, curr) {
+  module.exports.checkAuthorizationIncludingAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'] ) {
+    return await Object.keys(associationArgsDef).reduce(async function(acc, curr) {
       let hasInputForAssoc = isNonEmptyArray(input[curr]) || isNotUndefinedAndNotNull(input[curr])
       if (hasInputForAssoc) {
         let targetModelName = associationArgsDef[curr]
@@ -953,21 +951,18 @@ module.exports.vueTable = function(req, model, strAttributes) {
         let currAssocIds = input[curr];
         if (! isNonEmptyArray( currAssocIds ) ) { currAssocIds = [ currAssocIds ] }
         let currAdapters = currAssocIds.map(id => targetModel.registeredAdapters[targetModel.adapterForIri(id)]);
-        return permissions.reduce((acc, curr) =>  {
-          let newErrors = authorizedAdapters(context, currAdapters, curr).authorizationErrors;
+        return await permissions.reduce(async (acc, curr) =>  {
+          let newErrors = await authorizedAdapters(context, currAdapters, curr).authorizationErrors;
           if (isNonEmptyArray(newErrors)) {
-            errors.push(...newErrors);
+            throw new Error(newErrors[0]);
           }
-          acc && newErrors !== [], true; })
+          acc && newErrors !== [], true; 
+        })
       } else {
        return acc
       
       }
     }, true);
-    if (isNonEmptyArray(errors)) {
-      throw new Error(errors[0]);
-    }
-    return allowed;
   }
 
   module.exports.unique = unique
