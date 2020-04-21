@@ -850,18 +850,40 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return nsearch;
   }
 
+  /**
+   * isNonEmtpyArray - Test a value for being a non-empty array
+   * 
+   * @param {any} a value to be tested for being a non-empty array
+   * @returns {boolean} result
+   */
   function isNonEmptyArray(a) {
     return (a !== undefined && Array.isArray(a) && a.length > 0);
   }
 
+  /**
+   * isNotUndefinedAndNotNull - Test a value for being neither undefined nor null
+   * @param {any} v value to be tested for being neither undefined nor null
+   * @returns {boolean} result
+   */
   function isNotUndefinedAndNotNull(v) {
     return (v !== undefined && v !== null);
   }
 
+  /**
+   * unique - Take an array and remove all elements that are already there
+   * @param {array} inputArray array to be pruned
+   * @returns {array} array with no element being present more than once
+   */
   function unique(inputArray) {
     return [...new Set(inputArray)];
   }
 
+  /**
+   * sanitizeAssociationArguments - Make sure that no id is given more than once, and remove additional appearances of those ids
+   * @param {object} input the object with the input values
+   * @param {array} argNamesArray The array with the names of the input keys
+   * @returns {object} The pruned input object
+   */
   module.exports.sanitizeAssociationArguments = function(input, argNamesArray) {
     let sanitizedInput = {};
     let inputCopy = Object.assign({}, input);
@@ -876,6 +898,12 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return sanitizedInput;
   }
 
+  /**
+   * countRecordsInAssociationArgs - Count the number of records that are affected by the input, including records of associations
+   * @param {object} input The input object
+   * @param {array} argNamesArray The array with the names of the input keys
+   * @returns {number} The number of the records
+   */
   module.exports.countRecordsInAssociationArgs = function(input, argNamesArray) {
     return argNamesArray.reduce( function(acc, curr) {
       let element = input[`${curr}`];
@@ -889,6 +917,15 @@ module.exports.vueTable = function(req, model, strAttributes) {
     }, 0);
   }
 
+  /**
+   * checkAuthorizationIncludingAssocArgs - Check the authorization for all involved models / adapters
+   * @param {object} input The input object
+   * @param {object} context The context object
+   * @param {object} associationArgsDef The definition of the association arguments
+   * @param {array} permissions The permissions to be checked
+   * @returns {boolean} Is the procedure allowed?
+   * @throws If this is not allowed, throw the first error
+   */
   module.exports.checkAuthorizationIncludingAssocArgs = function( input, context, associationArgsDef, permissions = ['read', 'update'] ) {
     let errors = [];
   
