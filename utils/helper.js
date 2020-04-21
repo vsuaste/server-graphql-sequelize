@@ -938,8 +938,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
         // TWO CASES: 
         // 1) target model storage type: NON distributed (any other)
         if (storageType !== 'distributed-data-model') {
-          return permissions.reduce( (acc, curr) =>
-            acc && checkAuthorization(context, targetModelName, curr ),
+          return await permissions.reduce(async (acc, curr) =>
+            acc && await checkAuthorization(context, targetModelName, curr ),
             true
           )
         }
