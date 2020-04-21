@@ -927,7 +927,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @throws If this is not allowed, throw the first error
    */
   module.exports.checkAuthorizationIncludingAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'] ) {
-    return await Object.keys(associationArgsDef).reduce(Promise.resolve(async function(acc, curr) {
+    return await Object.keys(associationArgsDef).reduce(async function(prev, curr) {
+      let acc = await prev;
       let hasInputForAssoc = isNonEmptyArray(input[curr]) || isNotUndefinedAndNotNull(input[curr])
       if (hasInputForAssoc) {
         let targetModelName = associationArgsDef[curr]
@@ -938,9 +939,10 @@ module.exports.vueTable = function(req, model, strAttributes) {
         // TWO CASES: 
         // 1) target model storage type: NON distributed (any other)
         if (storageType !== 'distributed-data-model') {
-          return await permissions.reduce(async (acc, curr) =>
-            acc && await checkAuthorization(context, targetModelName, curr ),
-            true
+          return await permissions.reduce(async (prev, curr) => {
+            let acc = await prev;
+            return acc && await checkAuthorization(context, targetModelName, curr )},
+            Promise.resolve(true)
           )
         }
         // 2) target model storage type: distributed model (DDM)
@@ -951,18 +953,19 @@ module.exports.vueTable = function(req, model, strAttributes) {
         let currAssocIds = input[curr];
         if (! isNonEmptyArray( currAssocIds ) ) { currAssocIds = [ currAssocIds ] }
         let currAdapters = currAssocIds.map(id => targetModel.registeredAdapters[targetModel.adapterForIri(id)]);
-        return await permissions.reduce(async (acc, curr) =>  {
+        return await permissions.reduce(async (prev, curr) =>  {
+          let acc = await prev;
           let newErrors = await authorizedAdapters(context, currAdapters, curr).authorizationErrors;
           if (isNonEmptyArray(newErrors)) {
             throw new Error(newErrors[0]);
           }
-          acc && newErrors !== [], true; 
+          acc && newErrors !== [], Promise.resolve(true); 
         })
       } else {
        return acc
       
       }
-    }), true);
+    }, Promise.resolve(true));
   }
 
   module.exports.unique = unique
