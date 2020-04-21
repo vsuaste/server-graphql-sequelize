@@ -1082,7 +1082,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @throws If this is not allowed, throw the first error
    */
   module.exports.checkAuthorizationIncludingAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'] ) {
-    return await Object.keys(associationArgsDef).reduce(async function(acc, curr) {
+    return await Object.keys(associationArgsDef).reduce(Promise.resolve(async function(acc, curr) {
       let hasInputForAssoc = isNonEmptyArray(input[curr]) || isNotUndefinedAndNotNull(input[curr])
       if (hasInputForAssoc) {
         let targetModelName = associationArgsDef[curr]
@@ -1117,7 +1117,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
        return acc
       
       }
-    }, true);
+    }), true);
   }
 
   module.exports.unique = unique
