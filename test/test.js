@@ -1,5 +1,6 @@
 const expect = require('chai').expect;
-const helper = require('../utils/helper');
+const rewire = require('rewire');
+const helper = rewire('../utils/helper');
 const resolvers = require('../resolvers/index');
 
 describe('Non-empty array', function() {
@@ -108,7 +109,7 @@ describe('Unique', function() {
 
 describe('Sanitize association arguments', function() {
     it('1, NOP for already sane arguments', function() {
-        const firstArguments = {addDogs: [4, 2], addCats: 1, addHamsters: 2};
+        const firstArguments = {name: 'FirstPerson', addDogs: [4, 2], addCats: 1, addHamsters: 2};
         let originalArguments = Object.assign({}, firstArguments);
         let newArguments = helper.sanitizeAssociationArguments(originalArguments, ['addDogs', 'addCats', 'addHamsters']);
         expect(newArguments).to.deep.equal(firstArguments);
@@ -116,18 +117,130 @@ describe('Sanitize association arguments', function() {
     })
 
     it('2. One argument to be sanitized', function() {
-        const firstArguments = {addDogs: [4, 2, 4, 3], addCats: 1, addHamsters: 2};
+        const firstArguments = {name: 'SecondPerson', addDogs: [4, 2, 4, 3], addCats: 1, addHamsters: 2};
         let originalArguments = Object.assign({}, firstArguments);
         let newArguments = helper.sanitizeAssociationArguments(originalArguments, ['addDogs', 'addCats', 'addHamsters']);
-        expect(newArguments).to.deep.equal({addDogs: [4, 2, 3], addCats: 1, addHamsters: 2});
+        expect(newArguments).to.deep.equal({name: 'SecondPerson', addDogs: [4, 2, 3], addCats: 1, addHamsters: 2});
         expect(originalArguments).to.deep.equal(firstArguments);
     })
 
     it('3. All arguments to be sanitized', function() {
-        const firstArguments = {addDogs: [4, 2, 4, 3], addCats: [1, 1, 2], addHamsters: [2, 2]};
+        const firstArguments = {name: 'ThirdPerson', addDogs: [4, 2, 4, 3], addCats: [1, 1, 2], addHamsters: [2, 2]};
         let originalArguments = Object.assign({}, firstArguments);
         let newArguments = helper.sanitizeAssociationArguments(originalArguments, ['addDogs', 'addCats', 'addHamsters']);
-        expect(newArguments).to.deep.equal({addDogs: [4, 2, 3], addCats: [1, 2], addHamsters: [2]});
+        expect(newArguments).to.deep.equal({name: 'ThirdPerson', addDogs: [4, 2, 3], addCats: [1, 2], addHamsters: [2]});
         expect(originalArguments).to.deep.equal(firstArguments);
+    })
+})
+
+describe('Check authorization on association args', function() {
+    var oldModelIndex;
+    var oldModulExports;
+    var oldCheckAuthorization;
+
+    const associationArgsDef = {
+        'addPerson': 'Person',
+        'removePerson': 'Person',
+        'addDogs': 'Dog', 
+        'removeDogs': 'Dog', 
+        'addCat': 'Cat',
+        'removeCat': 'Cat'
+      }
+
+    before(function() {
+        oldModelIndex = helper.__set__('models_index', {
+            Person: {
+                definition: {storageType: 'sql'}
+            },
+            Dog: {
+                definition: {storageType: 'sql'}
+            },
+            Cat: {
+                definition: {storageType: 'distributed-data-model'},
+                adapterForIri: id => {
+                    if (id % 2 == 1) {
+                        return 'oddCat';
+                    }
+                    return 'evenCat';
+                },
+                registeredAdapters: {
+                    oddCat: 'odd',
+                    evenCat: 'even'
+                }
+            }
+        });
+        oldModulExports = helper.__set__('module.exports.authorizedAdapters', 
+            async (context, adapters, curr) => {
+                let res = {};
+                let errors = [];
+                adapters.forEach(element => {
+                    if (element === 'odd') {
+                        errors.push(new Error('Too odd'));
+                    }
+                });
+                res.authorizationErrors = errors;
+                return await Promise.resolve(res);
+            }
+        );
+        oldCheckAuthorization = helper.__set__('checkAuthorization', async (context, targetModelName, curr) => {
+            if (targetModelName === 'dog') {
+                throw new Error('Dogs are not allowed in here');
+            }
+            return await Promise.resolve(true);
+        });
+    })
+
+    after(function() {
+        oldCheckAuthorization();
+        oldModulExports();
+        oldModelIndex();
+    })
+
+    it('1. Person only is allowed', async function() {
+        let input = {addPerson: 1};
+        let context = null;
+        expect(await helper.checkAuthorizationOnAssocArgs(input, context, associationArgsDef)).to.be.true;
+    });
+
+    it('2. Dog is always forbidden', async function() {
+        let input = {addDog: 1};
+        let context = null;
+        expect(await helper.checkAuthorizationOnAssocArgs(input, context, associationArgsDef)).to.throw;
+    })
+    
+    it('3. Even cat is allowed', async function() {
+        let input = {addCat: 2};
+        let context = null;
+        expect(await helper.checkAuthorizationOnAssocArgs(input, context, associationArgsDef)).to.be.true;
+    })
+
+    it('4. Odd cat is forbidden', async function() {
+        let input = {addCat: 1};
+        let context = null;
+        expect(await helper.checkAuthorizationOnAssocArgs(input, context, associationArgsDef)).to.throw;
+    })
+
+    it('5. Allowed when all allowed', async function() {
+        let input = {addPerson: 1, addCat: 2};
+        let context = null;
+        expect(await helper.checkAuthorizationOnAssocArgs(input, context, associationArgsDef)).to.be.true;
+    })
+
+    it('6. Forbidden when one is forbidden', async function() {
+        let input = {addPerson: 1, addDog: 1, addCat: 2};
+        let context = null;
+        expect(await helper.checkAuthorizationOnAssocArgs(input, context, associationArgsDef)).to.throw;
+    })
+
+    it('7. Delete allowed', async function() {
+        let input = {deletePerson: 1};
+        let context = null;
+        expect(await helper.checkAuthorizationOnAssocArgs(input, context, associationArgsDef)).to.be.true;
+    })
+
+    it('8. Delete forbidden', async function() {
+        let input = {deleteDog: 1};
+        let context = null;
+        expect(await helper.checkAuthorizationOnAssocArgs(input, context, associationArgsDef)).to.throw;
     })
 })
