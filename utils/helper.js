@@ -1114,8 +1114,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
           if (isNonEmptyArray(newErrors)) {
             throw new Error(newErrors[0]);
           }
-          acc && newErrors !== [], Promise.resolve(true); 
-        })
+          return acc && newErrors !== []; 
+        }, Promise.resolve(true))
       } else {
        return acc
       
