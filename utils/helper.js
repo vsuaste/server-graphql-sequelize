@@ -1080,7 +1080,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @returns {Promise<boolean>} Is the procedure allowed?
    * @throws If this is not allowed, throw the first error
    */
-  module.exports.checkAuthorizationIncludingAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'], modelsIndex = models_index ) {
+  module.exports.checkAuthorizationOnAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'], modelsIndex = models_index ) {
     return await Object.keys(associationArgsDef).reduce(async function(prev, curr) {
       let acc = await prev;
       let hasInputForAssoc = module.exports.isNonEmptyArray(input[curr]) || module.exports.isNotUndefinedAndNotNull(input[curr])
