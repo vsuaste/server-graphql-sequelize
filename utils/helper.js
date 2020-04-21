@@ -620,7 +620,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * created for those adapters the user (context) has no authorization for given
    * the requested permission (action).
    */
-  async function authorizedAdapters(context, adapters, permission) {
+  module.exports.authorizedAdapters = async function (context, adapters, permission) {
     let result = {
       authorizedAdapters: [],
       authorizationErrors: []
@@ -639,8 +639,6 @@ module.exports.vueTable = function(req, model, strAttributes) {
     }
     return result;
   }
-
-  module.exports.authorizedAdapters = authorizedAdapters;
 
   /**
    * Returns a new array instance with the set of adapters that remains after 
@@ -856,7 +854,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param {any} a value to be tested for being a non-empty array
    * @returns {boolean} result
    */
-  function isNonEmptyArray(a) {
+  module.exports.isNonEmptyArray = function (a) {
     return (a !== undefined && Array.isArray(a) && a.length > 0);
   }
 
@@ -865,7 +863,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param {any} v value to be tested for being neither undefined nor null
    * @returns {boolean} result
    */
-  function isNotUndefinedAndNotNull(v) {
+  module.exports.isNotUndefinedAndNotNull = function (v) {
     return (v !== undefined && v !== null);
   }
 
@@ -874,7 +872,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param {array} inputArray array to be pruned
    * @returns {array} array with no element being present more than once
    */
-  function unique(inputArray) {
+  module.exports.unique = function (inputArray) {
     return [...new Set(inputArray)];
   }
 
@@ -889,9 +887,9 @@ module.exports.vueTable = function(req, model, strAttributes) {
     let inputCopy = Object.assign({}, input);
     for (let argument of argNamesArray) {
       let element = inputCopy[`${argument}`];
-      if (isNonEmptyArray(element)) {
-        sanitizedInput[`${argument}`] = unique(inputCopy[`${argument}`]);
-      } else if (isNotUndefinedAndNotNull(element)) {
+      if (module.exports.isNonEmptyArray(element)) {
+        sanitizedInput[`${argument}`] = module.exports.unique(inputCopy[`${argument}`]);
+      } else if (module.exports.isNotUndefinedAndNotNull(element)) {
         sanitizedInput[`${argument}`] = element;
       }
     }
@@ -907,9 +905,9 @@ module.exports.vueTable = function(req, model, strAttributes) {
   module.exports.countRecordsInAssociationArgs = function(input, argNamesArray) {
     return argNamesArray.reduce( function(acc, curr) {
       let element = input[`${curr}`];
-      if (isNonEmptyArray(element)) {
+      if (module.exports.isNonEmptyArray(element)) {
         return (acc + element.length);
-      } else if (isNotUndefinedAndNotNull(element)) {
+      } else if (module.exports.isNotUndefinedAndNotNull(element)) {
         return (acc + 1);
       } else {
         return acc;
@@ -929,7 +927,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
   module.exports.checkAuthorizationIncludingAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'] ) {
     return await Object.keys(associationArgsDef).reduce(async function(prev, curr) {
       let acc = await prev;
-      let hasInputForAssoc = isNonEmptyArray(input[curr]) || isNotUndefinedAndNotNull(input[curr])
+      let hasInputForAssoc = module.exports.isNonEmptyArray(input[curr]) || module.exports.isNotUndefinedAndNotNull(input[curr])
       if (hasInputForAssoc) {
         let targetModelName = associationArgsDef[curr]
         let targetModel = models_index[`${targetModelName}`];
@@ -951,12 +949,12 @@ module.exports.vueTable = function(req, model, strAttributes) {
         // Difference to above is getting Adapters for provided association IRIs (IDs)
         // and check the argument permissions on each of those
         let currAssocIds = input[curr];
-        if (! isNonEmptyArray( currAssocIds ) ) { currAssocIds = [ currAssocIds ] }
+        if (! module.exports.isNonEmptyArray( currAssocIds ) ) { currAssocIds = [ currAssocIds ] }
         let currAdapters = currAssocIds.map(id => targetModel.registeredAdapters[targetModel.adapterForIri(id)]);
         return await permissions.reduce(async (prev, curr) =>  {
           let acc = await prev;
-          let newErrors = await authorizedAdapters(context, currAdapters, curr).authorizationErrors;
-          if (isNonEmptyArray(newErrors)) {
+          let newErrors = await module.exports.authorizedAdapters(context, currAdapters, curr).authorizationErrors;
+          if (module.exports.isNonEmptyArray(newErrors)) {
             throw new Error(newErrors[0]);
           }
           return acc && newErrors !== []; 
@@ -967,9 +965,3 @@ module.exports.vueTable = function(req, model, strAttributes) {
       }
     }, Promise.resolve(true));
   }
-
-  module.exports.unique = unique
-
-  module.exports.isNonEmptyArray = isNonEmptyArray
-
-  module.exports.isNotUndefinedAndNotNull = isNotUndefinedAndNotNull
