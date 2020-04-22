@@ -502,7 +502,14 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return where_statement;
   }
 
-  module.exports.checkExistence = function(ids_to_add, model){
+    /**
+   * filterOutIdsNotInUse - Get the IDs (out of a given list) that are not in use in a given model
+   * 
+   * @param{Array | object} ids_to_add The IDs that are to be checked
+   * @param{object} model The model for which the IDs shall be checked
+   * @returns{Promise<Array>} An Array of the IDs *not* in use as a Promise
+   */
+  module.exports.filterOutIdsNotInUse = async function(ids_to_add, model){
     //check
     if (ids_to_add===null || ids_to_add===undefined) { 
       throw new Error(`Invalid arguments on checkExistence(), 'ids' argument should not be 'null' or 'undefined'`);
@@ -596,7 +603,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * asyncForEach - Asynchronous for each
    *
    * @param  {Array} array    Array to transver
-   * @param  {type} callback Callback to execute with each element in the array
+   * @param  {function} callback Callback to execute with each element in the array
    */
   module.exports.asyncForEach = async function(array, callback) {
     for (let index = 0; index < array.length; index++) {
@@ -867,6 +874,10 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return (v !== undefined && v !== null);
   }
 
+  function isEmptyArray(a) {
+    return (a !== undefined && Array.isArray(a) && a.length === 0);
+  }
+
   /**
    * unique - Take an array and remove all elements that are already there
    * @param {array} inputArray array to be pruned
@@ -964,4 +975,55 @@ module.exports.vueTable = function(req, model, strAttributes) {
       
       }
     }, Promise.resolve(true));
+  }
+
+   /** associationArgsDef - Receives arrays of ids on @input, and checks if these ids exists. Returns true
+   * if all received ids exist, and throws an error if at least one of the ids does not exist.
+   * 
+   * @param  {object} input   Object with sanitized entries of the form: <add>Association:[id1, ..., idn].
+   * @param  {object} context Object with mutation context attributes.
+   * @param  {object} associationArgsDef  Object with entries of the form {'<add>Association' : model},
+   *                                      where 'model' is an instance of the association's model.
+   * @return {boolean} Returns true if all ids on the input array-values exists. Throw an error if some 
+   *                   of the ids does not exists.
+   */
+  module.exports.assocArgsAreExistingIDs = async function(input, context, associationArgsDef) {
+    let allArgsAreExistingIds = await Object.keys(associationArgsDef).reduce(async function(prev, curr){
+      let acc = await prev;
+      
+      //get ids (Int or Array)
+      let currAssocIds = input[curr];
+
+      //check: if empty array or undefined or null --> return true
+      if(isEmptyArray() || !isNotUndefinedAndNotNull()) {
+        return acc; //equivalent to: acc && true
+      } //else...
+
+      //if not array make it one
+      if(!isNonEmptyArray(currAssocIds)) {
+        currAssocIds = [currAssocIds];
+      }
+
+      //do check
+      let currModel = associationArgsDef[curr];
+
+      //(To do: ask about these functions):
+      //let countResolverFunk = resolvers[modelName][`count${modelPlCp}`]
+      //let readByIdResolverFunk = /* ... */
+
+      /**
+       * Note: once the function checkExistence() returns FALSE, then
+       * the 'acc' value never gona be TRUE again, so maybe is worthless
+       * to continue checking the other ids, and throw an error immediately
+       * after get a FALSE value from checkExistence function. 
+       * 
+       * (To do: ask about this.)
+       * 
+       */
+      return acc && ((await filterOutIdsNotInUse( currAssocIds, currModel )) === 0);
+    }, Promise.resolve(true));
+
+    if (!allArgsAreExistingIds) throw new Error('Error: Some of the ids given to associate, do not exist.');
+    //else...
+    return true
   }
