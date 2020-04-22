@@ -10,7 +10,7 @@ module.exports = models;
 // IMPORT SEQUEILIZE MODELS
 
 //grabs all the models in your models folder, adds them to the models object
-fs.readdirSync("./models")
+fs.readdirSync(__dirname + "/models")
     .filter(function(file) {
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
@@ -50,7 +50,7 @@ Object.keys(models).forEach(function(modelName) {
 // **********************************************************************************
 // IMPORT WEBSERVICES
 
-fs.readdirSync("./models-webservice")
+fs.readdirSync(__dirname + "/models-webservice")
     .filter(function(file) {
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
@@ -67,7 +67,7 @@ fs.readdirSync("./models-webservice")
 // **********************************************************************************
 // IMPORT CENZ SERVICES
 
-fs.readdirSync("./models-cenz-server")
+fs.readdirSync(__dirname + "/models-cenz-server")
     .filter(function(file) {
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
@@ -84,7 +84,7 @@ fs.readdirSync("./models-cenz-server")
     // **********************************************************************************
 // IMPORT DISTRIBUTED MODELS
 
-fs.readdirSync("./models-distributed")
+fs.readdirSync(__dirname + "/models-distributed")
     .filter(function(file) {
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
