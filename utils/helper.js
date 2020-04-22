@@ -987,9 +987,14 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @return {boolean} Returns true if all ids on the input array-values exists. Throw an error if some 
    *                   of the ids does not exists.
    */
+<<<<<<< HEAD
   module.exports.assocArgsAreExistingIDs = async function(input, context, associationArgsDef) {
     let allArgsAreExistingIds = await Object.keys(associationArgsDef).reduce(async function(prev, curr){
       let acc = await prev;
+=======
+  module.exports.assocArgsAreExistingIDs = function(input, context, associationArgsDef) {
+    let allArgsAreExistingIds = Object.keys(associationArgsDef).reduce( function(acc, curr){
+>>>>>>> i108 & i26 - Fix - added missing 'function' word
       
       //get ids (Int or Array)
       let currAssocIds = input[curr];
@@ -1025,5 +1030,5 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
     if (!allArgsAreExistingIds) throw new Error('Error: Some of the ids given to associate, do not exist.');
     //else...
-    return true
+    return true;
   }
