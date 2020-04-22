@@ -1106,7 +1106,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
         // and check the argument permissions on each of those
         let currAssocIds = input[curr];
         if (! module.exports.isNonEmptyArray( currAssocIds ) ) { currAssocIds = [ currAssocIds ] }
-        let currAdapters = currAssocIds.map(id => targetModel.registeredAdapters[targetModel.adapterForIri(id)]);
+        let currAdapters = module.exports.unique(currAssocIds.map(id => targetModel.registeredAdapters[targetModel.adapterForIri(id)]));
         return await permissions.reduce(async (prev, curr) =>  {
           let acc = await prev;
           let newErrors = await module.exports.authorizedAdapters(context, currAdapters, curr).authorizationErrors;
