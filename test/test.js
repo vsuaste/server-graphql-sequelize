@@ -290,6 +290,19 @@ describe('Validate existence', function() {
         definition: {model: 'Testmodel-lokal'}
     }
 
+    let noCountModel = {
+        readById: async id => {
+            switch (id) {
+                case 1: return 1;
+                case 2: return 2;
+                case 3: return 3;
+                case 4: return null;
+                case 5: return 5;
+                default: throw new Error('ID unknown');
+            }
+        }
+    }
+
     it('1. ID 1 should exist', async function() {
         expect(helper.validateExistence(1, model)).to.be.fulfilled;
     })
@@ -322,8 +335,24 @@ describe('Validate existence', function() {
         expect(helper.validateExistence([1, 2], localModel)).to.be.rejectedWith(Error);
     })
 
-    it('9. ID 4 should not exist', function() {
+    it('9. Local ID 4 should not exist', function() {
         expect(helper.validateExistence(4, localModel)).to.be.rejectedWith(Error);
+    })
+
+    it('10. NCM ID 1 should exist', function() {
+        expect(helper.validateExistence(1, noCountModel)).to.be.fulfilled;
+    })
+
+    it('11. NCM ID 4 should not exist', function() {
+        expect(helper.validateExistence(4, noCountModel)).to.be.rejectedWith(Error);
+    })
+
+    it('12. NCM ID 1, 2, 3 should all exist', function() {
+        expect(helper.validateExistence([1, 2, 3], noCountModel)).to.be.fulfilled;
+    })
+
+    it('13. NCM ID 1, 2, 4 should throw', function() {
+        expect(helper.validateExistence([1, 2, 4], noCountModel)).to.be.rejectedWith(Error);
     })
 
 

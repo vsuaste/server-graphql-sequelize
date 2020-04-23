@@ -517,16 +517,24 @@ module.exports.vueTable = function(req, model, strAttributes) {
     //check existence by count
     let ids = Array.isArray(ids_to_check) ? ids_to_check : [ ids_to_check ];
     let promises = ids.map( id => { 
-      let search =  {field: model.idAttribute(), value:{value: id }, operator: 'eq' };
-      if (module.exports.isNotUndefinedAndNotNull(model.registeredAdapters)) {
-        let responsibleAdapter = model.registeredAdapters[model.adapterForIri(id)];
-        return model.countRecords(search, [responsibleAdapter]);
+      let findCommand = () => model.readById(id);
+      if (model.countRecords !== undefined) {
+        let search =  {field: model.idAttribute(), value:{value: id }, operator: 'eq' };
+        if (module.exports.isNotUndefinedAndNotNull(model.registeredAdapters)) {
+          let responsibleAdapter = model.registeredAdapters[model.adapterForIri(id)];
+          findCommand = () => model.countRecords(search, [responsibleAdapter]);
+        } else {
+          findCommand = () => model.countRecords(search);
+        }
       }
-      return model.countRecords(search);
+      return findCommand();
     });
 
     return Promise.all(promises).then( results =>{
       return results.filter( (r, index)=>{
+        if (r === null) {
+          return true;
+        }
         //check
         if (typeof r !== 'number') { 
           throw new Error(`Invalid response from remote cenz-server`);
@@ -1023,10 +1031,6 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
       //do check
       let currModel = associationArgsDef[curr];
-
-      //(To do: ask about these functions):
-      // let countResolverFunk = resolvers[currModel][`count${modelPlCp}`]
-      //let readByIdResolverFunk = /* ... */
 
       await module.exports.validateExistence( currAssocIds, currModel );
 
