@@ -534,6 +534,20 @@ module.exports.vueTable = function(req, model, strAttributes) {
     })
   }
 
+  /**
+   * validateExistence - Make sure that all given IDs correspond to existing records in a given model
+   * 
+   * @param{Array | object} idsToExist The IDs that are supposed to exist, as an array or as a single value
+   * @param{object} model The model for which the IDs should exist
+   * @throws If there is an ID given without a corresponding record in the model, in which case the first ID not to exist is given in the error message
+   */
+  module.exports.validateExistence = async function(idsToExist, model){
+    let idsNotInUse = await module.filterOutIdsNotInUse(idsToExist, model);
+    if (idsNotInUse.length !== 0) {
+      throw new Error(`ID ${idsNotInUse[0]} has no existing record in data model ${model.definition.model}`);
+    }
+  }
+
    /**
    * orderedRecords - javaScript function for ordering of records based on GraphQL orderInput for local post-processing
    *
@@ -1011,12 +1025,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
       // let countResolverFunk = resolvers[currModel][`count${modelPlCp}`]
       //let readByIdResolverFunk = /* ... */
 
-      let idsNotInUse = await helper.filterOutIdsNotInUse( 
-        currAssocIds, currModel );
-      let idsArePresent = ( idsNotInUse === 0 );
-      if (!idsArePresent) {
-        throw new Error(`ID ${idsNotInUse[0]} has no existing record in data model ${currModel.definition.model}`);
-      }
+      await module.exports.validateExistence( currAssocIds, currModel );
+
       return acc && idsArePresent
     }, Promise.resolve(true));
 
