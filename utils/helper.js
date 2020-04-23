@@ -977,7 +977,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
     }, Promise.resolve(true));
   }
 
-   /** associationArgsDef - Receives arrays of ids on @input, and checks if these ids exists. Returns true
+   /** validateAssociationArgsExistence - Receives arrays of ids on @input, and checks if these ids exists. Returns true
    * if all received ids exist, and throws an error if at least one of the ids does not exist.
    * 
    * @param  {object} input   Object with sanitized entries of the form: <add>Association:[id1, ..., idn].
@@ -987,8 +987,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @return {boolean} Returns true if all ids on the input array-values exists. Throw an error if some 
    *                   of the ids does not exists.
    */
-  module.exports.assocArgsAreExistingIDs = async function(input, context, associationArgsDef) {
-    let allArgsAreExistingIds = await Object.keys(associationArgsDef).reduce(async function(prev, curr){
+  module.exports.validateAssociationArgsExistence = async function(input, context, associationArgsDef) {
+    await Object.keys(associationArgsDef).reduce(async function(prev, curr){
       let acc = await prev;
       
       //get ids (Int or Array)
@@ -1008,22 +1008,16 @@ module.exports.vueTable = function(req, model, strAttributes) {
       let currModel = associationArgsDef[curr];
 
       //(To do: ask about these functions):
-      //let countResolverFunk = resolvers[modelName][`count${modelPlCp}`]
+      // let countResolverFunk = resolvers[currModel][`count${modelPlCp}`]
       //let readByIdResolverFunk = /* ... */
 
-      /**
-       * Note: once the function checkExistence() returns FALSE, then
-       * the 'acc' value never gona be TRUE again, so maybe is worthless
-       * to continue checking the other ids, and throw an error immediately
-       * after get a FALSE value from checkExistence function. 
-       * 
-       * (To do: ask about this.)
-       * 
-       */
-      return acc && ((await filterOutIdsNotInUse( currAssocIds, currModel )) === 0);
+      let idsNotInUse = await helper.filterOutIdsNotInUse( 
+        currAssocIds, currModel );
+      let idsArePresent = ( idsNotInUse === 0 );
+      if (!idsArePresent) {
+        throw new Error(`ID ${idsNotInUse[0]} has no existing record in data model ${currModel.definition.model}`);
+      }
+      return acc && idsArePresent
     }, Promise.resolve(true));
 
-    if (!allArgsAreExistingIds) throw new Error('Error: Some of the ids given to associate, do not exist.');
-    //else...
-    return true;
   }
