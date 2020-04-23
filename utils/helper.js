@@ -1121,3 +1121,26 @@ module.exports.vueTable = function(req, model, strAttributes) {
       }
     }, Promise.resolve(true));
   }
+
+  /** checkAndAdjustRecordLimitForCreateUpdate - If the number of records affected by the input
+   * exceeds the current value of recordLimit throws an error, otherwise adjusts and returns recordLimit.
+   * 
+   * @param  {object} input   Input Object.
+   * @param  {object} context Object with context attributes.
+   * @return {int} If the number of records affected by the input exceeds the current value of 
+   * recordLimit throws an error, otherwise adjusts and returns recordLimit.
+   */
+  module.exports.checkAndAdjustRecordLimitForCreateUpdate = function(input, context) {
+    // get total count
+    let totalCount = helper.countRecordsInAssociationArgs( 
+      input, context.record_limit, 
+      Object.keys(associationArgsDef)
+    );
+
+    // add one to total count, to reflect the "root" record being created or updated:
+    totalCount++
+    if (totalCount > context.recordLimit) { throw new Error('Record limit has been exceeded.') }
+    // adjust record limit
+    context.recordLimit -= totalCount;
+    return totalCount;
+  }
