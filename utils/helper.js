@@ -1009,8 +1009,6 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param  {object} context Object with mutation context attributes.
    * @param  {object} associationArgsDef  Object with entries of the form {'<add>Association' : model},
    *                                      where 'model' is an instance of the association's model.
-   * @return {boolean} Returns true if all ids on the input array-values exists. Throw an error if some 
-   *                   of the ids does not exists.
    */
   module.exports.validateAssociationArgsExistence = async function(input, context, associationArgsDef) {
     await Object.keys(associationArgsDef).reduce(async function(prev, curr){
