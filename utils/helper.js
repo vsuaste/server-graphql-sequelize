@@ -517,9 +517,12 @@ module.exports.vueTable = function(req, model, strAttributes) {
     //check existence by count
     let ids = Array.isArray(ids_to_check) ? ids_to_check : [ ids_to_check ];
     let promises = ids.map( id => { 
-      let responsibleAdapter = model.registeredAdapters[model.adapterForIri(id)];
       let search =  {field: model.idAttribute(), value:{value: id }, operator: 'eq' };
-      return model.countRecords(search, [responsibleAdapter]);
+      if (module.exports.isNotUndefinedAndNotNull(model.registeredAdapters)) {
+        let responsibleAdapter = model.registeredAdapters[model.adapterForIri(id)];
+        return model.countRecords(search, [responsibleAdapter]);
+      }
+      return model.countRecords(search);
     });
 
     return Promise.all(promises).then( results =>{
@@ -542,7 +545,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @throws If there is an ID given without a corresponding record in the model, in which case the first ID not to exist is given in the error message
    */
   module.exports.validateExistence = async function(idsToExist, model){
-    let idsNotInUse = await module.filterOutIdsNotInUse(idsToExist, model);
+    let idsNotInUse = await module.exports.filterOutIdsNotInUse(idsToExist, model);
     if (idsNotInUse.length !== 0) {
       throw new Error(`ID ${idsNotInUse[0]} has no existing record in data model ${model.definition.model}`);
     }
