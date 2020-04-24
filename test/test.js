@@ -1,7 +1,7 @@
 const expect = require('chai').expect;
 const rewire = require('rewire');
 const helper = rewire('../utils/helper');
-const resolvers = require('../resolvers/index');
+//const resolvers = require('../resolvers/index');
 
 describe('Non-empty array', function() {
     it('1. Undefined', function() {
@@ -95,6 +95,31 @@ describe('Count Records in Association Arguments', function() {
     it('4. Arrays second test', function() {
         expect(helper.countRecordsInAssociationArgs({addDogs: [4, 2], addCats: 1, addHamsters: 1}, ['addDogs', 'addCats', 'addHamsters'])).to.equal(4);
     })
+});
+
+describe('Check and Adjust Record Limit For Create or Update', function() {
+  it('1. Should return 3 & context.recordLimit = 1', function() {
+    let input = {addDogs: 2, addCats: 1};
+    let context = {recordLimit: 4};
+    let associationArgsDef = {addDogs: 'dog', addCats: 'cat'};
+    expect(helper.checkAndAdjustRecordLimitForCreateUpdate(input, context, associationArgsDef)).to.equal(3);
+    expect(context.recordLimit).to.equal(1);
+  });
+  it('2. Should return totalCount=4 & context.recordLimit=0', function() {
+    let input = {addDogs: [1,2], addCats: 1};
+    let context = {recordLimit: 4};
+    let associationArgsDef = {addDogs: 'dog', addCats: 'cat'};
+    expect(helper.checkAndAdjustRecordLimitForCreateUpdate(input, context, associationArgsDef)).to.equal(4);
+    expect(context.recordLimit).to.equal(0);
+  });
+
+  it('3. Should throw an error & context.recordLimit=4', function() {
+    let input = {addDogs: [1,2], addCats: [1, 2, 3, 4, 5]};
+    let context = {recordLimit: 4};
+    let associationArgsDef = {addDogs: 'dog', addCats: 'cat'};
+    expect(helper.checkAndAdjustRecordLimitForCreateUpdate.bind(input, context, associationArgsDef)).to.throw(Error);
+    expect(context.recordLimit).to.equal(4);
+  });
 });
 
 describe('Unique', function() {
