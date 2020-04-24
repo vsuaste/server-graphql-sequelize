@@ -3,7 +3,7 @@ const objectAssign = require('object-assign');
 const math = require('mathjs');
 const _ = require('lodash');
 const models_index = require('../models_index');
-//const adapter_index = require('../adapters/index');
+const adapter_index = require('../adapters/index');
 
   /**
    * paginate - Creates pagination argument as needed in sequelize cotaining limit and offset accordingly to the current
