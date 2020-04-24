@@ -1,7 +1,7 @@
 const expect = require('chai').expect;
 const rewire = require('rewire');
 const helper = rewire('../utils/helper');
-//const resolvers = require('../resolvers/index');
+const resolvers = require('../resolvers/index');
 
 describe('Non-empty array', function() {
     it('1. Undefined', function() {
