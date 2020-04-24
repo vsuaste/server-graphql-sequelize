@@ -101,6 +101,31 @@ describe('Count Records in Association Arguments', function() {
     })
 });
 
+describe('Check and Adjust Record Limit For Create or Update', function() {
+  it('1. Should return 3 & context.recordLimit = 1', function() {
+    let input = {addDogs: 2, addCats: 1};
+    let context = {recordLimit: 4};
+    let associationArgsDef = {addDogs: 'dog', addCats: 'cat'};
+    expect(helper.checkAndAdjustRecordLimitForCreateUpdate(input, context, associationArgsDef)).to.equal(3);
+    expect(context.recordLimit).to.equal(1);
+  });
+  it('2. Should return totalCount=4 & context.recordLimit=0', function() {
+    let input = {addDogs: [1,2], addCats: 1};
+    let context = {recordLimit: 4};
+    let associationArgsDef = {addDogs: 'dog', addCats: 'cat'};
+    expect(helper.checkAndAdjustRecordLimitForCreateUpdate(input, context, associationArgsDef)).to.equal(4);
+    expect(context.recordLimit).to.equal(0);
+  });
+
+  it('3. Should throw an error & context.recordLimit=4', function() {
+    let input = {addDogs: [1,2], addCats: [1, 2, 3, 4, 5]};
+    let context = {recordLimit: 4};
+    let associationArgsDef = {addDogs: 'dog', addCats: 'cat'};
+    expect(helper.checkAndAdjustRecordLimitForCreateUpdate.bind(input, context, associationArgsDef)).to.throw(Error);
+    expect(context.recordLimit).to.equal(4);
+  });
+});
+
 describe('Unique', function() {
     it('1. Unique array test', function() {
         expect(helper.unique([1, 1, 2, 3, 2])).to.deep.equal([1, 2, 3]);
