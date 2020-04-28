@@ -1060,7 +1060,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
   module.exports.countRecordsInAssociationArgs = function(input, argNamesArray) {
     return argNamesArray.reduce( function(acc, curr) {
       let element = input[`${curr}`];
-      if (isNonEmptyArray(element)) {
+      if (module.exports.isNonEmptyArray(element)) {
         return (acc + element.length);
       } else if (module.exports.isNotUndefinedAndNotNull(element)) {
         return (acc + 1);
