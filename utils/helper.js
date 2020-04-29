@@ -531,7 +531,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
     return Promise.all(promises).then( results =>{
       return results.filter( (r, index)=>{
-        if (r === null) {
+        if (!module.exports.isNotUndefinedAndNotNull(r)) {
           return true;
         }
         //check
@@ -1008,6 +1008,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param  {object} context Object with mutation context attributes.
    * @param  {object} associationArgsDef  Object with entries of the form {'<add>Association' : model},
    *                                      where 'model' is an instance of the association's model.
+   * @throws if the association arguments don't exist
+   * @returns {boolean} true, if the associations arguments exist
    */
   module.exports.validateAssociationArgsExistence = async function(input, context, associationArgsDef) {
     await Object.keys(associationArgsDef).reduce(async function(prev, curr){
@@ -1031,8 +1033,10 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
       await module.exports.validateExistence( currAssocIds, currModel );
 
-      return acc && idsArePresent
+      return acc
     }, Promise.resolve(true));
+
+    return true;
 
   }
 
