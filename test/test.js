@@ -275,56 +275,75 @@ describe('Check authorization on association args', function() {
 
 describe('Validate existence', function() {
     let model = {
-        adapterForIri: id => 'theAdapter',
+        adapterForIri: id => { return 'theAdapter'},
         registeredAdapters: {
             theAdapter: "adapterReturn"
         },
         idAttribute: function() {return "ID"},
-        countRecords: (search, responsibleAdapter) => {
-            if (search.field !== 'ID') {
-                throw new Error('Wrong ID field');
+        readById: async function() {return {}},
+        countRecords: async (search, responsibleAdapter) => {
+            let idsPresent = [1, 2, 4];
+            if (search.search.field !== 'ID') {
+                throw new Error('Wrong ID field: ' + search.search.field);
+            }
+            if (search.search.operator !== 'in') {
+                throw new Error('Only operator \'in\' is supported');
+            }
+            if (search.search.value.type !== 'Array') {
+                throw new Error('An Array must be given as search value');
             }
             if (!_.isEqual(responsibleAdapter, ['adapterReturn'])) {
                 throw new Error(`Wrong adapter given: ` + JSON.stringify(responsibleAdapter));
             }
-            switch (search.value.value) {
-                case 1: return 1;
-                case 2: return 3;
-                case 3: return 0;
-                case 4: return 3;
-                default: throw new Error('ID unknown');
+            let numberOfPresentIds = 0;
+            for (let id of search.search.value.value) {
+                if (idsPresent.includes(id)) {
+                    numberOfPresentIds++;
+                }
             }
+            return numberOfPresentIds;
         },
         definition: {model: 'Testmodel'}
     }
 
     let localModel = {
         idAttribute: function() {return "ID"},
-        countRecords: (search) => {
-            if (search.field !== 'ID') {
-                throw new Error('Wrong ID field');
+        readById: function() {return {}},
+        countRecords: async (search) => {
+            let idsPresent = [2, 3];
+            if (search.search.field !== 'ID') {
+                throw new Error('Wrong ID field: ' + search.search.field);
             }
-            switch (search.value.value) {
-                case 1: return 0;
-                case 2: return 1;
-                case 3: return 2;
-                default: throw new Error('ID unknown');
+            if (search.search.operator !== 'in') {
+                throw new Error('Only operator \'in\' is supported');
             }
+            if (search.search.value.type !== 'Array') {
+                throw new Error('An Array must be given as search value');
+            }
+            let numberOfPresentIds = 0;
+            for (let id of search.search.value.value) {
+                if (idsPresent.includes(id)) {
+                    numberOfPresentIds++;
+                }
+            }
+            return numberOfPresentIds;
         },
         definition: {model: 'Testmodel-lokal'}
     }
 
     let noCountModel = {
-        readById: async id => {
+        idAttribute: function() {return "ID"},
+        readById: async (id) => {
             switch (id) {
                 case 1: return 1;
                 case 2: return 2;
                 case 3: return 3;
-                case 4: return null;
+                case 4: return undefined;
                 case 5: return 5;
-                default: throw new Error('ID unknown');
+                default: throw new Error('ID unknown: ' + id);
             }
-        }
+        },
+        definition: {model: 'Testmodel without count'}
     }
 
     it('1. ID 1 should exist', async function() {
@@ -386,69 +405,100 @@ describe('Validate association arguments\' existence', function() {
 
     let Dog = {
         idAttribute: function() {return "ID"},
-        countRecords: (search) => {
-            if (search.field !== 'ID') {
+        readById: function() {return {}},
+        countRecords: async (search) => {
+            let idsPresent = [2, 3];
+            if (search.search.field !== 'ID') {
                 throw new Error('Wrong ID field');
             }
-            switch (search.value.value) {
-                case 1: return 0;
-                case 2: return 1;
-                case 3: return 2;
-                default: throw new Error('ID unknown');
+            if (search.search.operator !== 'in') {
+                throw new Error('Only operator \'in\' is supported');
             }
+            if (search.search.value.type !== 'Array') {
+                throw new Error('An Array must be given as search value');
+            }
+            let numberOfPresentIds = 0;
+            for (let id of search.search.value.value) {
+                if (idsPresent.includes(id)) {
+                    numberOfPresentIds++;
+                }
+            }
+            return numberOfPresentIds;
         },
         definition: {model: 'Dog'}
     }
 
     let Cat = {
         idAttribute: function() {return "ID"},
-        countRecords: (search) => {
-            if (search.field !== 'ID') {
+        readById: function() {return {}},
+        countRecords: async (search) => {
+            let idsPresent = [2, 3, 4];
+            if (search.search.field !== 'ID') {
                 throw new Error('Wrong ID field');
             }
-            switch (search.value.value) {
-                case 1: return 0;
-                case 2: return 1;
-                case 3: return 2;
-                case 4: return 5;
-                default: throw new Error('ID unknown');
+            if (search.search.operator !== 'in') {
+                throw new Error('Only operator \'in\' is supported');
             }
+            if (search.search.value.type !== 'Array') {
+                throw new Error('An Array must be given as search value');
+            }
+            let numberOfPresentIds = 0;
+            for (let id of search.search.value.value) {
+                if (idsPresent.includes(id)) {
+                    numberOfPresentIds++;
+                }
+            }
+            return numberOfPresentIds;
         },
         definition: {model: 'Cat'}
     }
 
     let Hamster = {
         idAttribute: function() {return "ID"},
-        countRecords: (search) => {
-            if (search.field !== 'ID') {
+        readById: function() {return {}},
+        countRecords: async (search) => {
+            let idsPresent = [2, 3, 4, 5];
+            if (search.search.field !== 'ID') {
                 throw new Error('Wrong ID field');
             }
-            switch (search.value.value) {
-                case 1: return 0;
-                case 2: return 10;
-                case 3: return 20;
-                case 4: return 50;
-                case 5: return 100;
-                default: throw new Error('ID unknown');
+            if (search.search.operator !== 'in') {
+                throw new Error('Only operator \'in\' is supported');
             }
+            if (search.search.value.type !== 'Array') {
+                throw new Error('An Array must be given as search value');
+            }
+            let numberOfPresentIds = 0;
+            for (let id of search.search.value.value) {
+                if (idsPresent.includes(id)) {
+                    numberOfPresentIds++;
+                }
+            }
+            return numberOfPresentIds;
         },
         definition: {model: 'Hamster'}
     }
 
     let Employer = {
         idAttribute: function() {return "ID"},
-        countRecords: (search) => {
-            if (search.field !== 'ID') {
+        readById: function() {return {}},
+        countRecords: async (search) => {
+            let idsPresent = [1, 2, 3, 5];
+            if (search.search.field !== 'ID') {
                 throw new Error('Wrong ID field');
             }
-            switch (search.value.value) {
-                case 1: return 1;
-                case 2: return 1;
-                case 3: return 1;
-                case 4: return 0;
-                case 5: return 1;
-                default: throw new Error('ID unknown');
+            if (search.search.operator !== 'in') {
+                throw new Error('Only operator \'in\' is supported');
             }
+            if (search.search.value.type !== 'Array') {
+                throw new Error('An Array must be given as search value');
+            }
+            let numberOfPresentIds = 0;
+            for (let id of search.search.value.value) {
+                if (idsPresent.includes(id)) {
+                    numberOfPresentIds++;
+                }
+            }
+            return numberOfPresentIds;
         },
         definition: {model: 'Employer'}
     }

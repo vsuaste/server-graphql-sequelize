@@ -506,42 +506,31 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * 
    * @param{Array | object} ids_to_check The IDs that are to be checked, as an array or as a single value
    * @param{object} model The model for which the IDs shall be checked
-   * @returns{Promise<Array>} An Array of the IDs *not* in use as a Promise
+   * @returns{Promise<boolean>} Are all IDs in use?
    */
   module.exports.filterOutIdsNotInUse = async function(ids_to_check, model){
     //check
-    if (ids_to_check === null || ids_to_check === undefined) { 
+    if (!module.exports.isNotUndefinedAndNotNull(ids_to_check)) { 
       throw new Error(`Invalid arguments on filterOutIdsNotInUse(), 'ids' argument should not be 'null' or 'undefined'`);
     }
     //check existence by count
     let ids = Array.isArray(ids_to_check) ? ids_to_check : [ ids_to_check ];
-    let promises = ids.map( id => { 
-      let findCommand = () => model.readById(id);
-      if (model.countRecords !== undefined) {
-        let search =  {field: model.idAttribute(), value:{value: id }, operator: 'eq' };
-        if (module.exports.isNotUndefinedAndNotNull(model.registeredAdapters)) {
-          let responsibleAdapter = model.registeredAdapters[model.adapterForIri(id)];
-          findCommand = () => model.countRecords(search, [responsibleAdapter]);
-        } else {
-          findCommand = () => model.countRecords(search);
-        }
+    let searchArg = {search: {field: model.idAttribute(), operator: 'in', value: {value: ids, type: "Array"}}};
+    try {
+      if (module.exports.isNotUndefinedAndNotNull(model.registeredAdapters)) {
+        let allResponsibleAdapters = ids.map(id => model.registeredAdapters[model.adapterForIri(id)]);
+        let allResponsibleAdaptersAsArray = Array.isArray(allResponsibleAdapters) ? allResponsibleAdapters : [allResponsibleAdapters];
+        let countIds = await model.countRecords(searchArg, module.exports.unique(allResponsibleAdaptersAsArray));
+        return countIds === ids.length;
       }
-      return findCommand();
-    });
-
-    return Promise.all(promises).then( results =>{
-      return results.filter( (r, index)=>{
-        if (!module.exports.isNotUndefinedAndNotNull(r)) {
-          return true;
-        }
-        //check
-        if (typeof r !== 'number') { 
-          throw new Error(`Invalid response from remote cenz-server`);
-        }
-        //filter not found ids
-        return (r === 0); 
-      });
-    })
+      let countIds = await model.countRecords(searchArg);
+      return countIds === ids.length;
+    } catch (err) {
+      return await ids.reduce(async (prev, curr) => {
+        let acc = await prev;
+        return acc && await model.readById(curr) !== undefined
+      }, Promise.resolve(true))
+    }
   }
 
   /**
@@ -553,7 +542,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    */
   module.exports.validateExistence = async function(idsToExist, model){
     let idsNotInUse = await module.exports.filterOutIdsNotInUse(idsToExist, model);
-    if (idsNotInUse.length !== 0) {
+    if (!idsNotInUse) {
       throw new Error(`ID ${idsNotInUse[0]} has no existing record in data model ${model.definition.model}`);
     }
   }
