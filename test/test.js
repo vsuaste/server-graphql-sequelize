@@ -2,7 +2,6 @@ const chai = require('chai');
 const expect = chai.expect;
 const rewire = require('rewire');
 const helper = rewire('../utils/helper');
-const resolvers = require('../resolvers/index');
 const _ = require('lodash');
 
 chai.use(require('chai-as-promised'));
@@ -380,5 +379,135 @@ describe('Validate existence', function() {
         expect(helper.validateExistence([1, 2, 4], noCountModel)).to.be.rejectedWith(Error);
     })
 
+})
 
+describe('Validate association arguments\' existence', function() {
+    
+
+    let Dog = {
+        idAttribute: function() {return "ID"},
+        readById: (id) => {return {}},
+        countRecords: (search) => {
+            if (search.field !== 'ID') {
+                throw new Error('Wrong ID field');
+            }
+            switch (search.value.value) {
+                case 1: return 0;
+                case 2: return 1;
+                case 3: return 2;
+                default: throw new Error('ID unknown');
+            }
+        },
+        definition: {model: 'Dog'}
+    }
+
+    let Cat = {
+        idAttribute: function() {return "ID"},
+        readById: (id) => {return {}},
+        countRecords: (search) => {
+            if (search.field !== 'ID') {
+                throw new Error('Wrong ID field');
+            }
+            switch (search.value.value) {
+                case 1: return 0;
+                case 2: return 1;
+                case 3: return 2;
+                case 4: return 5;
+                default: throw new Error('ID unknown');
+            }
+        },
+        definition: {model: 'Cat'}
+    }
+
+    let Hamster = {
+        idAttribute: function() {return "ID"},
+        readById: (id) => {return {}},
+        countRecords: (search) => {
+            if (search.field !== 'ID') {
+                throw new Error('Wrong ID field');
+            }
+            switch (search.value.value) {
+                case 1: return 0;
+                case 2: return 10;
+                case 3: return 20;
+                case 4: return 50;
+                case 5: return 100;
+                default: throw new Error('ID unknown');
+            }
+        },
+        definition: {model: 'Hamster'}
+    }
+
+    let Employer = {
+        idAttribute: function() {return "ID"},
+        readById: (id) => {return {}},
+        countRecords: (search) => {
+            if (search.field !== 'ID') {
+                throw new Error('Wrong ID field');
+            }
+            switch (search.value.value) {
+                case 1: return 1;
+                case 2: return 1;
+                case 3: return 1;
+                case 4: return 0;
+                case 5: return 1;
+                default: throw new Error('ID unknown');
+            }
+        },
+        definition: {model: 'Employer'}
+    }
+
+    const associationArgsDef = {
+        'addDogs': 'Dog',
+        'removeDogs': 'Dog',
+        'addCats': 'Cat',
+        'removeCats': 'Cat',
+        'addHamsters': 'Hamster',
+        'removeHamsters': 'Hamster',
+        'addEmployer': 'Employer',
+        'removeEmployer': 'Employer'
+    }
+
+    before(function() {
+        setOldModelIndex = helper.__set__('models_index', {
+            Dog: Dog,
+            Cat: Cat,
+            Hamster: Hamster,
+            Employer: Employer
+        });
+    })
+
+    after(function() {
+        setOldModelIndex();
+    })
+
+    it('01. Single existing dog', function() {
+        let input = {addDogs: 2};
+        expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.fulfilled;
+    })
+
+    it('02. Single non-existing dog', function() {
+        let input = {addDogs: 1};
+        expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.rejectedWith(Error);
+    })
+
+    it('03. Single existing cat', function() {
+        let input = {addCats: 4};
+        expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.fulfilled;
+    })
+
+    it('04. Existing records from all types', function() {
+        let input = {addDogs: [2, 3], addCats: 4, addHamsters: 5, addEmployer: 1};
+        expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.fulfilled;
+    })
+
+    it('05. Non-existing records from all types', function() {
+        let input = {addDogs: 1, addCats: [5, 6], addHamsters: 1, addEmployer: 4};
+        expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.rejectedWith(Error);
+    })
+
+    it('06. Mixing existing and non-existing records from all types', function() {
+        let input = {addDogs: 2, addCats: [5, 6], addHamsters: 1, addEmployer: 4};
+        expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.rejectedWith(Error);
+    })
 })

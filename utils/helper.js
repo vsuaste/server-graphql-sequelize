@@ -898,7 +898,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return (v !== undefined && v !== null);
   }
 
-  function isEmptyArray(a) {
+  module.exports.isEmptyArray = function(a) {
     return (a !== undefined && Array.isArray(a) && a.length === 0);
   }
 
@@ -1006,12 +1006,12 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * 
    * @param  {object} input   Object with sanitized entries of the form: <add>Association:[id1, ..., idn].
    * @param  {object} context Object with mutation context attributes.
-   * @param  {object} associationArgsDef  Object with entries of the form {'<add>Association' : model},
-   *                                      where 'model' is an instance of the association's model.
+   * @param  {object} associationArgsDef  The definition of the association arguments
+   * @param {object} modelsIndex The index of the models
    * @throws if the association arguments don't exist
    * @returns {boolean} true, if the associations arguments exist
    */
-  module.exports.validateAssociationArgsExistence = async function(input, context, associationArgsDef) {
+  module.exports.validateAssociationArgsExistence = async function(input, context, associationArgsDef, modelsIndex = models_index) {
     await Object.keys(associationArgsDef).reduce(async function(prev, curr){
       let acc = await prev;
       
@@ -1019,17 +1019,18 @@ module.exports.vueTable = function(req, model, strAttributes) {
       let currAssocIds = input[curr];
 
       //check: if empty array or undefined or null --> return true
-      if(isEmptyArray() || !isNotUndefinedAndNotNull()) {
+      if(module.exports.isEmptyArray(currAssocIds) || !module.exports.isNotUndefinedAndNotNull(currAssocIds)) {
         return acc; //equivalent to: acc && true
       } //else...
 
       //if not array make it one
-      if(!isNonEmptyArray(currAssocIds)) {
+      if(!module.exports.isNonEmptyArray(currAssocIds)) {
         currAssocIds = [currAssocIds];
       }
 
       //do check
-      let currModel = associationArgsDef[curr];
+      let currModelName = associationArgsDef[curr];
+      let currModel = modelsIndex[`${currModelName}`];
 
       await module.exports.validateExistence( currAssocIds, currModel );
 
