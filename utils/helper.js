@@ -543,7 +543,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
   module.exports.validateExistence = async function(idsToExist, model){
     let idsNotInUse = await module.exports.checkExistence(idsToExist, model);
     if (!idsNotInUse) {
-      throw new Error(`ID ${idsNotInUse[0]} has no existing record in data model ${model.definition.model}`);
+      throw new Error(`A given ID has no existing record in data model ${model.definition.model}`);
     }
   }
 
