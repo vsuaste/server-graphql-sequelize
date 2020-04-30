@@ -502,16 +502,16 @@ module.exports.vueTable = function(req, model, strAttributes) {
   }
 
     /**
-   * filterOutIdsNotInUse - Get the IDs (out of a given list) that are not in use in a given model
+   * checkExistence - Get the IDs (out of a given list) that are not in use in a given model
    * 
    * @param{Array | object} ids_to_check The IDs that are to be checked, as an array or as a single value
    * @param{object} model The model for which the IDs shall be checked
    * @returns{Promise<boolean>} Are all IDs in use?
    */
-  module.exports.filterOutIdsNotInUse = async function(ids_to_check, model){
+  module.exports.checkExistence = async function(ids_to_check, model){
     //check
     if (!module.exports.isNotUndefinedAndNotNull(ids_to_check)) { 
-      throw new Error(`Invalid arguments on filterOutIdsNotInUse(), 'ids' argument should not be 'null' or 'undefined'`);
+      throw new Error(`Invalid arguments on checkExistence(), 'ids' argument should not be 'null' or 'undefined'`);
     }
     //check existence by count
     let ids = Array.isArray(ids_to_check) ? ids_to_check : [ ids_to_check ];
@@ -541,7 +541,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @throws If there is an ID given without a corresponding record in the model, in which case the first ID not to exist is given in the error message
    */
   module.exports.validateExistence = async function(idsToExist, model){
-    let idsNotInUse = await module.exports.filterOutIdsNotInUse(idsToExist, model);
+    let idsNotInUse = await module.exports.checkExistence(idsToExist, model);
     if (!idsNotInUse) {
       throw new Error(`ID ${idsNotInUse[0]} has no existing record in data model ${model.definition.model}`);
     }
