@@ -386,7 +386,6 @@ describe('Validate association arguments\' existence', function() {
 
     let Dog = {
         idAttribute: function() {return "ID"},
-        readById: (id) => {return {}},
         countRecords: (search) => {
             if (search.field !== 'ID') {
                 throw new Error('Wrong ID field');
@@ -403,7 +402,6 @@ describe('Validate association arguments\' existence', function() {
 
     let Cat = {
         idAttribute: function() {return "ID"},
-        readById: (id) => {return {}},
         countRecords: (search) => {
             if (search.field !== 'ID') {
                 throw new Error('Wrong ID field');
@@ -421,7 +419,6 @@ describe('Validate association arguments\' existence', function() {
 
     let Hamster = {
         idAttribute: function() {return "ID"},
-        readById: (id) => {return {}},
         countRecords: (search) => {
             if (search.field !== 'ID') {
                 throw new Error('Wrong ID field');
@@ -440,7 +437,6 @@ describe('Validate association arguments\' existence', function() {
 
     let Employer = {
         idAttribute: function() {return "ID"},
-        readById: (id) => {return {}},
         countRecords: (search) => {
             if (search.field !== 'ID') {
                 throw new Error('Wrong ID field');
