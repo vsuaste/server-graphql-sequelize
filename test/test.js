@@ -283,20 +283,20 @@ describe('Validate existence', function() {
         readById: async function() {return {}},
         countRecords: async (search, responsibleAdapter) => {
             let idsPresent = [1, 2, 4];
-            if (search.search.field !== 'ID') {
-                throw new Error('Wrong ID field: ' + search.search.field);
+            if (search.field !== 'ID') {
+                throw new Error('Wrong ID field: ' + search.field);
             }
-            if (search.search.operator !== 'in') {
+            if (search.operator !== 'in') {
                 throw new Error('Only operator \'in\' is supported');
             }
-            if (search.search.value.type !== 'Array') {
+            if (search.value.type !== 'Array') {
                 throw new Error('An Array must be given as search value');
             }
             if (!_.isEqual(responsibleAdapter, ['adapterReturn'])) {
                 throw new Error(`Wrong adapter given: ` + JSON.stringify(responsibleAdapter));
             }
             let numberOfPresentIds = 0;
-            for (let id of search.search.value.value) {
+            for (let id of search.value.value) {
                 if (idsPresent.includes(id)) {
                     numberOfPresentIds++;
                 }
@@ -311,17 +311,17 @@ describe('Validate existence', function() {
         readById: function() {return {}},
         countRecords: async (search) => {
             let idsPresent = [2, 3];
-            if (search.search.field !== 'ID') {
-                throw new Error('Wrong ID field: ' + search.search.field);
+            if (search.field !== 'ID') {
+                throw new Error('Wrong ID field: ' + search.field);
             }
-            if (search.search.operator !== 'in') {
+            if (search.operator !== 'in') {
                 throw new Error('Only operator \'in\' is supported');
             }
-            if (search.search.value.type !== 'Array') {
+            if (search.value.type !== 'Array') {
                 throw new Error('An Array must be given as search value');
             }
             let numberOfPresentIds = 0;
-            for (let id of search.search.value.value) {
+            for (let id of search.value.value) {
                 if (idsPresent.includes(id)) {
                     numberOfPresentIds++;
                 }
@@ -408,17 +408,17 @@ describe('Validate association arguments\' existence', function() {
         readById: function() {return {}},
         countRecords: async (search) => {
             let idsPresent = [2, 3];
-            if (search.search.field !== 'ID') {
+            if (search.field !== 'ID') {
                 throw new Error('Wrong ID field');
             }
-            if (search.search.operator !== 'in') {
+            if (search.operator !== 'in') {
                 throw new Error('Only operator \'in\' is supported');
             }
-            if (search.search.value.type !== 'Array') {
+            if (search.value.type !== 'Array') {
                 throw new Error('An Array must be given as search value');
             }
             let numberOfPresentIds = 0;
-            for (let id of search.search.value.value) {
+            for (let id of search.value.value) {
                 if (idsPresent.includes(id)) {
                     numberOfPresentIds++;
                 }
@@ -433,17 +433,17 @@ describe('Validate association arguments\' existence', function() {
         readById: function() {return {}},
         countRecords: async (search) => {
             let idsPresent = [2, 3, 4];
-            if (search.search.field !== 'ID') {
+            if (search.field !== 'ID') {
                 throw new Error('Wrong ID field');
             }
-            if (search.search.operator !== 'in') {
+            if (search.operator !== 'in') {
                 throw new Error('Only operator \'in\' is supported');
             }
-            if (search.search.value.type !== 'Array') {
+            if (search.value.type !== 'Array') {
                 throw new Error('An Array must be given as search value');
             }
             let numberOfPresentIds = 0;
-            for (let id of search.search.value.value) {
+            for (let id of search.value.value) {
                 if (idsPresent.includes(id)) {
                     numberOfPresentIds++;
                 }
@@ -458,17 +458,17 @@ describe('Validate association arguments\' existence', function() {
         readById: function() {return {}},
         countRecords: async (search) => {
             let idsPresent = [2, 3, 4, 5];
-            if (search.search.field !== 'ID') {
+            if (search.field !== 'ID') {
                 throw new Error('Wrong ID field');
             }
-            if (search.search.operator !== 'in') {
+            if (search.operator !== 'in') {
                 throw new Error('Only operator \'in\' is supported');
             }
-            if (search.search.value.type !== 'Array') {
+            if (search.value.type !== 'Array') {
                 throw new Error('An Array must be given as search value');
             }
             let numberOfPresentIds = 0;
-            for (let id of search.search.value.value) {
+            for (let id of search.value.value) {
                 if (idsPresent.includes(id)) {
                     numberOfPresentIds++;
                 }
@@ -483,17 +483,17 @@ describe('Validate association arguments\' existence', function() {
         readById: function() {return {}},
         countRecords: async (search) => {
             let idsPresent = [1, 2, 3, 5];
-            if (search.search.field !== 'ID') {
+            if (search.field !== 'ID') {
                 throw new Error('Wrong ID field');
             }
-            if (search.search.operator !== 'in') {
+            if (search.operator !== 'in') {
                 throw new Error('Only operator \'in\' is supported');
             }
-            if (search.search.value.type !== 'Array') {
+            if (search.value.type !== 'Array') {
                 throw new Error('An Array must be given as search value');
             }
             let numberOfPresentIds = 0;
-            for (let id of search.search.value.value) {
+            for (let id of search.value.value) {
                 if (idsPresent.includes(id)) {
                     numberOfPresentIds++;
                 }

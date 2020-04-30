@@ -515,7 +515,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
     }
     //check existence by count
     let ids = Array.isArray(ids_to_check) ? ids_to_check : [ ids_to_check ];
-    let searchArg = {search: {field: model.idAttribute(), operator: 'in', value: {value: ids, type: "Array"}}};
+    let searchArg = {field: model.idAttribute(), operator: 'in', value: {value: ids, type: "Array"}};
     try {
       if (module.exports.isNotUndefinedAndNotNull(model.registeredAdapters)) {
         let allResponsibleAdapters = ids.map(id => model.registeredAdapters[model.adapterForIri(id)]);
