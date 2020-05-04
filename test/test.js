@@ -282,7 +282,7 @@ describe('Validate existence', function() {
         idAttribute: function() {return "ID"},
         readById: async function() {return {}},
         countRecords: async (search, responsibleAdapter) => {
-            let idsPresent = [1, 2, 4];
+            let idsPresent = ["1", "2", "4"];
             if (search.field !== 'ID') {
                 throw new Error('Wrong ID field: ' + search.field);
             }
@@ -296,7 +296,7 @@ describe('Validate existence', function() {
                 throw new Error(`Wrong adapter given: ` + JSON.stringify(responsibleAdapter));
             }
             let numberOfPresentIds = 0;
-            for (let id of search.value.value) {
+            for (let id of search.value.value.split(",")) {
                 if (idsPresent.includes(id)) {
                     numberOfPresentIds++;
                 }
@@ -310,7 +310,7 @@ describe('Validate existence', function() {
         idAttribute: function() {return "ID"},
         readById: function() {return {}},
         countRecords: async (search) => {
-            let idsPresent = [2, 3];
+            let idsPresent = ["2", "3"];
             if (search.field !== 'ID') {
                 throw new Error('Wrong ID field: ' + search.field);
             }
@@ -321,7 +321,7 @@ describe('Validate existence', function() {
                 throw new Error('An Array must be given as search value');
             }
             let numberOfPresentIds = 0;
-            for (let id of search.value.value) {
+            for (let id of search.value.value.split(",")) {
                 if (idsPresent.includes(id)) {
                     numberOfPresentIds++;
                 }
@@ -407,7 +407,7 @@ describe('Validate association arguments\' existence', function() {
         idAttribute: function() {return "ID"},
         readById: function() {return {}},
         countRecords: async (search) => {
-            let idsPresent = [2, 3];
+            let idsPresent = ["2", "3"];
             if (search.field !== 'ID') {
                 throw new Error('Wrong ID field');
             }
@@ -418,7 +418,7 @@ describe('Validate association arguments\' existence', function() {
                 throw new Error('An Array must be given as search value');
             }
             let numberOfPresentIds = 0;
-            for (let id of search.value.value) {
+            for (let id of search.value.value.split(",")) {
                 if (idsPresent.includes(id)) {
                     numberOfPresentIds++;
                 }
@@ -432,7 +432,7 @@ describe('Validate association arguments\' existence', function() {
         idAttribute: function() {return "ID"},
         readById: function() {return {}},
         countRecords: async (search) => {
-            let idsPresent = [2, 3, 4];
+            let idsPresent = ["2", "3", "4"];
             if (search.field !== 'ID') {
                 throw new Error('Wrong ID field');
             }
@@ -443,7 +443,7 @@ describe('Validate association arguments\' existence', function() {
                 throw new Error('An Array must be given as search value');
             }
             let numberOfPresentIds = 0;
-            for (let id of search.value.value) {
+            for (let id of search.value.value.split()) {
                 if (idsPresent.includes(id)) {
                     numberOfPresentIds++;
                 }
@@ -457,7 +457,7 @@ describe('Validate association arguments\' existence', function() {
         idAttribute: function() {return "ID"},
         readById: function() {return {}},
         countRecords: async (search) => {
-            let idsPresent = [2, 3, 4, 5];
+            let idsPresent = ["2", "3", "4", "5"];
             if (search.field !== 'ID') {
                 throw new Error('Wrong ID field');
             }
@@ -468,7 +468,7 @@ describe('Validate association arguments\' existence', function() {
                 throw new Error('An Array must be given as search value');
             }
             let numberOfPresentIds = 0;
-            for (let id of search.value.value) {
+            for (let id of search.value.value.split(",")) {
                 if (idsPresent.includes(id)) {
                     numberOfPresentIds++;
                 }
@@ -482,7 +482,7 @@ describe('Validate association arguments\' existence', function() {
         idAttribute: function() {return "ID"},
         readById: function() {return {}},
         countRecords: async (search) => {
-            let idsPresent = [1, 2, 3, 5];
+            let idsPresent = ["1", "2","3","5"];
             if (search.field !== 'ID') {
                 throw new Error('Wrong ID field');
             }
@@ -493,7 +493,7 @@ describe('Validate association arguments\' existence', function() {
                 throw new Error('An Array must be given as search value');
             }
             let numberOfPresentIds = 0;
-            for (let id of search.value.value) {
+            for (let id of search.value.value.split(",")) {
                 if (idsPresent.includes(id)) {
                     numberOfPresentIds++;
                 }
