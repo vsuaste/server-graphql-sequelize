@@ -347,55 +347,55 @@ describe('Validate existence', function() {
     }
 
     it('1. ID 1 should exist', async function() {
-        expect(helper.validateExistence(1, model)).to.be.fulfilled;
+        await expect(helper.validateExistence(1, model)).to.be.eventually.fulfilled;
     })
 
     it('2. ID 3 should not exist', async function() {
-        expect(helper.validateExistence(3, model)).to.be.rejectedWith(Error);
+        await expect(helper.validateExistence(3, model)).to.be.rejectedWith(Error);
     })
 
-    it('3. ID 1, 2 and 4 should exist', function() {
-        expect(helper.validateExistence([1, 2, 4], model)).to.be.fulfilled;
+    it('3. ID 1, 2 and 4 should exist', async function() {
+        await expect(helper.validateExistence([1, 2, 4], model)).to.be.eventually.fulfilled;
     })
 
-    it('4. ID 1, 2 and 3 should throw an Error', function() {
-        expect(helper.validateExistence([1, 2, 3], model)).to.be.rejectedWith(Error);
+    it('4. ID 1, 2 and 3 should throw an Error', async function() {
+        await expect(helper.validateExistence([1, 2, 3], model)).to.be.rejectedWith(Error);
     })
 
     it('5. Local ID 1 should not exist', async function() {
-        expect(helper.validateExistence(1, localModel)).to.be.rejectedWith(Error);
+        await expect(helper.validateExistence(1, localModel)).to.be.rejectedWith(Error);
     })
 
     it('6. Local ID 2 should exist', async function() {
-        expect(helper.validateExistence(2, localModel)).to.be.fulfilled;
+        await expect(helper.validateExistence(2, localModel)).to.be.eventually.fulfilled;
     })
 
-    it('7. Local ID 2 and 3 should exist', function() {
-        expect(helper.validateExistence([2, 3], localModel)).to.be.fulfilled;
+    it('7. Local ID 2 and 3 should exist', async function() {
+        await expect(helper.validateExistence([2, 3], localModel)).to.be.eventually.fulfilled;
     })
 
-    it('8. Local ID 1 and 2 should throw an error', function() {
-        expect(helper.validateExistence([1, 2], localModel)).to.be.rejectedWith(Error);
+    it('8. Local ID 1 and 2 should throw an error', async function() {
+        await expect(helper.validateExistence([1, 2], localModel)).to.be.rejectedWith(Error);
     })
 
-    it('9. Local ID 4 should not exist', function() {
-        expect(helper.validateExistence(4, localModel)).to.be.rejectedWith(Error);
+    it('9. Local ID 4 should not exist', async function() {
+        await expect(helper.validateExistence(4, localModel)).to.be.rejectedWith(Error);
     })
 
-    it('10. NCM ID 1 should exist', function() {
-        expect(helper.validateExistence(1, noCountModel)).to.be.fulfilled;
+    it('10. NCM ID 1 should exist', async function() {
+        await expect(helper.validateExistence(1, noCountModel)).to.be.eventually.fulfilled;
     })
 
-    it('11. NCM ID 4 should not exist', function() {
-        expect(helper.validateExistence(4, noCountModel)).to.be.rejectedWith(Error);
+    it('11. NCM ID 4 should not exist', async function() {
+        await expect(helper.validateExistence(4, noCountModel)).to.be.rejectedWith(Error);
     })
 
-    it('12. NCM ID 1, 2, 3 should all exist', function() {
-        expect(helper.validateExistence([1, 2, 3], noCountModel)).to.be.fulfilled;
+    it('12. NCM ID 1, 2, 3 should all exist', async function() {
+        await expect(helper.validateExistence([1, 2, 3], noCountModel)).to.be.eventually.fulfilled;
     })
 
-    it('13. NCM ID 1, 2, 4 should throw', function() {
-        expect(helper.validateExistence([1, 2, 4], noCountModel)).to.be.rejectedWith(Error);
+    it('13. NCM ID 1, 2, 4 should throw', async function() {
+        await expect(helper.validateExistence([1, 2, 4], noCountModel)).to.be.rejectedWith(Error);
     })
 
 })
@@ -527,33 +527,33 @@ describe('Validate association arguments\' existence', function() {
         setOldModelIndex();
     })
 
-    it('01. Single existing dog', function() {
+    it('01. Single existing dog', async function() {
         let input = {addDogs: 2};
-        expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.fulfilled;
+        await expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.eventually.fulfilled;
     })
 
-    it('02. Single non-existing dog', function() {
+    it('02. Single non-existing dog', async function() {
         let input = {addDogs: 1};
-        expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.rejectedWith(Error);
+        await expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.rejectedWith(Error);
     })
 
-    it('03. Single existing cat', function() {
+    it('03. Single existing cat', async function() {
         let input = {addCats: 4};
-        expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.fulfilled;
+        await expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.eventually.fulfilled;
     })
 
-    it('04. Existing records from all types', function() {
+    it('04. Existing records from all types', async function() {
         let input = {addDogs: [2, 3], addCats: 4, addHamsters: 5, addEmployer: 1};
-        expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.fulfilled;
+        await expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.eventually.fulfilled;
     })
 
-    it('05. Non-existing records from all types', function() {
+    it('05. Non-existing records from all types', async function() {
         let input = {addDogs: 1, addCats: [5, 6], addHamsters: 1, addEmployer: 4};
-        expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.rejectedWith(Error);
+        await expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.rejectedWith(Error);
     })
 
-    it('06. Mixing existing and non-existing records from all types', function() {
+    it('06. Mixing existing and non-existing records from all types', async function() {
         let input = {addDogs: 2, addCats: [5, 6], addHamsters: 1, addEmployer: 4};
-        expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.rejectedWith(Error);
+        await expect(helper.validateAssociationArgsExistence(input, null, associationArgsDef)).to.be.rejectedWith(Error);
     })
 })
