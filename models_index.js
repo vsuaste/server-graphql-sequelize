@@ -97,3 +97,22 @@ fs.readdirSync(__dirname + "/models-distributed")
 
         models[model.name] = model;
     });
+
+// **********************************************************************************
+// IMPORT GENERIC MODELS
+
+fs.readdirSync(__dirname + "/models-generic")
+    .filter(function(file) {
+        return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
+    })
+    .forEach(function(file) {
+        console.log("loaded model: " + file);
+        let model = require(`./${path.join("./models-generic", file)}`);
+
+        if(models[model.name])
+            throw Error(`Duplicated model name ${model.name}`);
+
+        models[model.name] = model;
+    });
+
+// **********************************************************************************
