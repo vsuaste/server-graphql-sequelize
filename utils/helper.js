@@ -521,10 +521,10 @@ module.exports.vueTable = function(req, model, strAttributes) {
         let allResponsibleAdapters = ids.map(id => model.registeredAdapters[model.adapterForIri(id)]);
         let allResponsibleAdaptersAsArray = Array.isArray(allResponsibleAdapters) ? allResponsibleAdapters : [allResponsibleAdapters];
         let countIds = await model.countRecords(searchArg, module.exports.unique(allResponsibleAdaptersAsArray));
-        return countIds === ids.length;
+        return countIds.sum === ids.length;
       }
       let countIds = await model.countRecords(searchArg);
-      return countIds === ids.length;
+      return countIds.sum === ids.length;
     } catch (err) {
       return await ids.reduce(async (prev, curr) => {
         let acc = await prev;
