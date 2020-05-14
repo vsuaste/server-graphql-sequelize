@@ -188,7 +188,7 @@ app.use('/export', cors(), (req, res) =>{
    customExecuteFn: execute.execute,
    customFormatErrorFn(error){
      return {
-       message: JSON.stringify(error.message),
+       message: JSON.stringify(error),
        locations: error.locations ? error.locations : "",
        details: error.originalError && error.originalError.errors ? error.originalError.errors : "",
        path: error.path,
