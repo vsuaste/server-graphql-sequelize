@@ -2,7 +2,7 @@ const { GraphQLError } = require('graphql');
 
 class customArrayError extends GraphQLError {
   constructor(errors_array, message){
-    super(message, null, null, null, null, null, {errors: errors_array.slice()});
+    super(message, null, null, null, null, null, {errors: errors_array});
   }
 }
 
