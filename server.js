@@ -190,7 +190,6 @@ app.use('/export', cors(), (req, res) =>{
      return {
        message: error.message,
        locations: error.locations ? error.locations : "",
-       stack: error.stack ? error.stack.split('\n') : [],
        details: error.originalError && error.originalError.errors ? error.originalError.errors : "",
        path: error.path
      };
