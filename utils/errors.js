@@ -1,9 +1,8 @@
+const { GraphQLError } = require('graphql');
 
-class customArrayError extends Error {
+class customArrayError extends GraphQLError {
   constructor(errors_array, message){
-    super();
-    this.message = message;
-    this.errors = errors_array;
+    super(message, null, null, null, null, null, {errors: errors_array.slice()});
   }
 }
 
@@ -13,9 +12,9 @@ handleError = function(error){
   }else if(error.name === "SequelizeValidationError"){
       throw new customArrayError(error.errors, "Validation error");
   }else if(error.code === 'ECONNABORTED' && error.url!== undefined){
-    throw new Error(`Time out exceeded trying to reach server ${error.url}`);
+    throw new GraphQLError(`Time out exceeded trying to reach server ${error.url}`);
   }else{
-      throw new Error(error)
+      throw new GraphQLError(error)
   }
 }
 module.exports = { handleError}
