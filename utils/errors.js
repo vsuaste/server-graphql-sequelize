@@ -20,7 +20,7 @@ handleError = function(error){
       console.log('§§§ Check for Array: ' + Array.isArray(error));
       console.log('§§§ Found error: ' + JSON.stringify(error, null, 4));
       console.log('§§§ With util.inspect: ' + util.inspect(error));
-      console.log(error);
+      console.dir(error, {showHidden: true, depth: null, colors: true});
       console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
     } else if (typeof error === 'string') {
       console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
