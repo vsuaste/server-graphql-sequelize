@@ -1,4 +1,5 @@
 const { GraphQLError } = require('graphql');
+const util = require('util');
 
 class customArrayError extends GraphQLError {
   constructor(errors_array, message){
@@ -16,7 +17,8 @@ handleError = function(error){
   }else{
     if (typeof error === 'object') {
       console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
-      console.log('§§§ Found error: ' + JSON.stringify(error));
+      console.log('§§§ Found error: ' + JSON.stringify(error, null, 4));
+      console.log('§§§ With util.inspect: ' + util.inspect(error));
       console.log(error);
       console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
     } else if (typeof error === 'string') {
