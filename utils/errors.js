@@ -17,32 +17,9 @@ handleError = function(error){
   }else{
     if (error.message) {
       throw new GraphQLError(error.message);
-    }else if (typeof error === 'object') {
-      console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
-      console.log('§§§ Check for Array: ' + Array.isArray(error));
-      console.log('§§§ Found error: ' + JSON.stringify(error, null, 4));
-      console.log('§§§ With util.inspect: ' + util.inspect(error));
-      console.dir(error, {showHidden: true, depth: null, colors: true});
-      console.log('§§§ The keys are: ' + Object.keys(error));
-      console.log(`§§§ All error keys are ${Reflect.ownKeys(error)}`);
-      if (error.Error) {
-        console.log('§§§ Error property: ' + error.Error);
-      }
-      if (error.stack) {
-        console.log(`§§§ Error stack: ${error.stack}`);
-      }
-      if (error.message) {
-        console.log('§§§ Error message: ' + error.message);
-      }
-      console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
-    } else if (typeof error === 'string') {
-      console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
-      console.log('Found error string: ' + error);
-    } else {
-      console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
-      console.log('The type of this error is: ' + typeof error);
-    }
+    }else {
       throw new Error(error)
+    }
   }
 }
 module.exports = { handleError}
