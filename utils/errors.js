@@ -17,6 +17,7 @@ handleError = function(error){
   }else{
     if (typeof error === 'object') {
       console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
+      console.log('§§§ Check for Array: ' + Array.isArray(error));
       console.log('§§§ Found error: ' + JSON.stringify(error, null, 4));
       console.log('§§§ With util.inspect: ' + util.inspect(error));
       console.log(error);
