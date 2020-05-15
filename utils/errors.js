@@ -14,6 +14,16 @@ handleError = function(error){
   }else if(error.code === 'ECONNABORTED' && error.url!== undefined){
     throw new GraphQLError(`Time out exceeded trying to reach server ${error.url}`);
   }else{
+    if (typeof error === 'object') {
+      console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
+      console.log('§§§ Found error: ' + JSON.stringify(error));
+    } else if (typeof error === 'string') {
+      console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
+      console.log('Found error string: ' + error);
+    } else {
+      console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
+      console.log('The type of this error is: ' + typeof error);
+    }
       throw new Error(error)
   }
 }
