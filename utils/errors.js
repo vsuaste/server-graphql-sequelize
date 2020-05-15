@@ -3,7 +3,7 @@ const util = require('util');
 
 class customArrayError extends GraphQLError {
   constructor(errors_array, message){
-    super(message, null, null, null, null, null, {errors: errors_array});
+    super(message, null, null, null, null, {errors: errors_array});
   }
 }
 
@@ -16,7 +16,7 @@ handleError = function(error){
     throw new GraphQLError(`Time out exceeded trying to reach server ${error.url}`);
   }else{
     if (error.message) {
-      throw new GraphQLError(error.message);
+      throw new GraphQLError(error.message, null, null, null, null, error);
     }else {
       throw new Error(error)
     }
