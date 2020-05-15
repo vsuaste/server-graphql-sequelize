@@ -22,6 +22,15 @@ handleError = function(error){
       console.log('§§§ With util.inspect: ' + util.inspect(error));
       console.dir(error, {showHidden: true, depth: null, colors: true});
       console.log('§§§ The keys are: ' + Object.keys(error));
+      if (error.Error) {
+        console.log('§§§ Error property: ' + error.Error);
+      }
+      if (error.stack) {
+        console.log(`§§§ Error stack: ${error.stack}`);
+      }
+      if (error.message) {
+        console.log('§§§ Error message: ' + error.message);
+      }
       console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
     } else if (typeof error === 'string') {
       console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
