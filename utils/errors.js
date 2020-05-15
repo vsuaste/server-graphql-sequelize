@@ -22,6 +22,7 @@ handleError = function(error){
       console.log('§§§ With util.inspect: ' + util.inspect(error));
       console.dir(error, {showHidden: true, depth: null, colors: true});
       console.log('§§§ The keys are: ' + Object.keys(error));
+      console.log(`§§§ All error keys are ${Reflect.ownKeys(error)}`);
       if (error.Error) {
         console.log('§§§ Error property: ' + error.Error);
       }
