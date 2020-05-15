@@ -15,8 +15,8 @@ handleError = function(error){
   }else if(error.code === 'ECONNABORTED' && error.url!== undefined){
     throw new GraphQLError(`Time out exceeded trying to reach server ${error.url}`);
   }else{
-    if (error.stack && error.message) {
-      throw new customArrayError(error.stack, error.message);
+    if (error.message) {
+      throw new GraphQLError(error.message);
     }else if (typeof error === 'object') {
       console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
       console.log('§§§ Check for Array: ' + Array.isArray(error));
