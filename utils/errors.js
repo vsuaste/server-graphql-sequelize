@@ -21,6 +21,7 @@ handleError = function(error){
       console.log('§§§ Found error: ' + JSON.stringify(error, null, 4));
       console.log('§§§ With util.inspect: ' + util.inspect(error));
       console.dir(error, {showHidden: true, depth: null, colors: true});
+      console.log('§§§ The keys are: ' + Object.keys(error));
       console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
     } else if (typeof error === 'string') {
       console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
