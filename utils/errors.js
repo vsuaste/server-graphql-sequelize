@@ -17,6 +17,8 @@ handleError = function(error){
     if (typeof error === 'object') {
       console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
       console.log('§§§ Found error: ' + JSON.stringify(error));
+      console.log(error);
+      console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
     } else if (typeof error === 'string') {
       console.log('§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§§');
       console.log('Found error string: ' + error);
