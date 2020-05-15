@@ -25,7 +25,7 @@ fs.readdirSync("./models")
             model = require(`./${validator_patch}`).validator_patch(model);
         }
 
-        let patches_patch = path.join('./patches', file);
+        let patches_patch = path.join('./patches', 'sql-' + file);
         if(fs.existsSync(patches_patch)){
             model = require(`./${patches_patch}`).logic_patch(model);
         }
@@ -58,6 +58,11 @@ fs.readdirSync("./models-webservice")
         console.log("loaded model: " + file);
         let model = require(`./${path.join("./models-webservice", file)}`);
 
+        let patches_patch = path.join('./patches', 'webservice-' + file);
+        if(fs.existsSync(patches_patch)){
+            model = require(`./${patches_patch}`).logic_patch(model);
+        }
+
         if(models[model.name])
             throw Error(`Duplicated model name ${model.name}`);
 
@@ -74,6 +79,11 @@ fs.readdirSync("./models-cenz-server")
     .forEach(function(file) {
         console.log("loaded model: " + file);
         let model = require(`./${path.join("./models-cenz-server", file)}`);
+
+        let patches_patch = path.join('./patches', 'cenz-server+' + file);
+        if(fs.existsSync(patches_patch)){
+            model = require(`./${patches_patch}`).logic_patch(model);
+        }
 
         if(models[model.name])
             throw Error(`Duplicated model name ${model.name}`);
