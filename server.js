@@ -11,6 +11,7 @@
  const {GraphQLDateTime, GraphQLDate, GraphQLTime } = require('graphql-iso-date');
  const execute = require('./utils/custom-graphql-execute');
  const checkAuthorization = require('./utils/check-authorization');
+ const helper = require('./utils/helper');
  const nodejq = require('node-jq')
  const {JSONPath} = require('jsonpath-plus');
  const graphqlFormatError = require('./node_modules/graphql/error/formatError');
@@ -186,9 +187,9 @@ app.use('/export', cors(), (req, res) =>{
      recordsLimit: globals.LIMIT_RECORDS
    },
    customExecuteFn: execute.execute,
-   customFormatErrorFn(error){
+   customFormatErrorFn: function(error){
      return {
-       message: error.message.value ? error.message.value : error.message,
+       message: error.message,
        locations: error.locations ? error.locations : "",
        details: error.originalError && error.originalError.errors ? error.originalError.errors : "",
        path: error.path,
@@ -200,10 +201,10 @@ app.use('/export', cors(), (req, res) =>{
  // '==' checks for both 'null' and 'undefined'
  function eitherJqOrJsonpath(jqInput, jsonpathInput) {
    let errorString = "State either 'jq' or 'jsonPath' expressions, never both.";
-   if ((jqInput != null) && (jsonpathInput != null)) {
+   if (helper.isNotUndefinedAndNotNull(jqInput) && helper.isNotUndefinedAndNotNull(jsonpathInput)) {
     throw new Error(errorString + " - jq is " + jqInput + " and jsonPath is " + jsonpathInput);
    }
-   if ((jqInput == null) && (jsonpathInput == null)) {
+   if (!helper.isNotUndefinedAndNotNull(jqInput) && !helper.isNotUndefinedAndNotNull(jsonpathInput)) {
     throw new Error(errorString + " - both are null or undefined");
    }
  }
@@ -244,7 +245,7 @@ app.use('/export', cors(), (req, res) =>{
 
           let graphQlResponses = await handleGraphQlQueriesForMetaQuery(queries, context);          
           let output;
-          if (jq != null) { // jq
+          if (helper.isNotUndefinedAndNotNull(jq)) { // jq
             output = await nodejq.run(jq, graphQlResponses, { input: 'json', output: 'json'});
           } else { // JSONPath
             output = JSONPath({path: jsonPath, json: graphQlResponses, wrap: false});
