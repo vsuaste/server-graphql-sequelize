@@ -875,7 +875,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @returns {boolean} result
    */
   module.exports.isNonEmptyArray = function (a) {
-    return (a !== undefined && Array.isArray(a) && a.length > 0);
+    return (Array.isArray(a) && a.length > 0);
   }
 
   /**
@@ -951,7 +951,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
   module.exports.checkAuthorizationOnAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'], modelsIndex = models_index ) {
     return await Object.keys(associationArgsDef).reduce(async function(prev, curr) {
       let acc = await prev;
-      let hasInputForAssoc = module.exports.isNonEmptyArray(input[curr]) || module.exports.isNotUndefinedAndNotNull(input[curr])
+      let hasInputForAssoc = module.exports.isNonEmptyArray(input[curr]) || ( !ArrayisArray(input[curr]) && input[curr] !== '' && module.exports.isNotUndefinedAndNotNull(input[curr]));
       if (hasInputForAssoc) {
         let targetModelName = associationArgsDef[curr]
         let targetModel = modelsIndex[`${targetModelName}`];
