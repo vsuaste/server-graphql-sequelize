@@ -191,9 +191,8 @@ app.use('/export', cors(), (req, res) =>{
      return {
        message: error.message,
        locations: error.locations ? error.locations : "",
-       details: error.originalError && error.originalError.errors ? error.originalError.errors : "",
-       path: error.path,
-       extensions: error.extensions ? error.extensions : null
+       extensions: (error.extensions && error.extensions.details ? error.extensions.details : "") + (error.originalError && error.originalError.errors ? error.originalError.errors : ""),
+       path: error.path
      };
    }
  })));
