@@ -17,6 +17,7 @@
     "bcrypt": "^3.0.3",
     "bcryptjs": "^2.4.3",
     "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
     "cors": "^2.8.4",
     "csv-parse": "^2.2.0",
     "express": "^4.16.2",
@@ -39,13 +40,13 @@
     "nodemailer-smtp-transport": "^2.7.4",
     "pg": "^7.4.1",
     "pg-hstore": "^2.3.2",
+    "rewire": "^5.0.0",
     "sequelize": "^4.35.2",
     "sequelize-cli": "^4.0.0",
     "supertest": "^3.1.0",
     "sync-request": "^6.0.0",
     "uuidv4": "^2.0.0",
-    "xlsx": "^0.12.11",
-    "rewire": "^5.0.0"
+    "xlsx": "^0.12.11"
   },
   "devDependencies": {
     "mocha": "^5.2.0",

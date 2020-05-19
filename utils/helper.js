@@ -2,6 +2,7 @@ const checkAuthorization = require('./check-authorization');
 const objectAssign = require('object-assign');
 const math = require('mathjs');
 const _ = require('lodash');
+const models_index = require('../models_index');
 
   /**
    * paginate - Creates pagination argument as needed in sequelize cotaining limit and offset accordingly to the current
@@ -500,29 +501,50 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return where_statement;
   }
 
-  module.exports.checkExistence = function(ids_to_add, model){
+    /**
+   * checkExistence - Get the IDs (out of a given list) that are not in use in a given model
+   * 
+   * @param{Array | object} ids_to_check The IDs that are to be checked, as an array or as a single value
+   * @param{object} model The model for which the IDs shall be checked
+   * @returns{Promise<boolean>} Are all IDs in use?
+   */
+  module.exports.checkExistence = async function(ids_to_check, model){
     //check
-    if (ids_to_add===null || ids_to_add===undefined) { 
+    if (!module.exports.isNotUndefinedAndNotNull(ids_to_check)) { 
       throw new Error(`Invalid arguments on checkExistence(), 'ids' argument should not be 'null' or 'undefined'`);
     }
     //check existence by count
-    let ids = Array.isArray(ids_to_add) ? ids_to_add : [ ids_to_add ];
-    let promises = ids.map( id => { 
-      let responsibleAdapter = model.registeredAdapters[model.adapterForIri(id)];
-      let search =  {field: model.idAttribute(), value:{value: id }, operator: 'eq' };
-      return model.countRecords(search, [responsibleAdapter]);
-    });
+    let ids = Array.isArray(ids_to_check) ? ids_to_check : [ ids_to_check ];
+    let searchArg = {"field":model.idAttribute(),"value":{"type":"Array","value":ids.toString()},"operator":"in"};
+    try {
+      if (module.exports.isNotUndefinedAndNotNull(model.registeredAdapters)) {
+        let allResponsibleAdapters = ids.map(id => model.registeredAdapters[model.adapterForIri(id)]);
+        let allResponsibleAdaptersAsArray = Array.isArray(allResponsibleAdapters) ? allResponsibleAdapters : [allResponsibleAdapters];
+        let countIds = await model.countRecords(searchArg, module.exports.unique(allResponsibleAdaptersAsArray));
+        return countIds.sum === ids.length;
+      }
+      let countIds = await model.countRecords(searchArg);
+      return countIds.sum === ids.length;
+    } catch (err) {
+      return await ids.reduce(async (prev, curr) => {
+        let acc = await prev;
+        return acc && await model.readById(curr) !== undefined
+      }, Promise.resolve(true))
+    }
+  }
 
-    return Promise.all(promises).then( results =>{
-      return results.filter( (r, index)=>{
-        //check
-        if (typeof r !== 'number') { 
-          throw new Error(`Invalid response from remote cenz-server`);
-        }
-        //filter not found ids
-        return (r === 0); 
-      });
-    })
+  /**
+   * validateExistence - Make sure that all given IDs correspond to existing records in a given model
+   * 
+   * @param{Array | object} idsToExist The IDs that are supposed to exist, as an array or as a single value
+   * @param{object} model The model for which the IDs should exist
+   * @throws If there is an ID given without a corresponding record in the model, in which case the first ID not to exist is given in the error message
+   */
+  module.exports.validateExistence = async function(idsToExist, model){
+    let idsNotInUse = await module.exports.checkExistence(idsToExist, model);
+    if (!idsNotInUse) {
+      throw new Error(`A given ID has no existing record in data model ${model.definition.model}`);
+    }
   }
 
    /**
@@ -594,7 +616,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * asyncForEach - Asynchronous for each
    *
    * @param  {Array} array    Array to transver
-   * @param  {type} callback Callback to execute with each element in the array
+   * @param  {function} callback Callback to execute with each element in the array
    */
   module.exports.asyncForEach = async function(array, callback) {
     for (let index = 0; index < array.length; index++) {
@@ -612,13 +634,13 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param {string} permission - The action the user wants to perform on the
    * resources (adapters).
    *
-   * @return {object} The return value of this function has two properties:
+   * @return {Promise<object>} The return value of this function has two properties:
    * 'authorizedAdapters' is an array of those adapters that passed the
    * authorization check, and 'authorizationErrors' is an array of Error objects
    * created for those adapters the user (context) has no authorization for given
    * the requested permission (action).
    */
-  module.exports.authorizedAdapters = async function(context, adapters, permission) {
+  module.exports.authorizedAdapters = async function (context, adapters, permission) {
     let result = {
       authorizedAdapters: [],
       authorizationErrors: []
@@ -844,4 +866,252 @@ module.exports.vueTable = function(req, model, strAttributes) {
       }
     }  
     return nsearch;
+  }
+
+  /**
+   * isNonEmtpyArray - Test a value for being a non-empty array
+   * 
+   * @param {any} a value to be tested for being a non-empty array
+   * @returns {boolean} result
+   */
+  module.exports.isNonEmptyArray = function (a) {
+    return (a !== undefined && Array.isArray(a) && a.length > 0);
+  }
+
+  /**
+   * isNotUndefinedAndNotNull - Test a value for being neither undefined nor null
+   * @param {any} v value to be tested for being neither undefined nor null
+   * @returns {boolean} result
+   */
+  module.exports.isNotUndefinedAndNotNull = function (v) {
+    return (v !== undefined && v !== null);
+  }
+
+  module.exports.isEmptyArray = function(a) {
+    return (a !== undefined && Array.isArray(a) && a.length === 0);
+  }
+
+  /**
+   * unique - Take an array and remove all elements that are already there
+   * @param {array} inputArray array to be pruned
+   * @returns {array} array with no element being present more than once
+   */
+  module.exports.unique = function (inputArray) {
+    return [...new Set(inputArray)];
+  }
+
+  /**
+   * sanitizeAssociationArguments - Make sure that no id is given more than once, and remove additional appearances of those ids
+   * @param {object} input the object with the input values
+   * @param {array} argNamesArray The array with the names of the input keys
+   * @returns {object} The pruned input object
+   */
+  module.exports.sanitizeAssociationArguments = function(input, argNamesArray) {
+    let sanitizedInput = Object.assign({}, input);
+    for (let argument of argNamesArray) {
+      let element = input[`${argument}`];
+      if (module.exports.isNonEmptyArray(element)) {
+        sanitizedInput[`${argument}`] = module.exports.unique(input[`${argument}`]);
+      } else if (module.exports.isNotUndefinedAndNotNull(element)) {
+        sanitizedInput[`${argument}`] = element;
+      }
+    }
+    return sanitizedInput;
+  }
+
+  /**
+   * countRecordsInAssociationArgs - Count the number of records that are affected by the input, including records of associations
+   * @param {object} input The input object
+   * @param {array} argNamesArray The array with the names of the input keys
+   * @returns {number} The number of the records
+   */
+  module.exports.countRecordsInAssociationArgs = function(input, argNamesArray) {
+    return argNamesArray.reduce( function(acc, curr) {
+      let element = input[`${curr}`];
+      if (module.exports.isNonEmptyArray(element)) {
+        return (acc + element.length);
+      } else if (module.exports.isNotUndefinedAndNotNull(element)) {
+        return (acc + 1);
+      } else {
+        return acc;
+      }
+    }, 0);
+  }
+
+  /**
+   * checkAuthorizationOnAssocArgs - Check the authorization for all involved models / adapters
+   * @param {object} input The input object
+   * @param {object} context The context object
+   * @param {object} associationArgsDef The definition of the association arguments
+   * @param {array} permissions The permissions to be checked
+   * @param {object} modelsIndex The index of the models
+   * @returns {Promise<boolean>} Is the procedure allowed?
+   * @throws If this is not allowed, throw the first error
+   */
+  module.exports.checkAuthorizationOnAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'], modelsIndex = models_index ) {
+    return await Object.keys(associationArgsDef).reduce(async function(prev, curr) {
+      let acc = await prev;
+      let hasInputForAssoc = module.exports.isNonEmptyArray(input[curr]) || module.exports.isNotUndefinedAndNotNull(input[curr])
+      if (hasInputForAssoc) {
+        let targetModelName = associationArgsDef[curr]
+        let targetModel = modelsIndex[`${targetModelName}`];
+        let storageType = targetModel.definition.storageType;
+
+        // Look into the definition of the associated data model and ask for its storage type.
+        // TWO CASES: 
+        // 1) target model storage type: NON distributed (any other)
+        if (storageType !== 'distributed-data-model') {
+          return await permissions.reduce(async (prev, curr) => {
+            let acc = await prev;
+            return acc && await checkAuthorization(context, targetModelName, curr )},
+            Promise.resolve(true)
+          )
+        }
+        // 2) target model storage type: distributed model (DDM)
+        // Get mathematical set of responsible adapters for Ids in input
+        // check 'permissions' on these adapters
+        // Difference to above is getting Adapters for provided association IRIs (IDs)
+        // and check the argument permissions on each of those
+        let currAssocIds = input[curr];
+        if (! module.exports.isNonEmptyArray( currAssocIds ) ) { currAssocIds = [ currAssocIds ] }
+        let currAdapters = module.exports.unique(currAssocIds.map(id => targetModel.registeredAdapters[targetModel.adapterForIri(id)]));
+        return await permissions.reduce(async (prev, curr) =>  {
+          let acc = await prev;
+          let newErrors = await module.exports.authorizedAdapters(context, currAdapters, curr).authorizationErrors;
+          if (module.exports.isNonEmptyArray(newErrors)) {
+            throw new Error(newErrors[0]);
+          }
+          return acc && newErrors !== []; 
+        }, Promise.resolve(true))
+      } else {
+       return acc
+      
+      }
+    }, Promise.resolve(true));
+  }
+
+   /** validateAssociationArgsExistence - Receives arrays of ids on @input, and checks if these ids exists. Returns true
+   * if all received ids exist, and throws an error if at least one of the ids does not exist.
+   * 
+   * @param  {object} input   Object with sanitized entries of the form: <add>Association:[id1, ..., idn].
+   * @param  {object} context Object with mutation context attributes.
+   * @param  {object} associationArgsDef  The definition of the association arguments
+   * @param {object} modelsIndex The index of the models
+   * @throws if the association arguments don't exist
+   * @returns {boolean} true, if the associations arguments exist
+   */
+  module.exports.validateAssociationArgsExistence = async function(input, context, associationArgsDef, modelsIndex = models_index) {
+    await Object.keys(associationArgsDef).reduce(async function(prev, curr){
+      let acc = await prev;
+      
+      //get ids (Int or Array)
+      let currAssocIds = input[curr];
+
+      //check: if empty array or undefined or null --> return true
+      if(module.exports.isEmptyArray(currAssocIds) || !module.exports.isNotUndefinedAndNotNull(currAssocIds)) {
+        return acc; //equivalent to: acc && true
+      } //else...
+
+      //if not array make it one
+      if(!module.exports.isNonEmptyArray(currAssocIds)) {
+        currAssocIds = [currAssocIds];
+      }
+
+      //do check
+      let currModelName = associationArgsDef[curr];
+      let currModel = modelsIndex[`${currModelName}`];
+
+      await module.exports.validateExistence( currAssocIds, currModel );
+
+      return acc
+    }, Promise.resolve(true));
+
+    return true;
+
+  }
+
+  /** checkAndAdjustRecordLimitForCreateUpdate - If the number of records affected by the input
+   * exceeds the current value of recordLimit throws an error, otherwise adjusts context.recordLimit
+   * and returns totalCount.
+   * 
+   * @param  {object} input   Input Object.
+   * @param  {object} context Object with context attributes.
+   * @param  {object} associationArgsDef  Object with entries of the form {'<add>Association' : model}
+   * @return {int} If the number of records affected by the input exceeds the current value of 
+   * recordLimit throws an error, otherwise adjusts context.recordLimit and returns totalCount.
+   */
+  module.exports.checkAndAdjustRecordLimitForCreateUpdate = function(input, context, associationArgsDef) {
+    // get total count
+    let totalCount = this.countRecordsInAssociationArgs(input, Object.keys(associationArgsDef));
+    // add one to total count, to reflect the "root" record being created or updated:
+    totalCount++;
+    if (totalCount > context.recordLimit) { throw new Error('Record limit has been exceeded.') }
+    // adjust record limit
+    context.recordLimit -= totalCount;
+    return totalCount;
+  }
+
+  module.exports.countRecordsInAssociationArgs = function(input, argNamesArray) {
+    return argNamesArray.reduce( function(acc, curr) {
+      let element = input[`${curr}`];
+      if (module.exports.isNonEmptyArray(element)) {
+        return (acc + element.length);
+      } else if (module.exports.isNotUndefinedAndNotNull(element)) {
+        return (acc + 1);
+      } else {
+        return acc;
+      }
+    }, 0);
+  }
+
+  /**
+   * checkAuthorizationIncludingAssocArgs - Check the authorization for all involved models / adapters
+   * @param {object} input The input object
+   * @param {object} context The context object
+   * @param {object} associationArgsDef The definition of the association arguments
+   * @param {array} permissions The permissions to be checked
+   * @param {object} modelsIndex The index of the models
+   * @returns {Promise<boolean>} Is the procedure allowed?
+   * @throws If this is not allowed, throw the first error
+   */
+  module.exports.checkAuthorizationOnAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'], modelsIndex = models_index ) {
+    return await Object.keys(associationArgsDef).reduce(async function(prev, curr) {
+      let acc = await prev;
+      let hasInputForAssoc = module.exports.isNonEmptyArray(input[curr]) || module.exports.isNotUndefinedAndNotNull(input[curr])
+      if (hasInputForAssoc) {
+        let targetModelName = associationArgsDef[curr]
+        let targetModel = modelsIndex[`${targetModelName}`];
+        let storageType = targetModel.definition.storageType;
+
+        // Look into the definition of the associated data model and ask for its storage type.
+        // TWO CASES: 
+        // 1) target model storage type: NON distributed (any other)
+        if (storageType !== 'distributed-data-model') {
+          return await permissions.reduce(async (prev, curr) => {
+            let acc = await prev;
+            return acc && await checkAuthorization(context, targetModelName, curr )},
+            Promise.resolve(true)
+          )
+        }
+        // 2) target model storage type: distributed model (DDM)
+        // Get mathematical set of responsible adapters for Ids in input
+        // check 'permissions' on these adapters
+        // Difference to above is getting Adapters for provided association IRIs (IDs)
+        // and check the argument permissions on each of those
+        let currAssocIds = input[curr];
+        if (! module.exports.isNonEmptyArray( currAssocIds ) ) { currAssocIds = [ currAssocIds ] }
+        let currAdapters = module.exports.unique(currAssocIds.map(id => targetModel.registeredAdapters[targetModel.adapterForIri(id)]));
+        return await permissions.reduce(async (prev, curr) =>  {
+          let acc = await prev;
+          let newErrors = await module.exports.authorizedAdapters(context, currAdapters, curr).authorizationErrors;
+          if (module.exports.isNonEmptyArray(newErrors)) {
+            throw new Error(newErrors[0]);
+          }
+          return acc && newErrors !== []; 
+        }, Promise.resolve(true))
+      } else {
+       return acc
+      
+      }
+    }, Promise.resolve(true));
   }
