@@ -25,7 +25,7 @@ fs.readdirSync("./models")
             model = require(`./${validator_patch}`).validator_patch(model);
         }
 
-        let patches_patch = path.join('./patches', 'sql-' + file);
+        let patches_patch = path.join('./patches', file);
         if(fs.existsSync(patches_patch)){
             model = require(`./${patches_patch}`).logic_patch(model);
         }
@@ -58,7 +58,12 @@ fs.readdirSync("./models-webservice")
         console.log("loaded model: " + file);
         let model = require(`./${path.join("./models-webservice", file)}`);
 
-        let patches_patch = path.join('./patches', 'webservice-' + file);
+        let validator_patch = path.join('./validations', file);
+        if(fs.existsSync(validator_patch)){
+            model = require(`./${validator_patch}`).validator_patch(model);
+        }
+
+        let patches_patch = path.join('./patches',file);
         if(fs.existsSync(patches_patch)){
             model = require(`./${patches_patch}`).logic_patch(model);
         }
@@ -80,7 +85,12 @@ fs.readdirSync("./models-cenz-server")
         console.log("loaded model: " + file);
         let model = require(`./${path.join("./models-cenz-server", file)}`);
 
-        let patches_patch = path.join('./patches', 'cenz-server+' + file);
+        let validator_patch = path.join('./validations', file);
+        if(fs.existsSync(validator_patch)){
+            model = require(`./${validator_patch}`).validator_patch(model);
+        }
+
+        let patches_patch = path.join('./patches',file);
         if(fs.existsSync(patches_patch)){
             model = require(`./${patches_patch}`).logic_patch(model);
         }
