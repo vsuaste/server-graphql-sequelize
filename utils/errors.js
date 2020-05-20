@@ -1,8 +1,8 @@
 const { GraphQLError } = require('graphql');
 
 class customError extends GraphQLError {
-  constructor(originalError, message, details){
-    super(message, null, null, null, null, originalError, {details: details, original: originalError.errors});
+  constructor(originalError, message){
+    super(message, null, null, null, null, originalError, {original: originalError.errors});
   }
 }
 
@@ -20,19 +20,8 @@ stringifyCompletely = function(error, replacer, space) {
 }
 
 transformDetailsAndReturnError = function(error, origMessage) {
-  let additionals = '';
-  if (error.errors) {
-    additionals = errorString(error.errors);
-  }
-  let message = origMessage + additionals;
-  let completeMessage = message;
-  let details = '';
-  if (completeMessage.indexOf('.') > -1) {
-    let [first, ...others] = completeMessage.split(/[:]/); // Keep the regular expression to make this easily changeable
-    message = first;
-    details = others.join('.');
-  }
-  return new customError(error, message, details);
+  let errorCopy = JSON.parse(stringifyCompletely(error));
+  return new customError(errorCopy, origMessage);
 }
 
 transformDetailsAndThrowError = function(error, origMessage) {
