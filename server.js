@@ -15,6 +15,7 @@
  const nodejq = require('node-jq')
  const {JSONPath} = require('jsonpath-plus');
  const graphqlFormatError = require('./node_modules/graphql/error/formatError');
+ const errors = require('./utils/errors');
 
  var {
    graphql, buildSchema
@@ -188,11 +189,12 @@ app.use('/export', cors(), (req, res) =>{
    },
    customExecuteFn: execute.execute,
    customFormatErrorFn: function(error){
+     let newError = errors.constructErrorForLogging(error);
      return {
-       message: error.message,
-       locations: error.locations ? error.locations : "",
-       details: error.extensions && error.extensions.original ? error.extensions.original : "",
-       path: error.path
+       message: newError.message,
+       locations: newError.locations ? newError.locations : (newError.positions ? newError.positions : ""),
+       details: newError.extensions && newError.extensions.original ? newError.extensions.original : "",
+       path: newError.path
      };
    }
  })));
