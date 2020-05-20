@@ -885,10 +885,10 @@ module.exports.vueTable = function(req, model, strAttributes) {
         let allResponsibleAdapters = ids.map(id => model.registeredAdapters[model.adapterForIri(id)]);
         let allResponsibleAdaptersAsArray = Array.isArray(allResponsibleAdapters) ? allResponsibleAdapters : [allResponsibleAdapters];
         let countIds = await model.countRecords(searchArg, module.exports.unique(allResponsibleAdaptersAsArray));
-        return countIds === ids.length;
+        return countIds.sum === ids.length;
       }
       let countIds = await model.countRecords(searchArg);
-      return countIds === ids.length;
+      return countIds.sum === ids.length;
     } catch (err) {
       return await ids.reduce(async (prev, curr) => {
         let acc = await prev;
@@ -1241,7 +1241,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @returns {boolean} result
    */
   module.exports.isNonEmptyArray = function (a) {
-    return (a !== undefined && Array.isArray(a) && a.length > 0);
+    return (Array.isArray(a) && a.length > 0);
   }
 
   /**
@@ -1317,7 +1317,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
   module.exports.checkAuthorizationOnAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'], modelsIndex = models_index ) {
     return await Object.keys(associationArgsDef).reduce(async function(prev, curr) {
       let acc = await prev;
-      let hasInputForAssoc = module.exports.isNonEmptyArray(input[curr]) || module.exports.isNotUndefinedAndNotNull(input[curr])
+      let hasInputForAssoc = module.exports.isNonEmptyArray(input[curr]) || ( !Array.isArray(input[curr]) && input[curr] !== '' && module.exports.isNotUndefinedAndNotNull(input[curr]));
       if (hasInputForAssoc) {
         let targetModelName = associationArgsDef[curr]
         let targetModel = modelsIndex[`${targetModelName}`];
@@ -1428,98 +1428,4 @@ module.exports.vueTable = function(req, model, strAttributes) {
         return acc;
       }
     }, 0);
-  }
-
-  /**
-   * checkAuthorizationIncludingAssocArgs - Check the authorization for all involved models / adapters
-   * @param {object} input The input object
-   * @param {object} context The context object
-   * @param {object} associationArgsDef The definition of the association arguments
-   * @param {array} permissions The permissions to be checked
-   * @param {object} modelsIndex The index of the models
-   * @returns {Promise<boolean>} Is the procedure allowed?
-   * @throws If this is not allowed, throw the first error
-   */
-  module.exports.checkAuthorizationOnAssocArgs = async function( input, context, associationArgsDef, permissions = ['read', 'update'], modelsIndex = models_index ) {
-    return await Object.keys(associationArgsDef).reduce(async function(prev, curr) {
-      let acc = await prev;
-      let hasInputForAssoc = module.exports.isNonEmptyArray(input[curr]) || module.exports.isNotUndefinedAndNotNull(input[curr])
-      if (hasInputForAssoc) {
-        let targetModelName = associationArgsDef[curr]
-        let targetModel = modelsIndex[`${targetModelName}`];
-        let storageType = targetModel.definition.storageType;
-
-        // Look into the definition of the associated data model and ask for its storage type.
-        // TWO CASES: 
-        // 1) target model storage type: NON distributed (any other)
-        if (storageType !== 'distributed-data-model') {
-          return await permissions.reduce(async (prev, curr) => {
-            let acc = await prev;
-            return acc && await checkAuthorization(context, targetModelName, curr )},
-            Promise.resolve(true)
-          )
-        }
-        // 2) target model storage type: distributed model (DDM)
-        // Get mathematical set of responsible adapters for Ids in input
-        // check 'permissions' on these adapters
-        // Difference to above is getting Adapters for provided association IRIs (IDs)
-        // and check the argument permissions on each of those
-        let currAssocIds = input[curr];
-        if (! module.exports.isNonEmptyArray( currAssocIds ) ) { currAssocIds = [ currAssocIds ] }
-        let currAdapters = module.exports.unique(currAssocIds.map(id => targetModel.registeredAdapters[targetModel.adapterForIri(id)]));
-        return await permissions.reduce(async (prev, curr) =>  {
-          let acc = await prev;
-          let newErrors = await module.exports.authorizedAdapters(context, currAdapters, curr).authorizationErrors;
-          if (module.exports.isNonEmptyArray(newErrors)) {
-            throw new Error(newErrors[0]);
-          }
-          return acc && newErrors !== []; 
-        }, Promise.resolve(true))
-      } else {
-       return acc
-      
-      }
-    }, Promise.resolve(true));
-  }
-
-  /** checkAndAdjustRecordLimitForCreateUpdate - If the number of records affected by the input
-   * exceeds the current value of recordLimit throws an error, otherwise adjusts context.recordLimit
-   * and returns totalCount.
-   * 
-   * @param  {object} input   Input Object.
-   * @param  {object} context Object with context attributes.
-   * @param  {object} associationArgsDef  Object with entries of the form {'<add>Association' : model}
-   * @return {int} If the number of records affected by the input exceeds the current value of 
-   * recordLimit throws an error, otherwise adjusts context.recordLimit and returns totalCount.
-   */
-  module.exports.checkAndAdjustRecordLimitForCreateUpdate = function(input, context, associationArgsDef) {
-    // get total count
-    let totalCount = this.countRecordsInAssociationArgs(input, Object.keys(associationArgsDef));
-    // add one to total count, to reflect the "root" record being created or updated:
-    totalCount++;
-    if (totalCount > context.recordLimit) { throw new Error('Record limit has been exceeded.') }
-    // adjust record limit
-    context.recordLimit -= totalCount;
-    return totalCount;
-  }
-
-  /** checkAndAdjustRecordLimitForCreateUpdate - If the number of records affected by the input
-   * exceeds the current value of recordLimit throws an error, otherwise adjusts context.recordLimit
-   * and returns totalCount.
-   * 
-   * @param  {object} input   Input Object.
-   * @param  {object} context Object with context attributes.
-   * @param  {object} associationArgsDef  Object with entries of the form {'<add>Association' : model}
-   * @return {int} If the number of records affected by the input exceeds the current value of 
-   * recordLimit throws an error, otherwise adjusts context.recordLimit and returns totalCount.
-   */
-  module.exports.checkAndAdjustRecordLimitForCreateUpdate = function(input, context, associationArgsDef) {
-    // get total count
-    let totalCount = this.countRecordsInAssociationArgs(input, Object.keys(associationArgsDef));
-    // add one to total count, to reflect the "root" record being created or updated:
-    totalCount++;
-    if (totalCount > context.recordLimit) { throw new Error('Record limit has been exceeded.') }
-    // adjust record limit
-    context.recordLimit -= totalCount;
-    return totalCount;
   }
