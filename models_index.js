@@ -101,7 +101,7 @@ fs.readdirSync(__dirname + "/models-distributed")
 // **********************************************************************************
 // IMPORT GENERIC MODELS
 
-/*fs.readdirSync(__dirname + "/models-generic")
+fs.readdirSync(__dirname + "/models-generic")
     .filter(function(file) {
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
@@ -113,6 +113,6 @@ fs.readdirSync(__dirname + "/models-distributed")
             throw Error(`Duplicated model name ${model.name}`);
 
         models[model.name] = model;
-    });*/
+    });
 
 // **********************************************************************************
