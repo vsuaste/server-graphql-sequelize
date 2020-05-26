@@ -112,6 +112,11 @@ fs.readdirSync(__dirname + "/models-distributed")
         console.log("loaded model: " + file);
         let model = require(`./${path.join("./models-distributed", file)}`);
 
+        let validator_patch = path.join('./validations', file);
+        if(fs.existsSync(validator_patch)){
+            model = require(`./${validator_patch}`).validator_patch(model);
+        }
+
         if(models[model.name])
             throw Error(`Duplicated model name ${model.name}`);
 
