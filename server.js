@@ -189,12 +189,13 @@ app.use('/export', cors(), (req, res) =>{
    },
    customExecuteFn: execute.execute,
    customFormatErrorFn: function(error){
-     let newError = errors.constructErrorForLogging(error);
+     errors.customErrorLog(error) // Will log the error either compact (defualt) or verbose dependent on the env variable "ERROR_LOG"
      return {
-       message: newError.message,
-       locations: newError.locations ? newError.locations : (newError.positions ? newError.positions : ""),
-       details: newError.extensions && newError.extensions.original ? newError.extensions.original : "",
-       path: newError.path
+       message: error.message,
+       locations: error.locations ? error.locations : "",
+       //we have to look for error.originalError.errors specifically for AJV validation errors.
+       extensions: error.extensions ? error.extensions : (error.originalError && error.originalError.errors ? error.originalError.errors : ""),
+       path: error.path
      };
    }
  })));
