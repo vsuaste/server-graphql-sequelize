@@ -6,7 +6,7 @@ const globals = require('../config/globals');
  * Class representing a Cenzontle Error containing according to GraphQL Errors spec.
  * @extends Error
  */
-class CenzontleError extends Error{
+module.exports.CenzontleError = class CenzontleError extends Error{
   /**
    * Create a Cenzontle Error.
    * @param {String} message - A message describing the Error for debugging purposes..
@@ -40,9 +40,9 @@ module.exports.handleRemoteErrors = function( errs, multErrsMessage ) {
       let e = errs[0]
       // properties of e will be automatically extracted
       // with named arguments (destructuring)
-      return new CenzontleError( e )
+      return new module.exports.CenzontleError( e )
     } else if ( errs.length > 1 ) {  // actually length > 1 is a given here, isn't it?
-      return new CenzontleError( {message: multErrsMessage, extensions: errs} )
+      return new module.exports.CenzontleError( {message: multErrsMessage, extensions: errs} )
     }
   } else {
    return null
@@ -76,10 +76,6 @@ module.exports.stringifyCompletely = function(error, replacer, space) {
   return JSON.stringify(errorMap, replacer, space);
 }
 
-module.exports.handleError = function(error){
-  throw new Error(error);
-}
-
 /**
  * customErrorLog - Log the errors depending on the env Variable "ERROR_LOG".
  *                  Default is "compact". If specifically set to "verbose" errors
@@ -96,6 +92,71 @@ module.exports.customErrorLog = function(error) {
       console.error("OriginalError:\n" + JSON.stringify(error.originalError,null,2));
     }
   }
+}
+
+/**
+ * Class representing a BeningError reporter which is able to add benignErrors to the context.
+ */
+module.exports.BenignErrorReporter = class BenignErrorReporter {
+  /**
+   * Create a BenignErrorReporter.
+   * @param {Object} context - holds contextual information like the resquest query and user info
+   */
+  constructor(context) {
+    this.graphQlContext = context;
+  }
+  
+  /**
+   * reportError - adds the passed errors to the graphQLContext
+   * @param errors - errors from the httpResponse of another graphQL server
+   */
+  reportError(errors) {
+    if (helper.isNotUndefinedAndNotNull(errors)) {
+      if (Array.isArray(errors)) {
+        this.graphQlContext.benignErrors.push(...errors);
+      } else {
+        this.graphQlContext.benignErrors.push(errors);
+      }
+    }   
+  }
+}
+
+/**
+ * handleErrorsInGraphQlResponse - calls the benignErrorReporter to add the Errors
+ * @param {Object} httpResponseData - Data send from the remote server, that might contain benignErrors
+ * @param {BenignErrorReporter} benignErrorReporter - The BenignErrorReporter that holds the context
+ */
+module.exports.handleErrorsInGraphQlResponse = function(httpResponseData, benignErrorReporter) {
+  // TODO
+  // check if has errors
+  // if so extract - and maybe even convert?
+  benignErrorReporter.reportError( httpResponseData.errors )
+}
+
+/**
+ * defaultBenignErrorReporter - If no benignErrorReporter is given this default reporter, which just throws the errors
+ * will instead be used (Used mainly for being able to require a model independently of a given context)
+ */
+module.exports.defaultBenignErrorReporter = {
+  reportError: function( errors ) {
+    throw errors
+  }
+}
+
+/**
+ * getDefaultBenignErrorReporterIfUndef - checks whether a benignErrorReporter is given (one that actually holds a context)
+ * if not return the defaultBenignErrorReporter Object
+ * @param {BenignErrorReporter} benignErrorReporter - The BenignErrorReporter that holds the context
+ */
+module.exports.getDefaultBenignErrorReporterIfUndef = function(benignErrorReporter) {
+  return ( !helper.isNotUndefinedAndNotNull(benignErrorReporter) ) ? module.exports.defaultBenignErrorReporter : benignErrorReporter
+}
+
+
+
+
+module.exports.handleError = function(error){
+  throw new Error(error);
 }
 
 /*constructErrorForLogging = function(error) {
