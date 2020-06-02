@@ -100,10 +100,8 @@ module.exports.customErrorLog = function(error) {
   if (globals.ERROR_LOG.toUpperCase() === "VERBOSE") {
     console.error(module.exports.stringifyCompletely(error, null, 2))
   } else { //if not verbose default should be "compact", if for some reason another env was given it should still be compact
-    console.error(error)
-    if (error.originalError !== undefined) {
-      console.error("OriginalError:\n" + error.originalError);
-    }
+    console.error(error.stack);
+    console.error(JSON.stringify(error,customReplaceErrors))
   }
 }
 
@@ -221,6 +219,21 @@ module.exports.handleCaughtErrorAndBenignErrors = function(error, benignErrorRep
     benignErrorReporter.reportError(module.exports.handleRemoteErrors(error.response.data.errors, url));
     throw new Error(`Web-service ${url} returned attached (see below) error(s).`)
   }
+}
+
+function customReplaceErrors(key,value) {
+  if (value instanceof Error) {
+    var error = {};
+      
+    Object.getOwnPropertyNames(value).forEach(function (key) {
+      if(key !== "stack" && key !== "nodes") {
+        error[key] = value[key];
+      }
+    });
+      
+    return error;
+  }
+  return value;
 }
 
 
