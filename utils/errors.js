@@ -152,7 +152,9 @@ module.exports.handleErrorsInGraphQlResponse = function(httpResponseData, benign
  */
 module.exports.defaultBenignErrorReporter = {
   reportError: function(errors) {
-    throw errors
+    let errorReport = "";
+    errors.forEach(error => errorReport = errorReport.concat(`${error}, `));
+    throw new Error(errorReport);
   }
 }
 
@@ -221,16 +223,20 @@ module.exports.handleCaughtErrorAndBenignErrors = function(error, benignErrorRep
   }
 }
 
+/**
+ * customReplaceErrorrs - custom replacer function for JSON.stringify used for Error reporting.
+ * 
+ * @param key 
+ * @param {Object} value - value to stringify
+ */
 function customReplaceErrors(key,value) {
   if (value instanceof Error) {
     var error = {};
-      
     Object.getOwnPropertyNames(value).forEach(function (key) {
       if(key !== "stack" && key !== "nodes") {
         error[key] = value[key];
       }
-    });
-      
+    });   
     return error;
   }
   return value;
