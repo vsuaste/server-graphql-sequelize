@@ -281,7 +281,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
         return {};
     }
     //cursor: must have idAttribute
-    if(cursor===undefined||cursor===null||typeof cursor!=='object'||cursor.idAttribute === undefined){
+    if(cursor===undefined||cursor===null||typeof cursor!=='object'||cursor[idAttribute] === undefined){
       return {};
     }
 
@@ -414,7 +414,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
         return {};
     }
     //cursor: must have idAttribute
-    if(cursor===undefined||cursor===null||typeof cursor!=='object'||cursor.idAttribute === undefined){
+    if(cursor===undefined||cursor===null||typeof cursor!=='object'||cursor[idAttribute] === undefined){
       return {};
     }
 
@@ -548,7 +548,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
         return {};
     }
     //cursor: must have idAttribute
-    if(cursor===undefined||cursor===null||typeof cursor!=='object'||cursor.idAttribute === undefined){
+    if(cursor===undefined||cursor===null||typeof cursor!=='object'||cursor[idAttribute] === undefined){
       return {};
     }
 
@@ -730,7 +730,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
         return {};
     }
     //cursor: must have idAttribute
-    if(cursor===undefined||cursor===null||typeof cursor!=='object'||cursor.idAttribute === undefined){
+    if(cursor===undefined||cursor===null||typeof cursor!=='object'||cursor[idAttribute] === undefined){
       return {};
     }
 
