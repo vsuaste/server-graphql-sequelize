@@ -2,7 +2,7 @@ const checkAuthorization = require('./check-authorization');
 const objectAssign = require('object-assign');
 const math = require('mathjs');
 const _ = require('lodash');
-const models_index = require('../models_index');
+const models_index = require('../models/index');
 
   /**
    * paginate - Creates pagination argument as needed in sequelize cotaining limit and offset accordingly to the current

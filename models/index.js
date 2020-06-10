@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
-sequelize = require('./connection');
+sequelize = require('../connection');
 
 var models = {};
 module.exports = models;
@@ -10,22 +10,22 @@ module.exports = models;
 // IMPORT SEQUEILIZE MODELS
 
 //grabs all the models in your models folder, adds them to the models object
-fs.readdirSync(__dirname + "/models")
+fs.readdirSync(__dirname + "/sql")
     .filter(function(file) {
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
     .forEach(function(file) {
         console.log("loaded model: " + file);
-        let model_file = require(path.join(__dirname,'models', file));
+        let model_file = require(path.join(__dirname,'sql', file));
         let model = model_file.init(sequelize, Sequelize);
 
 
-        let validator_patch = path.join('./validations', file);
+        let validator_patch = path.join('../validations', file);
         if(fs.existsSync(validator_patch)){
             model = require(`./${validator_patch}`).validator_patch(model);
         }
 
-        let patches_patch = path.join('./patches', file);
+        let patches_patch = path.join('../patches', file);
         if(fs.existsSync(patches_patch)){
             model = require(`./${patches_patch}`).logic_patch(model);
         }
@@ -50,20 +50,20 @@ Object.keys(models).forEach(function(modelName) {
 // **********************************************************************************
 // IMPORT GENERIC MODELS
 
-fs.readdirSync(__dirname + "/models-generic")
+fs.readdirSync(__dirname + "/generic")
     .filter(function(file) {
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
     .forEach(function(file) {
         console.log("loaded model: " + file);
-        let model = require(`./${path.join("./models-generic", file)}`);
+        let model = require(`./${path.join("./generic", file)}`);
 
-        let validator_patch = path.join('./validations', file);
+        let validator_patch = path.join('../validations', file);
         if(fs.existsSync(validator_patch)){
             model = require(`./${validator_patch}`).validator_patch(model);
         }
 
-        let patches_patch = path.join('./patches',file);
+        let patches_patch = path.join('../patches',file);
         if(fs.existsSync(patches_patch)){
             model = require(`./${patches_patch}`).logic_patch(model);
         }
@@ -77,20 +77,20 @@ fs.readdirSync(__dirname + "/models-generic")
 // **********************************************************************************
 // IMPORT CENZ SERVICES
 
-fs.readdirSync(__dirname + "/models-cenz-server")
+fs.readdirSync(__dirname + "/cenz-server")
     .filter(function(file) {
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
     .forEach(function(file) {
         console.log("loaded model: " + file);
-        let model = require(`./${path.join("./models-cenz-server", file)}`);
+        let model = require(`./${path.join("./cenz-server", file)}`);
 
-        let validator_patch = path.join('./validations', file);
+        let validator_patch = path.join('../validations', file);
         if(fs.existsSync(validator_patch)){
             model = require(`./${validator_patch}`).validator_patch(model);
         }
 
-        let patches_patch = path.join('./patches',file);
+        let patches_patch = path.join('../patches',file);
         if(fs.existsSync(patches_patch)){
             model = require(`./${patches_patch}`).logic_patch(model);
         }
@@ -104,15 +104,15 @@ fs.readdirSync(__dirname + "/models-cenz-server")
     // **********************************************************************************
 // IMPORT DISTRIBUTED MODELS
 
-fs.readdirSync(__dirname + "/models-distributed")
+fs.readdirSync(__dirname + "/distributed")
     .filter(function(file) {
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
     .forEach(function(file) {
         console.log("loaded model: " + file);
-        let model = require(`./${path.join("./models-distributed", file)}`);
+        let model = require(`./${path.join("./distributed", file)}`);
 
-        let validator_patch = path.join('./validations', file);
+        let validator_patch = path.join('../validations', file);
         if(fs.existsSync(validator_patch)){
             model = require(`./${validator_patch}`).validator_patch(model);
         }
