@@ -48,15 +48,15 @@ Object.keys(models).forEach(function(modelName) {
 
 
 // **********************************************************************************
-// IMPORT WEBSERVICES
+// IMPORT GENERIC MODELS
 
-fs.readdirSync(__dirname + "/models-webservice")
+fs.readdirSync(__dirname + "/models-generic")
     .filter(function(file) {
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
     .forEach(function(file) {
         console.log("loaded model: " + file);
-        let model = require(`./${path.join("./models-webservice", file)}`);
+        let model = require(`./${path.join("./models-generic", file)}`);
 
         let validator_patch = path.join('./validations', file);
         if(fs.existsSync(validator_patch)){
@@ -122,5 +122,4 @@ fs.readdirSync(__dirname + "/models-distributed")
 
         models[model.name] = model;
     });
-
 // **********************************************************************************
