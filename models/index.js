@@ -21,12 +21,12 @@ fs.readdirSync(__dirname + "/sql")
 
         let validator_patch = path.join('./validations', file);
         if(fs.existsSync(validator_patch)){
-            model = require(`./${validator_patch}`).validator_patch(model);
+            model = require(`../${validator_patch}`).validator_patch(model);
         }
 
         let patches_patch = path.join('./patches', file);
         if(fs.existsSync(patches_patch)){
-            model = require(`./${patches_patch}`).logic_patch(model);
+            model = require(`../${patches_patch}`).logic_patch(model);
         }
 
         if(models[model.name])
@@ -57,14 +57,14 @@ fs.readdirSync(__dirname + "/generic")
         console.log("loaded model: " + file);
         let model = require(`./${path.join("./generic", file)}`);
 
-        let validator_patch = path.join('./validations', file);
+        let validator_patch = path.join('./validations', file);        
         if(fs.existsSync(validator_patch)){
-            model = require(`./${validator_patch}`).validator_patch(model);
+            model = require(`../${validator_patch}`).validator_patch(model);
         }
 
         let patches_patch = path.join('./patches',file);
         if(fs.existsSync(patches_patch)){
-            model = require(`./${patches_patch}`).logic_patch(model);
+            model = require(`../${patches_patch}`).logic_patch(model);
         }
 
         if(models[model.name])
@@ -86,12 +86,12 @@ fs.readdirSync(__dirname + "/cenz-server")
 
         let validator_patch = path.join('./validations', file);
         if(fs.existsSync(validator_patch)){
-            model = require(`./${validator_patch}`).validator_patch(model);
+            model = require(`../${validator_patch}`).validator_patch(model);
         }
 
         let patches_patch = path.join('./patches',file);
         if(fs.existsSync(patches_patch)){
-            model = require(`./${patches_patch}`).logic_patch(model);
+            model = require(`../${patches_patch}`).logic_patch(model);
         }
 
         if(models[model.name])
@@ -113,7 +113,7 @@ fs.readdirSync(__dirname + "/distributed")
 
         let validator_patch = path.join('./validations', file);
         if(fs.existsSync(validator_patch)){
-            model = require(`./${validator_patch}`).validator_patch(model);
+            model = require(`../${validator_patch}`).validator_patch(model);
         }
 
         if(models[model.name])
