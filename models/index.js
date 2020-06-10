@@ -19,13 +19,12 @@ fs.readdirSync(__dirname + "/sql")
         let model_file = require(path.join(__dirname,'sql', file));
         let model = model_file.init(sequelize, Sequelize);
 
-
-        let validator_patch = path.join('../validations', file);
+        let validator_patch = path.join('./validations', file);
         if(fs.existsSync(validator_patch)){
             model = require(`./${validator_patch}`).validator_patch(model);
         }
 
-        let patches_patch = path.join('../patches', file);
+        let patches_patch = path.join('./patches', file);
         if(fs.existsSync(patches_patch)){
             model = require(`./${patches_patch}`).logic_patch(model);
         }
@@ -58,12 +57,12 @@ fs.readdirSync(__dirname + "/generic")
         console.log("loaded model: " + file);
         let model = require(`./${path.join("./generic", file)}`);
 
-        let validator_patch = path.join('../validations', file);
+        let validator_patch = path.join('./validations', file);
         if(fs.existsSync(validator_patch)){
             model = require(`./${validator_patch}`).validator_patch(model);
         }
 
-        let patches_patch = path.join('../patches',file);
+        let patches_patch = path.join('./patches',file);
         if(fs.existsSync(patches_patch)){
             model = require(`./${patches_patch}`).logic_patch(model);
         }
@@ -85,12 +84,12 @@ fs.readdirSync(__dirname + "/cenz-server")
         console.log("loaded model: " + file);
         let model = require(`./${path.join("./cenz-server", file)}`);
 
-        let validator_patch = path.join('../validations', file);
+        let validator_patch = path.join('./validations', file);
         if(fs.existsSync(validator_patch)){
             model = require(`./${validator_patch}`).validator_patch(model);
         }
 
-        let patches_patch = path.join('../patches',file);
+        let patches_patch = path.join('./patches',file);
         if(fs.existsSync(patches_patch)){
             model = require(`./${patches_patch}`).logic_patch(model);
         }
@@ -112,7 +111,7 @@ fs.readdirSync(__dirname + "/distributed")
         console.log("loaded model: " + file);
         let model = require(`./${path.join("./distributed", file)}`);
 
-        let validator_patch = path.join('../validations', file);
+        let validator_patch = path.join('./validations', file);
         if(fs.existsSync(validator_patch)){
             model = require(`./${validator_patch}`).validator_patch(model);
         }
