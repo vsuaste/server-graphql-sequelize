@@ -289,7 +289,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
        * Produce condition for base step.
        */
     let where_statement = {
-      [order[last_index][0]]: { [operator]: cursor[order[last_index][0]] }
+      [order[last_index][0]]: { [Op[operator]]: cursor[order[last_index][0]] }
     }
 
     /*
@@ -422,7 +422,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
        * Produce condition for base step.
        */
     let where_statement = {
-      [order[last_index][0]]: { [operator]: cursor[order[last_index][0]] }
+      [order[last_index][0]]: { [Op[operator]]: cursor[order[last_index][0]] }
     }
 
     /*
@@ -557,7 +557,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
        *
        * Equivalent to non-generic segment:
        *    let where_statement = {
-       *      [order[last_index][0]]: { [operator]: cursor[order[last_index][0]] }
+       *      [order[last_index][0]]: { [Op[operator]]: cursor[order[last_index][0]] }
        *    }
        */
       let search_field = helper.addSearchField({
@@ -739,7 +739,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
        *
        * Equivalent to non-generic segment:
        *    let where_statement = {
-       *      [order[last_index][0]]: { [operator]: cursor[order[last_index][0]] }
+       *      [order[last_index][0]]: { [Op[operator]]: cursor[order[last_index][0]] }
        *    }
        */
       let search_field = helper.addSearchField({
