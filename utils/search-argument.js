@@ -1,4 +1,6 @@
 
+const { Op } = require("sequelize");
+
 /**
  * search Class to parse search argument for any model and translate it so sequelize model will accept it
  */
@@ -54,22 +56,22 @@ module.exports = class search{
       return searchsInSequelize;
 
     } else if(this.search === undefined && this.field === undefined){
-      searchsInSequelize['$'+this.operator] = this.value;
+      searchsInSequelize[Op[this.operator]] = this.value;
 
     }else if(this.search === undefined){
       searchsInSequelize[this.field] = {
-         ['$'+this.operator] : this.value
+         [Op[this.operator]] : this.value
       };
 
     }else if(this.field === undefined){
-      searchsInSequelize['$'+this.operator] = this.search.map(sa => {
+      searchsInSequelize[Op[this.operator]] = this.search.map(sa => {
         let new_sa = new search(sa);
         return new_sa.toSequelize();
       });
       
     }else{
        searchsInSequelize[this.field] = {
-         ['$'+this.operator] : this.search.map(sa => {
+         [Op[this.operator]] : this.search.map(sa => {
            let new_sa = new search(sa);
            return new_sa.toSequelize();
          })
