@@ -145,30 +145,41 @@ app.use('/join', cors(), (req, res) => {
 
 
 
-app.use('/export', cors(), (req, res) =>{
+app.use('/export', cors(), (req, res, next) =>{
 
-let context = {
-  request: req,
-  acl : acl,
-  benignErrors: [],
-  recordsLimit: globals.LIMIT_RECORDS
-}
+  //set checker for using in the local method simpleExport
+  res['responseSent'] = false;
 
-let body_info = req.query;
+  //set MAX_TIME_OUT
+  res.setTimeout(globals.EXPORT_TIME_OUT * 1000, function(){
+    res.end("TIMEOUT EXCEEDS");
+  });
 
-simpleExport(context, body_info ,res).then( () =>{
-  res.end();
-}).catch( error => {
-    let formattedError = {
-        message: error.message,
-        details: error.originalError && error.originalError.errors ? error.originalError.errors : "",
-        path: error.path
-    };
-    res.status(500).send(formattedError);
-});
+  res.on('finish', ()=>{
+    res['responseSent'] = true;
+  })
 
+ let context = {
+   request: req,
+   acl : acl,
+   benignErrors: [],
+   recordsLimit: globals.LIMIT_RECORDS
+ }
 
-});
+ let body_info = req.query;
+
+  simpleExport(context, body_info ,res).then( () =>{
+    res.end();
+  }).catch(error =>{
+
+   if(!res.responseSent){
+     res.status(500).send(error);
+   }else{
+      console.error("ERROR IN EXPORT AFTER SENDING THE RESPONSE:", error);
+   }
+
+  });
+
 
 
 
@@ -200,7 +211,7 @@ app.use('/graphql', cors(), graphqlHTTP((req) => ({
      extensions: extensions,
      path: error.path
    };
-   
+
  }
 })));
 
@@ -249,7 +260,7 @@ app.post('/meta_query', cors(), async (req, res, next) => {
          queries = newQueries;
        }
 
-       let graphQlResponses = await handleGraphQlQueriesForMetaQuery(queries, context);          
+       let graphQlResponses = await handleGraphQlQueriesForMetaQuery(queries, context);
        let output;
        if (helper.isNotUndefinedAndNotNull(jq)) { // jq
          output = await nodejq.run(jq, graphQlResponses, { input: 'json', output: 'json'});
