@@ -157,7 +157,7 @@ app.use('/export', cors(), (req, res, next) =>{
 
   res.on('finish', ()=>{
     res['responseSent'] = true;
-  })
+  });
 
  let context = {
    request: req,
@@ -179,9 +179,7 @@ app.use('/export', cors(), (req, res, next) =>{
    }
 
   });
-
-
-}
+});
 
 
 
