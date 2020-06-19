@@ -23,6 +23,37 @@ module.exports.ifHasValidatorFunctionInvoke = async function( validatorFunction,
     }
 };
 
+
+module.exports.validateData = async function(validatorFunction, dataModel, data ){
+  if(typeof dataModel.prototype[validatorFunction] === "function"
+     && typeof dataModel.prototype['validationControl'] === 'object'
+      && dataModel.prototype['validationControl'][validatorFunction]){
+        await dataModel.prototype[validatorFunction](data);
+  }
+  return data;
+}
+
+
+module.exports.bulkValidateData = async function(validatorFunction, dataModel, data, benignErrorReporter){
+  let validatedData = data;
+  if(typeof dataModel.prototype[validatorFunction] === "function"
+     && typeof dataModel.prototype['validationControl'] === 'object'
+      && dataModel.prototype['validationControl'][validatorFunction]){
+        validatedData = [];
+        for await( record of data){
+          try{
+            await dataModel.prototype[validatorFunction](record);
+            validatedData.push(record);
+          }catch(error){
+            benignErrorReporter.reportError(error);
+          };
+        }
+
+      }
+  return validatedData;
+}
+
+
 /**
  * Adds AJV asynchronous keywords to the argument AJV instance that define ISO
  * Date, ISO Time, and ISO DateTime strings or the respective GraphQL instances
