@@ -4,6 +4,7 @@ const math = require('mathjs');
 const _ = require('lodash');
 const models_index = require('../models/index');
 const { Op } = require("sequelize");
+const globals = require('../config/globals')
 
   /**
    * paginate - Creates pagination argument as needed in sequelize cotaining limit and offset accordingly to the current
@@ -1399,4 +1400,17 @@ module.exports.vueTable = function(req, model, strAttributes) {
         return acc;
       }
     }, 0);
+  }
+  
+  /**
+   * 
+   * @param {Integer} count count to reduce from the recordsLimit
+   * @param {Object} context The GraphQL context passed to the resolver
+   * @param {String} resolverName The name of the resolver function
+   */
+  module.exports.checkCountAndReduceRecordLimitHelper = function(count, context, resolverName) {
+    if (count > context.recordsLimit) {
+      throw new Error(`Max record limit of ${globals.LIMIT_RECORDS} exceeded in ${resolverName}`);
+  }
+    context.recordsLimit -= count;
   }
