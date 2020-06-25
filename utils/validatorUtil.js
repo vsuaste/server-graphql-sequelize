@@ -45,6 +45,9 @@ module.exports.bulkValidateData = async function(validatorFunction, dataModel, d
             await dataModel.prototype[validatorFunction](record);
             validatedData.push(record);
           }catch(error){
+            if(error.message === 'validation failed'){
+              error.errors = error.errors.map( e => { e['validatedRecordId '] = { [dataModel.idAttribute()] : record.getIdValue() }; return e;  } )
+            }
             benignErrorReporter.reportError(error);
           };
         }
