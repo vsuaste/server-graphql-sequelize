@@ -100,7 +100,10 @@ module.exports.customErrorLog = function(error) {
   if (globals.ERROR_LOG.toUpperCase() === "VERBOSE") {
     console.error(module.exports.stringifyCompletely(error, null, 2))
   } else { //if not verbose default should be "compact", if for some reason another env was given it should still be compact
-    console.error(error.stack);
+    if(error.stack){
+        console.error(error.stack);
+    }
+
     console.error(JSON.stringify(error,customReplaceErrors))
   }
 }
