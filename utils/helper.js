@@ -965,7 +965,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * (context) for the action (permission).
    *
    * @param {object} context - The GraphQL context passed to the resolver
-   * @param {array} adapters - Array of adapters (see Cenzontle distributed data
+   * @param {array} adapters - Array of adapters (see Vocen distributed data
    * models)
    * @param {string} permission - The action the user wants to perform on the
    * resources (adapters).
@@ -1005,7 +1005,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * array instance.
    *
    * @param {object} search - The GraphQL context passed to the resolver
-   * @param {array} adapters - Array of registered adapters (see Cenzontle distributed data
+   * @param {array} adapters - Array of registered adapters (see Vocen distributed data
    * models)
    *
    * @return {array} Array of resulting adapters, after removing those specified

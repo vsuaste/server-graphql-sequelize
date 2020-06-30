@@ -74,15 +74,15 @@ fs.readdirSync(__dirname + "/generic")
     });
 
 // **********************************************************************************
-// IMPORT CENZ SERVICES
+// IMPORT VOCEN SERVICES
 
-fs.readdirSync(__dirname + "/cenz-server")
+fs.readdirSync(__dirname + "/vocen-server")
     .filter(function(file) {
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
     .forEach(function(file) {
         console.log("loaded model: " + file);
-        let model = require(`./${path.join("./cenz-server", file)}`);
+        let model = require(`./${path.join("./vocen-server", file)}`);
 
         let validator_patch = path.join('./validations', file);
         if(fs.existsSync(validator_patch)){

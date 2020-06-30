@@ -5,12 +5,12 @@ const helper = require('./helper')
 const globals = require('../config/globals');
 
 /**
- * Class representing a Cenzontle Error containing according to GraphQL Errors spec.
+ * Class representing a Vocen Error containing according to GraphQL Errors spec.
  * @extends Error
  */
-module.exports.CenzontleError = class CenzontleError extends Error {
+module.exports.VocenError = class VocenError extends Error {
   /**
-   * Create a Cenzontle Error.
+   * Create a Vocen Error.
    * @param {String} message - A message describing the Error for debugging purposes..
    * @param {Array} path - An array describing the JSON-path into the execution response which
    * corresponds to this error. Only included for errors during execution.
@@ -18,7 +18,7 @@ module.exports.CenzontleError = class CenzontleError extends Error {
    * which correspond to this error.
    * @param {Object} extensions - Extension fields to add to the formatted error.
    *
-   * @return {CenzontleError} An instance of CenzontleError with extensions always
+   * @return {VocenError} An instance of VocenError with extensions always
    * initialized to at least an empty object.
    */
   constructor({
@@ -41,20 +41,20 @@ module.exports.CenzontleError = class CenzontleError extends Error {
  * @param {Array} errs - Array of errors (benign) or single more serious error send in the response from the remote server
  * @param {String} remoteServiceUrl - url of the remote service that had errors
  * 
- * @return {CenzontleError} If serious single Error return as Cenzontle Error, else build custom Cenzontle Error
+ * @return {VocenError} If serious single Error return as Vocen Error, else build custom VocenError
  * with given message and Errors in Extensions
  */
 module.exports.handleRemoteErrors = function(errs, remoteServiceUrl) {
   if (helper.isNonEmptyArray(errs)) {
     return errs.map(function(remoteError) {
-      // Making the 'remoteError' an instance of CenzontleError ensures:
+      // Making the 'remoteError' an instance of VocenError ensures:
       // 1. message, path, locations, and extensions are retained, and
       // 2. extensions are initialized, if the were not already
-      let remoteCenzontleError = new module.exports.CenzontleError(remoteError);
+      let remoteVocenError = new module.exports.VocenError(remoteError);
       // add the information that the 'remoteError' was received from another
       // web-service
-      remoteCenzontleError.extensions.receivedFrom = helper.isNonEmptyArray(remoteCenzontleError.extensions.receivedFrom) ? remoteCenzontleError.extensions.receivedFrom.concat(remoteServiceUrl) : [remoteServiceUrl];
-      return remoteCenzontleError
+      remoteVocenError.extensions.receivedFrom = helper.isNonEmptyArray(remoteVocenError.extensions.receivedFrom) ? remoteVocenError.extensions.receivedFrom.concat(remoteServiceUrl) : [remoteServiceUrl];
+      return remoteVocenError
     })
   } else {
     return null
