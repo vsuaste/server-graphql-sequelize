@@ -151,9 +151,9 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
 
 
       try {
-        let result = await validatorUtil.ifHasValidatorFunctionInvoke(
+        let result = await validatorUtil.validateData(
           'validateForCreate', model, record);
-        console.log(result);
+        //console.log(result);
         await model.create(record, {
           transaction: transaction
         }).then(created => {
