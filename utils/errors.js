@@ -5,12 +5,12 @@ const helper = require('./helper')
 const globals = require('../config/globals');
 
 /**
- * Class representing a Vocen Error containing according to GraphQL Errors spec.
+ * Class representing a Zendro Error containing according to GraphQL Errors spec.
  * @extends Error
  */
-module.exports.VocenError = class VocenError extends Error {
+module.exports.ZendroError = class ZendroError extends Error {
   /**
-   * Create a Vocen Error.
+   * Create a Zendro Error.
    * @param {String} message - A message describing the Error for debugging purposes..
    * @param {Array} path - An array describing the JSON-path into the execution response which
    * corresponds to this error. Only included for errors during execution.
@@ -18,7 +18,7 @@ module.exports.VocenError = class VocenError extends Error {
    * which correspond to this error.
    * @param {Object} extensions - Extension fields to add to the formatted error.
    *
-   * @return {VocenError} An instance of VocenError with extensions always
+   * @return {ZendroError} An instance of ZendroError with extensions always
    * initialized to at least an empty object.
    */
   constructor({
@@ -40,20 +40,20 @@ module.exports.VocenError = class VocenError extends Error {
  * handleRemoteErrors - handles incoming errors from remote servers
  * @param {Array} errs - Array of errors (benign) or single more serious error send in the response from the remote server
  * @param {String} remoteServiceUrl - url of the remote service that had errors
- * @return {VocenError} If serious single Error return as Vocen Error, else build custom VocenError
+ * @return {ZendroError} If serious single Error return as Zendro Error, else build custom ZendroError
  * with given message and Errors in Extensions
  */
 module.exports.handleRemoteErrors = function(errs, remoteServiceUrl) {
   if (helper.isNonEmptyArray(errs)) {
     return errs.map(function(remoteError) {
-      // Making the 'remoteError' an instance of VocenError ensures:
+      // Making the 'remoteError' an instance of ZendroError ensures:
       // 1. message, path, locations, and extensions are retained, and
       // 2. extensions are initialized, if the were not already
-      let remoteVocenError = new module.exports.VocenError(remoteError);
+      let remoteZendroError = new module.exports.ZendroError(remoteError);
       // add the information that the 'remoteError' was received from another
       // web-service
-      remoteVocenError.extensions.receivedFrom = helper.isNonEmptyArray(remoteVocenError.extensions.receivedFrom) ? remoteVocenError.extensions.receivedFrom.concat(remoteServiceUrl) : [remoteServiceUrl];
-      return remoteVocenError
+      remoteZendroError.extensions.receivedFrom = helper.isNonEmptyArray(remoteZendroError.extensions.receivedFrom) ? remoteZendroError.extensions.receivedFrom.concat(remoteServiceUrl) : [remoteServiceUrl];
+      return remoteZendroError
     })
   } else {
     return null

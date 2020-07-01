@@ -27,7 +27,7 @@ With credential as in ``` config/config.json``` file.
 * `PORT` - The port where the app is listening, default value is `3000`
 * `ALLOW_ORIGIN` - In development mode we need to specify the header `Access-Control-Allow-Origin` so the SPA application can communicate with the server, default value is `http://localhost:8080`.
 * `LIMIT_RECORDS` - Maximum number of records that each request can return, default value is 10000.
-* `MAX_TIME_OUT` - Maximum number of milliseconds that a vocen server will wait to connect with another vocen server.
+* `MAX_TIME_OUT` - Maximum number of milliseconds that a zendro server will wait to connect with another zendro server.
 * `REQUIRE_SIGN_IN` - Boolean to toggle the required sign in to the graphql server 
 
 ## NOTE

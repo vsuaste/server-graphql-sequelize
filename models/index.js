@@ -74,15 +74,15 @@ fs.readdirSync(__dirname + "/generic")
     });
 
 // **********************************************************************************
-// IMPORT VOCEN SERVICES
+// IMPORT ZENDRO SERVICES
 
-fs.readdirSync(__dirname + "/vocen-server")
+fs.readdirSync(__dirname + "/zendro-server")
     .filter(function(file) {
         return (file.indexOf('.') !== 0) && (file !== 'index.js') && (file.slice(-3) === '.js');
     })
     .forEach(function(file) {
         console.log("loaded model: " + file);
-        let model = require(`./${path.join("./vocen-server", file)}`);
+        let model = require(`./${path.join("./zendro-server", file)}`);
 
         let validator_patch = path.join('./validations', file);
         if(fs.existsSync(validator_patch)){
