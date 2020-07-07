@@ -561,7 +561,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
        *      [order[last_index][0]]: { [Op[operator]]: cursor[order[last_index][0]] }
        *    }
        */
-      let search_field = helper.addSearchField({
+      let search_field = module.exports.addSearchField({
         "field": order[last_index][0],
         "value": {"value": cursor[order[last_index][0]]},
         "operator": operator,
@@ -593,7 +593,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
       /**
        * Produce: AND/OR conditions
        */
-      search_field = helper.addSearchField(
+      search_field = module.exports.addSearchField(
         {
           /**
            * Set
@@ -609,7 +609,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
           
           //and:
 
-          "search": helper.addSearchField({
+          "search": module.exports.addSearchField({
 
             /**
              * Set
@@ -743,7 +743,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
        *      [order[last_index][0]]: { [Op[operator]]: cursor[order[last_index][0]] }
        *    }
        */
-      let search_field = helper.addSearchField({
+      let search_field = module.exports.addSearchField({
         "field": order[last_index][0],
         "value": {"value": cursor[order[last_index][0]]},
         "operator": operator,
@@ -775,7 +775,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
       /**
        * Produce: AND/OR conditions
        */
-      search_field = helper.addSearchField(
+      search_field = module.exports.addSearchField(
         {
           /**
            * Set
@@ -791,7 +791,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
           
           //and:
 
-          "search": helper.addSearchField({
+          "search": module.exports.addSearchField({
 
             /**
              * Set
