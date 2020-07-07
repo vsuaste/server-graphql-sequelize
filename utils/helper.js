@@ -1154,7 +1154,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
      * 
      * Create a new search object with received parameters.
      */
-    if(search === undefined) {
+    if(search === undefined || search === null) {
       nsearch = {
         "field": field,
         "value": value,
