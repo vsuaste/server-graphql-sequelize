@@ -1503,31 +1503,10 @@ module.exports.vueTable = function(req, model, strAttributes) {
       throw new Error('Illegal argument. You need to specify a valid internalIdName!');
     }
     
-    /**
-     * Initialize pagination values.
-     */
     //defaults
-    let paginationValues = {
-      limit: undefined,
-      offset: 0,
-      search: undefined,
-      order: [ [internalIdName, "ASC"] ],
-    }
-    //copy input values
-    if(inputPaginationValues && typeof inputPaginationValues === 'object') {
-      //limit
-      if(inputPaginationValues.limit && typeof inputPaginationValues.limit === 'number')
-      paginationValues.limit = inputPaginationValues.limit;
-      //offset
-      if(inputPaginationValues.offset && typeof inputPaginationValues.offset === 'number')
-      paginationValues.offset = inputPaginationValues.offset;
-      //search
-      module.exports.checkSearchArgument(inputPaginationValues.search);
-      if(inputPaginationValues.search) paginationValues.search = {...inputPaginationValues.search};
-      //order
-      if(inputPaginationValues.order && Array.isArray(inputPaginationValues.order) && inputPaginationValues.order.length > 0)
-      paginationValues.order = [...inputPaginationValues.order];
-    }
+    let limit = undefined;
+    let offset = 0;
+    let search = undefined;
 
     /**
      * Calculate pagination values
@@ -1537,8 +1516,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
        * Case: limit-offset pagination
        */
       if(pagination.limit !== undefined || pagination.offset !== undefined) {
-        paginationValues.limit = pagination.limit ? pagination.limit : undefined;
-        paginationValues.offset = pagination.offset ? pagination.offset : 0;
+        limit = pagination.limit ? pagination.limit : undefined;
+        offset = pagination.offset ? pagination.offset : 0;
       } else {
         /**
          * Case: cursor-based pagination
@@ -1549,21 +1528,21 @@ module.exports.vueTable = function(req, model, strAttributes) {
         if(module.exports.isForwardPagination(pagination)) {
           if(pagination.after) {
             let decoded_cursor = JSON.parse(module.exports.base64Decode(pagination.after));
-            paginationValues.search = helper.parseOrderCursorGeneric(paginationValues.search, paginationValues.order, decoded_cursor, internalIdName, pagination.includeCursor);
+            search = helper.parseOrderCursorGeneric(inputPaginationValues.search, inputPaginationValues.order, decoded_cursor, internalIdName, pagination.includeCursor);
           }
-          paginationValues.limit = pagination.first ? pagination.first : undefined;
-          paginationValues.offset = 0;
+          limit = pagination.first ? pagination.first : undefined;
+          offset = 0;
         }else {//backward
           if(pagination.before) {
             let decoded_cursor = JSON.parse(module.exports.base64Decode(pagination.before));
-            paginationValues.search = helper.parseOrderCursorBeforeGeneric(paginationValues.search, paginationValues.order, decoded_cursor, internalIdName, pagination.includeCursor);
+            search = helper.parseOrderCursorBeforeGeneric(inputPaginationValues.search, inputPaginationValues.order, decoded_cursor, internalIdName, pagination.includeCursor);
           }
-          paginationValues.limit = pagination.last ? pagination.last : undefined;
-          paginationValues.offset = 0;
+          limit = pagination.last ? pagination.last : undefined;
+          offset = 0;
         }
       }
     }
-    return paginationValues;
+    return {limit, offset, search};
   }
 
   /** 
