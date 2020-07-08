@@ -1537,14 +1537,14 @@ module.exports.vueTable = function(req, model, strAttributes) {
         if(module.exports.isForwardPagination(pagination)) {
           if(pagination.after) {
             let decoded_cursor = JSON.parse(module.exports.base64Decode(pagination.after));
-            search = helper.parseOrderCursorGeneric(inputPaginationValues.search, order, decoded_cursor, internalIdName, pagination.includeCursor);
+            search = module.exports.parseOrderCursorGeneric(inputPaginationValues.search, order, decoded_cursor, internalIdName, pagination.includeCursor);
           }
           limit = pagination.first ? pagination.first : undefined;
           offset = 0;
         }else {//backward
           if(pagination.before) {
             let decoded_cursor = JSON.parse(module.exports.base64Decode(pagination.before));
-            search = helper.parseOrderCursorBeforeGeneric(inputPaginationValues.search, order, decoded_cursor, internalIdName, pagination.includeCursor);
+            search = module.exports.parseOrderCursorBeforeGeneric(inputPaginationValues.search, order, decoded_cursor, internalIdName, pagination.includeCursor);
           }
           limit = pagination.last ? pagination.last : undefined;
           offset = 0;
