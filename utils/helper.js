@@ -1461,7 +1461,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param {object}  pagination  Cursor-based pagination object.
    */
   module.exports.isForwardPagination = function(pagination) {
-    return (!pagination || pagination.last);
+    return (!pagination || pagination.first);
   }
 
   /** 
