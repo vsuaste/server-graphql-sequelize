@@ -1328,7 +1328,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
     }, Promise.resolve(true));
   }
 
-   /** validateAssociationArgsExistence - Receives arrays of ids on @input, and checks if these ids exists. Returns true
+  /** 
+   * validateAssociationArgsExistence - Receives arrays of ids on @input, and checks if these ids exists. Returns true
    * if all received ids exist, and throws an error if at least one of the ids does not exist.
    * 
    * @param  {object} input   Object with sanitized entries of the form: <add>Association:[id1, ..., idn].
@@ -1368,7 +1369,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
   }
 
-  /** checkAndAdjustRecordLimitForCreateUpdate - If the number of records affected by the input
+  /** 
+   * checkAndAdjustRecordLimitForCreateUpdate - If the number of records affected by the input
    * exceeds the current value of recordLimit throws an error, otherwise adjusts context.recordLimit
    * and returns totalCount.
    * 
@@ -1402,7 +1404,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
     }, 0);
   }
   
-  /** checkCountAndReduceRecordLimitHelper - given a count, checks whether it exceeds the
+  /** 
+   * checkCountAndReduceRecordLimitHelper - given a count, checks whether it exceeds the
    * defined record limit. Throws desriptive error if it exceeds. If not reduces the record Limit
    * in the GraphQL context.
    * 
@@ -1416,3 +1419,162 @@ module.exports.vueTable = function(req, model, strAttributes) {
     }
     context.recordsLimit -= count;
   }
+
+  /** 
+   * checkSearchArgument - check if the @search argument is a valid object.
+   * The @search argument can be undefined or null, but if not, then should be an object.
+   * Note: this function does not check the validity of the @search object.
+   * If the @search argument is not valid, this function will throw an error.
+   * 
+   * @param {object}  search  Search argument for filtering records
+   */
+  module.exports.checkSearchArgument = function(search) {
+    if(search !== undefined && search !== null){
+      //check
+      if(typeof search !== 'object') throw new Error('Illegal "search" argument type, it must be an object.');
+    } else return;
+  }
+
+  /** 
+   * checkCursorBasedPaginationArgument - check if the @pagination argument is a valid object
+   * in terms of a cursor-based pagination specification.
+   * The @pagination argument can be undefined or null, but if not, then should be an object
+   * that complies with the cursor-based pagination constraints.
+   * If the @pagination argument is not valid, this function will throw an error.
+   * 
+   * @param {object}  pagination  Cursor-based pagination object.
+   */
+  module.exports.checkCursorBasedPaginationArgument = function(pagination) {
+    let argsValid = (pagination === undefined || pagination === null) 
+    || (typeof pagination === 'object' && pagination.first && !pagination.before && !pagination.last) 
+    || (typeof pagination === 'object' && pagination.last && !pagination.after && !pagination.first);
+    if (!argsValid) {
+      throw new Error('Illegal cursor based pagination arguments. Use either "first" and optionally "after", or "last" and optionally "before"!');
+    } else return;
+  }
+
+  /** 
+   * isForwardPagination - calculates the direction of the cursor based pagination based on the
+   * @pagination argument received. Returns true if the direction is forward or false if it is
+   * backward.
+   * 
+   * @param {object}  pagination  Cursor-based pagination object.
+   */
+  module.exports.isForwardPagination = function(pagination) {
+    return (!pagination || pagination.last);
+  }
+
+  /** 
+   * base64Decode - returns the given @cursor base64-decoded.
+   * 
+   * @param {object}  cursor  base64 encoded cursor.
+   */
+  module.exports.base64Decode = function(cursor){
+    return Buffer.from(cursor, 'base64').toString('utf-8');
+  }
+
+  /** 
+   * getGenericPaginationValues - Given a pagination argument, that can be
+   * either a limit-offset or a cursor-base type, calculates generic pagination
+   * values: limit, offset and search.
+   * 
+   * @param {object} pagination  If limit-offset pagination, this object will include 'offset' and 'limit' properties
+   * to get the records from and to respectively. If cursor-based pagination, this object will include 'first' or 'last'
+   * properties to indicate the number of records to fetch, and 'after' or 'before' cursors to indicate from which record
+   * to start fetching.
+   * @param {string} internalIdName Name of the internal id attribute of the model being queried.
+   * This argument is required.
+   * @param {object} inputPaginationValues Input pagination values: {limit, offset, search, order}. 
+   * If @pagination object is provided, new values for @limit and @offset will be calculated, and if the
+   * @pagination argument is cursor-based type, also a new @search value will be calculated based in the
+   * pagination input. 
+   * Note: this object is not modified by this function, instead, a new object is created and
+   * initialized, either with default values or with the input values in this argument if any.
+   * 
+   * @return {limit, offset, search, order}  A new object with the calculated generic pagination values. 
+   * Note: If no pagination is received, the returned object will contain either default values or values
+   * copied from the @inputPaginationValues argument, if any.
+   */
+  module.exports.getGenericPaginationValues = function(pagination, internalIdName, inputPaginationValues) {
+    /**
+     * Check required arguments
+     */
+    if(!internalIdName || (typeof internalIdName !== 'string' && !(internalIdName instanceof String))) {
+      throw new Error('Illegal argument. You need to specify a valid internalIdName!');
+    }
+    
+    /**
+     * Initialize pagination values.
+     */
+    //defaults
+    let paginationValues = {
+      limit: undefined,
+      offset: 0,
+      search: undefined,
+      order: [ [internalIdName, "ASC"] ],
+    }
+    //copy input values
+    if(inputPaginationValues && typeof inputPaginationValues === 'object') {
+      //limit
+      if(inputPaginationValues.limit && typeof inputPaginationValues.limit === 'number')
+      paginationValues.limit = inputPaginationValues.limit;
+      //offset
+      if(inputPaginationValues.offset && typeof inputPaginationValues.offset === 'number')
+      paginationValues.offset = inputPaginationValues.offset;
+      //search
+      module.exports.checkSearchArgument(inputPaginationValues.search);
+      if(inputPaginationValues.search) paginationValues.search = {...inputPaginationValues.search};
+      //order
+      if(inputPaginationValues.order && Array.isArray(inputPaginationValues.order) && inputPaginationValues.order.length > 0)
+      paginationValues.order = [...inputPaginationValues.order];
+    }
+
+    /**
+     * Calculate pagination values
+     */
+    if(pagination && typeof pagination === 'object') {
+      /**
+       * Case: limit-offset pagination
+       */
+      if(pagination.limit !== undefined || pagination.offset !== undefined) {
+        paginationValues.limit = pagination.limit ? pagination.limit : undefined;
+        paginationValues.offset = pagination.offset ? pagination.offset : 0;
+      } else {
+        /**
+         * Case: cursor-based pagination
+         */
+        //check
+        module.exports.checkCursorBasedPaginationArgument(pagination);
+        //forward
+        if(module.exports.isForwardPagination(pagination)) {
+          if(pagination.after) {
+            let decoded_cursor = JSON.parse(module.exports.base64Decode(pagination.after));
+            paginationValues.search = helper.parseOrderCursorGeneric(paginationValues.search, paginationValues.order, decoded_cursor, internalIdName, pagination.includeCursor);
+          }
+          paginationValues.limit = pagination.first ? pagination.first : undefined;
+          paginationValues.offset = 0;
+        }else {//backward
+          if(pagination.before) {
+            let decoded_cursor = JSON.parse(module.exports.base64Decode(pagination.before));
+            paginationValues.search = helper.parseOrderCursorBeforeGeneric(paginationValues.search, paginationValues.order, decoded_cursor, internalIdName, pagination.includeCursor);
+          }
+          paginationValues.limit = pagination.last ? pagination.last : undefined;
+          paginationValues.offset = 0;
+        }
+      }
+    }
+    return paginationValues;
+  }
+
+  /** 
+   * getEffectiveRecordsCount - calculates the effective record count, given a count-query result and
+   * limit and offset arguments.
+   * 
+   * @param {int} count   Count result of a count-query.
+   * @param {int} limit   A generic pagination limit argument.
+   * @param {int} offset  A generic pagination offset argument.
+   */
+  module.exports.getEffectiveRecordsCount = function(count, limit, offset) {
+    return (limit !== undefined) ? Math.min( count-offset, limit ) : count-offset;
+  }
+
