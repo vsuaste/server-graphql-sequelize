@@ -1491,7 +1491,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * Note: this object is not modified by this function, instead, a new object is created and
    * initialized, either with default values or with the input values in this argument if any.
    * 
-   * @return {limit, offset, search, order}  A new object with the calculated generic pagination values. 
+   * @return {limit, offset, search}  A new object with the calculated generic pagination values. 
    * Note: If no pagination is received, the returned object will contain either default values or values
    * copied from the @inputPaginationValues argument, if any.
    */
@@ -1502,7 +1502,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
     if(!internalIdName || (typeof internalIdName !== 'string' && !(internalIdName instanceof String))) {
       throw new Error('Illegal argument. You need to specify a valid internalIdName!');
     }
-    
+
     //defaults
     let limit = undefined;
     let offset = 0;
