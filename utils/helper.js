@@ -1507,6 +1507,15 @@ module.exports.vueTable = function(req, model, strAttributes) {
     let limit = undefined;
     let offset = 0;
     let search = undefined;
+    let order = [ [internalIdName, "ASC"] ];
+
+    //check & copy search
+    module.exports.checkSearchArgument(inputPaginationValues.search);
+    if(inputPaginationValues.search) search = {...inputPaginationValues.search};
+
+    //check & copy order
+    if(inputPaginationValues.order && Array.isArray(inputPaginationValues.order) && inputPaginationValues.order.length > 0)
+    order = [...inputPaginationValues.order];
 
     /**
      * Calculate pagination values
@@ -1528,14 +1537,14 @@ module.exports.vueTable = function(req, model, strAttributes) {
         if(module.exports.isForwardPagination(pagination)) {
           if(pagination.after) {
             let decoded_cursor = JSON.parse(module.exports.base64Decode(pagination.after));
-            search = helper.parseOrderCursorGeneric(inputPaginationValues.search, inputPaginationValues.order, decoded_cursor, internalIdName, pagination.includeCursor);
+            search = helper.parseOrderCursorGeneric(inputPaginationValues.search, order, decoded_cursor, internalIdName, pagination.includeCursor);
           }
           limit = pagination.first ? pagination.first : undefined;
           offset = 0;
         }else {//backward
           if(pagination.before) {
             let decoded_cursor = JSON.parse(module.exports.base64Decode(pagination.before));
-            search = helper.parseOrderCursorBeforeGeneric(inputPaginationValues.search, inputPaginationValues.order, decoded_cursor, internalIdName, pagination.includeCursor);
+            search = helper.parseOrderCursorBeforeGeneric(inputPaginationValues.search, order, decoded_cursor, internalIdName, pagination.includeCursor);
           }
           limit = pagination.last ? pagination.last : undefined;
           offset = 0;
