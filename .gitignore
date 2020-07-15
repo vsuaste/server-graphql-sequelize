@@ -7,15 +7,15 @@ npm-debug.log
 package-lock.json
 
 # ModelGen output folders
-migrations
+#migrations
 generic
-sql
+#sql
 distributed
 adapters
 zendro-server
-resolvers
-schemas
-validations
-patches
+#resolvers
+#schemas
+#validations
+#patches
 adapters
 seeders

@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt')
 const jsonwebtoken = require('jsonwebtoken')
 const path = require('path')
 const user = require(path.join(__dirname, '..', 'models', 'index.js')).user
+const globals = require('../config/globals');
 
 module.exports = {
 
@@ -20,7 +21,7 @@ module.exports = {
         throw new Error('No user with that email')
     }
 
-    const valid = (password==user_data.password); //await bcrypt.compare(password, user_data.password)
+    const valid = await bcrypt.compare(password, user_data.password)
 
     if (!valid) {
         throw new Error('Incorrect password')
@@ -33,7 +34,7 @@ module.exports = {
         id: user_data.id,
         email: user_data.email,
         roles: name_roles
-    }, 'something-secret', { expiresIn: '1h' })
+    }, globals.JWT_SECRET, { expiresIn: '1h' })
   }
 
 }
