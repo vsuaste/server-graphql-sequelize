@@ -658,7 +658,7 @@ module.exports = class user extends Sequelize.Model {
      */
     static async add_roleId(record, addRoles) {
         const updated = await sequelize.transaction(async (transaction) => {
-            return await record.setRoles(addRoles, {
+            return await record.addRoles(addRoles, {
                 transaction: transaction
             });
         });
