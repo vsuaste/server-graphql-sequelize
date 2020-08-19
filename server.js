@@ -184,7 +184,7 @@ app.use('/export', cors(), (req, res, next) =>{
 
 app.use(fileUpload());
 /*request is passed as context by default  */
-app.use('/graphql', cors(), (req, res, next)=>{console.log("@@ req.body: ", req.body); next();}, graphqlHTTP((req) => ({
+app.use('/graphql', cors(), graphqlHTTP((req) => ({
  schema: Schema,
  rootValue: resolvers,
  pretty: true,
