@@ -4,23 +4,20 @@
     "password": "test_code_gen",
     "database": "test_code_gen",
     "host": "127.0.0.1",
-    "dialect": "postgres",
-    "operatorsAliases": false
+    "dialect": "postgres"
   },
   "test": {
     "username": "sciencedb",
     "password": "sciencedb",
     "database": "sciencedb_test",
     "host": "postgres",
-    "dialect": "postgres",
-    "operatorsAliases": false
+    "dialect": "postgres"
   },
   "production": {
     "username": "sciencedb",
     "password": "sciencedb",
     "database": "sciencedb_production",
     "host": "postgres",
-    "dialect": "postgres",
-    "operatorsAliases": false
+    "dialect": "postgres"
   }
 }
