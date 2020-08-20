@@ -230,8 +230,9 @@ async function handleGraphQlQueriesForMetaQuery(queries, context) {
     //prepare:
     let _query = query.query ? query.query : query;
     let _variables = query.variables ? query.variables : null;
+    let _operationName = query.operationName ? query.operationName : undefined;
 
-    let singleResponse = await graphql(Schema, _query, resolvers, context, _variables);
+    let singleResponse = await graphql(Schema, _query, resolvers, context, _variables, _operationName);
     if (singleResponse.errors != null) {
       errors.push(...singleResponse.errors);
     }
@@ -247,7 +248,7 @@ async function handleGraphQlQueriesForMetaQuery(queries, context) {
 
 let metaQueryCorsOptions = {allowedHeaders: ['Content-Type', 'Authorization']};
 app.options("/meta_query", cors(metaQueryCorsOptions));
-app.post('/meta_query', cors(), async (req, res, next) => {
+app.post('/meta_query', cors(), async (req, res) => {
   try {
     let context = {
       request: req,
