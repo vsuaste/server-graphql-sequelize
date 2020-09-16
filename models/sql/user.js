@@ -73,6 +73,11 @@ module.exports = class user extends Sequelize.Model {
         });
     }
 
+    get storageHandler() {
+        // return sequelize as storageHandler
+        return this.sequelize;
+    }
+
     static associate(models) {
         user.belongsToMany(models.role, {
             as: 'roles',
