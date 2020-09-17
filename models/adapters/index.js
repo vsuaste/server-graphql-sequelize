@@ -27,7 +27,7 @@ getModulesSync(__dirname).forEach(file => {
       const connection = getConnection(database || 'default-sql');
       if (!connection) throw new ConnectionError(adapter.definition);
       // setup storageHandler
-      getAndConnectDataModelClass(modelFile, connection);
+      getAndConnectDataModelClass(adapter, connection);
       adapters[adapter.adapterName] = adapter.init(connection, Sequelize);
       break;
 
