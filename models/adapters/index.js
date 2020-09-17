@@ -2,7 +2,7 @@ const { existsSync }     = require('fs');
 const { join }           = require('path');
 const { Sequelize }      = require('sequelize');
 const { getModulesSync } = require('../../utils/module-helpers');
-const { getConnection }  = require('../../connection');
+const { getConnection, ConnectionError, getAndConnectDataModelClass }  = require('../../connection');
 
 let adapters = {};
 module.exports = adapters;
@@ -26,6 +26,8 @@ getModulesSync(__dirname).forEach(file => {
       const { database } = adapter.definition;
       const connection = getConnection(database || 'default-sql');
       if (!connection) throw new ConnectionError(adapter.definition);
+      // setup storageHandler
+      getAndConnectDataModelClass(modelFile, connection);
       adapters[adapter.adapterName] = adapter.init(connection, Sequelize);
       break;
 
