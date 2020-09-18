@@ -94,3 +94,18 @@ exports.ConnectionError = class ConnectionError extends Error {
     super(message)
   }
 }
+
+/**
+ * Add connection as a static property of the data model class.
+ * @param {object} modelClass the data model class
+ * @param {object} connection the connection
+ * @returns The data model class with connection as a static property.
+ */
+exports.getAndConnectDataModelClass = ( modelClass, connection ) => {
+  return Object.defineProperty(modelClass, 'storageHandler', {
+      value: connection,
+      writable : false, // cannot be changed in the future
+      enumerable : true,
+      configurable : false
+  }); 
+}

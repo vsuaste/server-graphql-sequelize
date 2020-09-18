@@ -2,7 +2,7 @@ const { existsSync } = require('fs');
 const { join }       = require('path');
 const { Sequelize }  = require('sequelize');
 //
-const { getConnection, ConnectionError } = require('../connection');
+const { getConnection, ConnectionError, getAndConnectDataModelClass } = require('../connection');
 const { getModulesSync } = require('../utils/module-helpers');
 
 
@@ -23,6 +23,10 @@ getModulesSync(__dirname + "/sql").forEach(file => {
   const { database } = modelFile.definition;
   const connection = getConnection(database || 'default-sql');
   if (!connection) throw new ConnectionError(modelFile.definition);
+
+  // setup storageHandler
+  getAndConnectDataModelClass(modelFile, connection);
+
   let model = modelFile.init(connection, Sequelize);
 
   let validator_patch = join('./validations', file);
