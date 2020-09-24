@@ -10,5 +10,7 @@ module.exports = {
   "Boolean": 'BOOLEAN',
   "Date": "DATEONLY",
   "Time": "TIME",
-  "DateTime": "DATE"
+  "DateTime": "DATE",
+  "[String]": "JSON",
+  "[Int]": "JSON"
 }
