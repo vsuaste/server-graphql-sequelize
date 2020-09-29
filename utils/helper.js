@@ -1140,7 +1140,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @return {object} New search object.
    *
    */
-  module.exports.addSearchField = function ({search, field, value, operator}, recursiveOperator) {
+  module.exports.addSearchField = function ({search, field, value, valueType, operator}, recursiveOperator) {
     let nsearch = {};
     let recursiveOp = recursiveOperator ? recursiveOperator : 'and';
 
@@ -1158,6 +1158,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
       nsearch = {
         "field": field,
         "value": value,
+        "valueType": valueType,
         "operator": operator
       };
     } else {
@@ -1179,6 +1180,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
           "field": field,
           "value": value,
           "operator": operator,
+          "valueType": valueType,
           "excludeAdapterNames": search.excludeAdapterNames
         };
       } else {
@@ -1197,6 +1199,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
           "search": [{
             "field": field,
             "value": value,
+            "valueType": valueType,
             "operator": operator
           }, csearch],
           "excludeAdapterNames": excludeAdapterNames
@@ -1589,4 +1592,35 @@ module.exports.vueTable = function(req, model, strAttributes) {
       keyMap.push(primaryKeytofilteredForeignKeys);
     });
     return keyMap;
+  }
+
+
+  /**
+   * unionIds - Performs the union of two arrays, in the sense of set theory arithmetic.
+   *            It's expected that ids_to_add is not an empty array.
+   *
+   * @param  {Array} ids        Array number one, this can be empty
+   * @param  {Array} ids_to_add Array number two, this cannot be empty
+   * @return {Array}            Return an array with the union of the previous described arrays.
+   */
+  module.exports.unionIds = function( ids, ids_to_add){
+    if( module.exports.isNonEmptyArray(ids)){
+      return Array.from(new Set( [...ids, ...ids_to_add] ) );
+    }
+    return  Array.from(new Set(ids_to_add));
+  }
+
+
+  /**
+   * differenceIds - Performs the difference of two arrays, in the sense of set theory arithmetic.
+   *
+   * @param  {Array} ids           Array from which the items in ids_to_remove will be remove.
+   * @param  {Array} ids_to_remove Array which items will be removed from ids.
+   * @return {Array}               Array with items in ids but not in ids_to_remove.
+   */
+  module.exports.differenceIds = function(ids, ids_to_remove){
+    if( module.exports.isNonEmptyArray(ids)){
+        return ids.filter(id => !ids_to_remove.includes(id));
+    }
+    return ids;
   }
