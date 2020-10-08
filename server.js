@@ -39,11 +39,11 @@ if (globals.REQUIRE_SIGN_IN) {
 
 /* Temporary solution:  acl rules set */
 if (process.argv.length > 2 && process.argv[2] == 'acl') {
-  var node_acl = require('acl');
-  var {
+  let node_acl = require('acl');
+  let {
     aclRules
   } = require('./acl_rules');
-  var acl = new node_acl(new node_acl.memoryBackend());
+  let acl = new node_acl(new node_acl.memoryBackend());
 
   /* set authorization rules from file acl_rules.js */
   acl.allow(aclRules);
@@ -55,11 +55,12 @@ if (process.argv.length > 2 && process.argv[2] == 'acl') {
 
 /* Schema */
 console.log('Merging Schema');
-var Schema = helper.mergeSchemaSetScalerTypes(path.join(__dirname, './schemas'));
+let Schema = helper.mergeSchemaSetScalarTypes(path.join(__dirname, './schemas'));
 
 
 /* Resolvers*/
-var resolvers = require('./resolvers/index');
+let resolvers = require('./resolvers/index');
+const { leftShift } = require('mathjs');
 
 
 /* Parse urlencoded bodies and JSON by bodyParser middlewares*/

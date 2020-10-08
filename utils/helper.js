@@ -1697,7 +1697,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param {string} path  the path of schema folder.
    * @returns {GraphQLSchema} the processed GraphQLSchema
    */
-  module.exports.mergeSchemaSetScalerTypes = (path) => {
+  module.exports.mergeSchemaSetScalarTypes = (path) => {
     var merged_schema = mergeSchema(path);
     var Schema = buildSchema(merged_schema);
     /*set scalar types for dates */
