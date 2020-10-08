@@ -4,7 +4,12 @@ const math = require('mathjs');
 const _ = require('lodash');
 const models_index = require('../models/index');
 const { Op } = require("sequelize");
-const globals = require('../config/globals')
+
+const globals = require('../config/globals');
+var mergeSchema = require('./merge-schemas');
+var { buildSchema, GraphQLSchema } = require('graphql');
+const {GraphQLDateTime, GraphQLDate, GraphQLTime } = require('graphql-iso-date');
+var { graphql } = require('graphql');
 const searchArg = require('./search-argument');
 
   /**
@@ -1684,6 +1689,58 @@ module.exports.vueTable = function(req, model, strAttributes) {
       keyMap.push(primaryKeytofilteredForeignKeys);
     });
     return keyMap;
+  }
+
+  /**
+   * mergeSchemaSetScalerTypes - merge schema and set scaler types for dates.
+   *
+   * @param {string} path  the path of schema folder.
+   * @returns {GraphQLSchema} the processed GraphQLSchema
+   */
+  module.exports.mergeSchemaSetScalarTypes = (path) => {
+    var merged_schema = mergeSchema(path);
+    var Schema = buildSchema(merged_schema);
+    /*set scalar types for dates */
+    Object.assign(Schema._typeMap.DateTime, GraphQLDateTime);
+    Object.assign(Schema._typeMap.Date, GraphQLDate);
+    Object.assign(Schema._typeMap.Time, GraphQLTime);
+    return Schema;
+  }
+
+  /**
+   * eitherJqOrJsonpath - check whether JQ and JSON path are null or undefined.
+   *
+   * @param {object} jqInput  the JQ.
+   * @param {string} jsonpathInput  the path of JSON.
+   */
+  module.exports.eitherJqOrJsonpath = (jqInput, jsonpathInput) => {
+    let errorString = "State either 'jq' or 'jsonPath' expressions, never both.";
+    if (module.exports.isNotUndefinedAndNotNull(jqInput) && module.exports.isNotUndefinedAndNotNull(jsonpathInput)) {
+      throw new Error(errorString + " - jq is " + jqInput + " and jsonPath is " + jsonpathInput);
+    }
+    if (!module.exports.isNotUndefinedAndNotNull(jqInput) && !module.exports.isNotUndefinedAndNotNull(jsonpathInput)) {
+      throw new Error(errorString + " - both are null or undefined");
+    }
+  }
+
+  /**
+   * handleGraphQlQueriesForMetaQuery - handle graphql queries.
+   *
+   * @param {[string]} queries  queries
+   * @param {JSON} context  context
+   */
+  module.exports.handleGraphQlQueriesForMetaQuery = async (queries, context) => {
+    let compositeResponses = {};
+    compositeResponses.data = [];
+    compositeResponses.errors = [];
+    for (let query of queries) {
+      let singleResponse = await graphql(Schema, query, resolvers, context);
+      if (singleResponse.errors != null) {
+        compositeResponses.errors.push(...singleResponse.errors);
+      }
+      compositeResponses.data.push(singleResponse.data);
+    }
+    return compositeResponses;
   }
 
   /**
