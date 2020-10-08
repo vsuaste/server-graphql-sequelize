@@ -1726,15 +1726,17 @@ module.exports.vueTable = function(req, model, strAttributes) {
   /**
    * handleGraphQlQueriesForMetaQuery - handle graphql queries.
    *
+   * @param {GraphQlSchema} schema The graphql schmea
+   * @param {object} resolvers The graphql resolvers
    * @param {[string]} queries  queries
    * @param {JSON} context  context
    */
-  module.exports.handleGraphQlQueriesForMetaQuery = async (queries, context) => {
+  module.exports.handleGraphQlQueriesForMetaQuery = async (schema, resolvers, queries, context) => {
     let compositeResponses = {};
     compositeResponses.data = [];
     compositeResponses.errors = [];
     for (let query of queries) {
-      let singleResponse = await graphql(Schema, query, resolvers, context);
+      let singleResponse = await graphql(schema, query, resolvers, context);
       if (singleResponse.errors != null) {
         compositeResponses.errors.push(...singleResponse.errors);
       }

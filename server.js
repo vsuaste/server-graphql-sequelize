@@ -27,8 +27,8 @@ app.use((req, res, next) => {
   // Website you wish to allow to connect
   if (globals.REQUIRE_SIGN_IN) {
     res.setHeader('Access-Control-Allow-Origin', globals.ALLOW_ORIGIN);
-    next();
   }
+  next();
 });
 
 // Force users to sign in to get access to anything else than '/login'
@@ -159,7 +159,7 @@ app.post('/meta_query', cors(), async (req, res, next) => {
           queries = newQueries;
         }
 
-        let graphQlResponses = await helper.handleGraphQlQueriesForMetaQuery(queries, context);
+        let graphQlResponses = await helper.handleGraphQlQueriesForMetaQuery(Schema, resolvers, queries, context);
         let output;
         if (helper.isNotUndefinedAndNotNull(jq)) { // jq
           output = await nodejq.run(jq, graphQlResponses, { input: 'json', output: 'json' });
