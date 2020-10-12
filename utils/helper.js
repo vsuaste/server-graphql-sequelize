@@ -4,7 +4,13 @@ const math = require('mathjs');
 const _ = require('lodash');
 const models_index = require('../models/index');
 const { Op } = require("sequelize");
-const globals = require('../config/globals')
+
+const globals = require('../config/globals');
+var mergeSchema = require('./merge-schemas');
+var { buildSchema, GraphQLSchema } = require('graphql');
+const {GraphQLDateTime, GraphQLDate, GraphQLTime } = require('graphql-iso-date');
+var { graphql } = require('graphql');
+const searchArg = require('./search-argument');
 
   /**
    * paginate - Creates pagination argument as needed in sequelize cotaining limit and offset accordingly to the current
@@ -371,6 +377,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param  {String} idAttribute  idAttribute of the calling model.
    * @param  {Boolean} includeCursor Boolean flag that indicates if a strict or relaxed operator must be used for produce idAttribute conditions.
    * @return {Object}        Where statement to start retrieving records after the given cursor holding the order conditions.
+   * 
+   * @deprecated 
    */
   module.exports.parseOrderCursorBefore = function(order, cursor, idAttribute, includeCursor){
     /**
@@ -499,14 +507,13 @@ module.exports.vueTable = function(req, model, strAttributes) {
    *
    *
    *
-   * @param  {Object} search  Search object whit particular filters.
    * @param  {Array} order  Order entries. Must contains at least the entry for 'idAttribute'.
    * @param  {Object} cursor Cursor record taken as start point(exclusive) to create the where statement.
    * @param  {String} idAttribute  idAttribute of the calling model.
    * @param  {Boolean} includeCursor Boolean flag that indicates if a strict or relaxed operator must be used for produce idAttribute conditions.
    * @return {Object}        Where statement to start retrieving records after the given cursor holding the order conditions.
    */
-  module.exports.parseOrderCursorGeneric = function(search, order, cursor, idAttribute, includeCursor){
+  module.exports.parseOrderCursorGeneric = function(order, cursor, idAttribute, includeCursor){
     /**
      * Checks
      */
@@ -561,19 +568,11 @@ module.exports.vueTable = function(req, model, strAttributes) {
        *      [order[last_index][0]]: { [Op[operator]]: cursor[order[last_index][0]] }
        *    }
        */
-      let search_field = module.exports.addSearchField({
+      let search_field = {
         "field": order[last_index][0],
-        "value": {"value": cursor[order[last_index][0]]},
+        "value": cursor[order[last_index][0]],
         "operator": operator,
-
-        /**
-         * Add particular search argument provided as input parámeter.
-         * The filters on this serch argument will be the last to apply. 
-         * 
-         * On non-generic version, this step is done outside this function.
-         */
-        "search" : search,
-      }, 'and');
+      };
 
     /*
      * Recursive steps.
@@ -599,14 +598,14 @@ module.exports.vueTable = function(req, model, strAttributes) {
            * Set
            * condition (1) in the case of idAttribute or
            * condition (2.a or 2.b) for other fields.
-           * 
+           *
            * Equivalent to non-generic segment:
            *    { [order[i][0] ] : { [Op[operator]]: cursor[ order[i][0] ] } }
            */
           "field": order[i][0],
-          "value": {"value": cursor[order[i][0]]},
+          "value": cursor[order[i][0]],
           "operator": operator,
-          
+
           //and:
 
           "search": module.exports.addSearchField({
@@ -615,12 +614,12 @@ module.exports.vueTable = function(req, model, strAttributes) {
              * Set
              * condition (1) in the case of idAttribute or
              * condition (2.a) for other fields.
-             * 
+             *
              * Equivalent to non-generic segment:
              *    { [order[i][0]]: { [Op[strict_operator]]: cursor[ order[i][0] ]} },
              */
             "field": order[i][0],
-            "value": {"value": cursor[order[i][0]]},
+            "value": cursor[order[i][0]],
             "operator": strict_operator,
 
             //or:
@@ -628,7 +627,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
             /**
              * Add the previous produced conditions.
              * This will include the base step condition as the most right condition.
-             * 
+             *
              * Equivalent to non-generic segment:
              *    where_statement  ]
              */
@@ -636,7 +635,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
             /**
              * Set inner recursive search operator.
-             * 
+             *
              * Equivalent to non-generic segment:
              *    { [Op['or']] :[
              */
@@ -644,7 +643,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
           /**
            * Set outer recursive search operator.
-           * 
+           *
            * Equivalent to non-generic segment:
            *    [Op['and']] :[
            */
@@ -686,7 +685,9 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param  {Object} cursor Cursor record taken as start point(exclusive) to create the where statement.
    * @param  {String} idAttribute  idAttribute of the calling model.
    * @param  {Boolean} includeCursor Boolean flag that indicates if a strict or relaxed operator must be used for produce idAttribute conditions.
-   * @return {Object}        Where statement to start retrieving records after the given cursor holding the order conditions.
+   * @return {Object}        Where statement to start retrieving records after the given cursor holding the order conditions
+   * 
+   * @deprecated
    */
   module.exports.parseOrderCursorBeforeGeneric = function(search, order, cursor, idAttribute, includeCursor){
     /**
@@ -745,13 +746,13 @@ module.exports.vueTable = function(req, model, strAttributes) {
        */
       let search_field = module.exports.addSearchField({
         "field": order[last_index][0],
-        "value": {"value": cursor[order[last_index][0]]},
+        "value": cursor[order[last_index][0]],
         "operator": operator,
 
         /**
          * Add particular search argument provided as input parámeter.
-         * The filters on this serch argument will be the last to apply. 
-         * 
+         * The filters on this serch argument will be the last to apply.
+         *
          * On non-generic version, this step is done outside this function.
          */
         "search" : search,
@@ -781,14 +782,14 @@ module.exports.vueTable = function(req, model, strAttributes) {
            * Set
            * condition (1) in the case of idAttribute or
            * condition (2.a or 2.b) for other fields.
-           * 
+           *
            * Equivalent to non-generic segment:
            *    { [order[i][0] ] : { [Op[operator]]: cursor[ order[i][0] ] } }
            */
           "field": order[i][0],
-          "value": {"value": cursor[order[i][0]]},
+          "value": cursor[order[i][0]],
           "operator": operator,
-          
+
           //and:
 
           "search": module.exports.addSearchField({
@@ -797,12 +798,12 @@ module.exports.vueTable = function(req, model, strAttributes) {
              * Set
              * condition (1) in the case of idAttribute or
              * condition (2.a) for other fields.
-             * 
+             *
              * Equivalent to non-generic segment:
              *    { [order[i][0]]: { [Op[strict_operator]]: cursor[ order[i][0] ]} },
              */
             "field": order[i][0],
-            "value": {"value": cursor[order[i][0]]},
+            "value": cursor[order[i][0]],
             "operator": strict_operator,
 
             //or:
@@ -810,7 +811,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
             /**
              * Add the previous produced conditions.
              * This will include the base step condition as the most right condition.
-             * 
+             *
              * Equivalent to non-generic segment:
              *    where_statement  ]
              */
@@ -818,7 +819,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
             /**
              * Set inner recursive search operator.
-             * 
+             *
              * Equivalent to non-generic segment:
              *    { [Op['or']] :[
              */
@@ -826,7 +827,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
           /**
            * Set outer recursive search operator.
-           * 
+           *
            * Equivalent to non-generic segment:
            *    [Op['and']] :[
            */
@@ -839,19 +840,19 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
     /**
    * checkExistence - Get the IDs (out of a given list) that are not in use in a given model
-   * 
+   *
    * @param{Array | object} ids_to_check The IDs that are to be checked, as an array or as a single value
    * @param{object} model The model for which the IDs shall be checked
    * @returns{Promise<boolean>} Are all IDs in use?
    */
   module.exports.checkExistence = async function(ids_to_check, model){
     //check
-    if (!module.exports.isNotUndefinedAndNotNull(ids_to_check)) { 
+    if (!module.exports.isNotUndefinedAndNotNull(ids_to_check)) {
       throw new Error(`Invalid arguments on checkExistence(), 'ids' argument should not be 'null' or 'undefined'`);
     }
     //check existence by count
     let ids = Array.isArray(ids_to_check) ? ids_to_check : [ ids_to_check ];
-    let searchArg = {"field":model.idAttribute(),"value":{"type":"Array","value":ids.toString()},"operator":"in"};
+    let searchArg = {"field":model.idAttribute(),valueType:"Array",value:ids.toString(),"operator":"in"};
     try {
       if (module.exports.isNotUndefinedAndNotNull(model.registeredAdapters)) {
         let allResponsibleAdapters = ids.map(id => model.registeredAdapters[model.adapterForIri(id)]);
@@ -871,7 +872,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
   /**
    * validateExistence - Make sure that all given IDs correspond to existing records in a given model
-   * 
+   *
    * @param{Array | object} idsToExist The IDs that are supposed to exist, as an array or as a single value
    * @param{object} model The model for which the IDs should exist
    * @throws If there is an ID given without a corresponding record in the model, in which case the first ID not to exist is given in the error message
@@ -997,10 +998,10 @@ module.exports.vueTable = function(req, model, strAttributes) {
   }
 
   /**
-   * Returns a new array instance with the set of adapters that remains after 
+   * Returns a new array instance with the set of adapters that remains after
    * remove all excluded adapters, specified on the search.excludeAdapterNames
-   * input, from the @adapters array. 
-   * 
+   * input, from the @adapters array.
+   *
    * This function does not modify the @adapter param, but instead, returns a new
    * array instance.
    *
@@ -1014,20 +1015,20 @@ module.exports.vueTable = function(req, model, strAttributes) {
    */
   module.exports.removeExcludedAdapters = function(search, adapters) {
     let result = Array.from(adapters);
-    
+
     //check: @adapters
     if(adapters.length === 0) {
       return [];
     }//else
-    
+
     //check: @search
     if((!search || typeof search !== 'object') //has not search object
       || (!search.excludeAdapterNames //or has search object but has not exclusions
-          || !Array.isArray(search.excludeAdapterNames) 
+          || !Array.isArray(search.excludeAdapterNames)
           || search.excludeAdapterNames.length === 0)) {
       return result;
     }//else
-    
+
     //do: exclusion
     let i = 0;
     while (i < result.length) {
@@ -1047,12 +1048,12 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * the @excludeAdapterNames on search object.
    *
    * @param {object} search - Search object.
-   * @param {string} currentAdapterName - String of the current adapterName. 
+   * @param {string} currentAdapterName - String of the current adapterName.
    * @param {array} registeredAdapters - Array of registered adapters for the calling ddm.
    *
-   * @return {object} New search object that includes the excluded adapters on the 
+   * @return {object} New search object that includes the excluded adapters on the
    * attribute @excludeAdapterNames. This functions does not modify the @search object,
-   * instead a new one is returned. 
+   * instead a new one is returned.
    */
   module.exports.addExclusions = function(search, currentAdapterName, registeredAdapters) {
     let nsearch = {};
@@ -1085,7 +1086,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
     }
 
     /*
-     * append all @registeredAdapters, except the @currentAdapter, 
+     * append all @registeredAdapters, except the @currentAdapter,
      * to search.excludeAdapterNames array.
      */
     registeredAdapters.forEach(a => {
@@ -1106,7 +1107,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param {object} context - The GraphQL context passed to the resolver.
    * @param {array} resultObj - Connection- or CountObj returned by ddm readMany.
    *
-   * @return {array} Returns the changed resultObj and context with the added benignErrors 
+   * @return {array} Returns the changed resultObj and context with the added benignErrors
    */
   module.exports.writeBenignErrors = function(authorizationCheck, context, resultObj) {
     //check adapter authorization Errors
@@ -1118,17 +1119,15 @@ module.exports.vueTable = function(req, model, strAttributes) {
         context.benignErrors = context.benignErrors.concat(resultObj.errors)
         delete resultObj['errors']
     }
-    console.log("resultObj: " + JSON.stringify(resultObj))
-    console.log("context_benignErrors: " + JSON.stringify(context.benignErrors))
     return [resultObj,context];
   }
 
   /**
-   * addSearchField - Creates a new search object which one will include the new search 
+   * addSearchField - Creates a new search object which one will include the new search
    * instance (@field, @value, @operator) with values passed as arguments.
-   * 
+   *
    * This function preserves the attribute @excludeAdapterNames if exists on the @search argument.
-   * 
+   *
    * This function does not modifies the @search object received, instead creates a new one.
    *
    * @param  {string} field Field to filter. Must be defined.
@@ -1142,7 +1141,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    */
   module.exports.addSearchField = function ({search, field, value, operator}, recursiveOperator) {
     let nsearch = {};
-    let recursiveOp = recursiveOperator ? recursiveOperator : 'and'; 
+    let recursiveOp = recursiveOperator ? recursiveOperator : 'and';
 
     //check
     if(operator === undefined || field === undefined || value === undefined) {
@@ -1151,7 +1150,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
     /**
      * Case 1: @search is undefined.
-     * 
+     *
      * Create a new search object with received parameters.
      */
     if(search === undefined || search === null) {
@@ -1161,20 +1160,20 @@ module.exports.vueTable = function(req, model, strAttributes) {
         "operator": operator
       };
     } else {
-      
+
       //check
       if(typeof search !== 'object') {
         throw new Error('Illegal "@search" argument type, it must be an object.');
       }
-      
+
       /**
        * Case 2: @search is defined but has not search-operation attributes defined.
-       * 
+       *
        * Create a new search object with received parameters and preserve @excludeAdapterNames
        * attribute.
        */
       if(search.operator === undefined || (search.value === undefined && search.search === undefined)) {
-        
+
         search = {
           "field": field,
           "value": value,
@@ -1184,14 +1183,14 @@ module.exports.vueTable = function(req, model, strAttributes) {
       } else {
         /**
          * Case 3: @search is defined and has search-operation attributes defined.
-         * 
+         *
          * Create a new recursive search object with received parameters and preserve @excludeAdapterNames
          * attribute.
          */
         let csearch = {...search};
         let excludeAdapterNames = csearch.excludeAdapterNames;
         delete csearch.excludeAdapterNames;
-        
+
         nsearch = {
           "operator": recursiveOp,
           "search": [{
@@ -1202,13 +1201,106 @@ module.exports.vueTable = function(req, model, strAttributes) {
           "excludeAdapterNames": excludeAdapterNames
         };
       }
-    }  
+    }
     return nsearch;
+  }
+  /**
+   * mergeSearchArguments - merge two zendro searchArguments into a new searchArgument containing both searches
+   * combined with the given operator.
+   * @param {object} searchA zendro searchArgument of the form: search: {field, operator, value, [search]} In case of DDM excludeAdapterNames can be provided
+   * @param {object} searchB zendro searchArgument of the form: search: {field, operator, value, [search]} In case of DDM excludeAdapterNames can be provided
+   * @param {object} operator zendro searchArguement operator to combine searchA and searchB. default is 'and'
+   */
+  module.exports.mergeSearchArguments = function (searchA, searchB, operator) {
+    let mergeOp = operator ? operator : 'and';
+    /**
+     * Safety checks
+     */
+    //check: no arguments
+    if(!searchA && !searchB) {
+      // throw new Error('No arguments provided to mergeSearch function.');
+      return {};
+    }
+    //check: only searchB
+    if(!searchA && searchB) {
+      return searchB;
+    }
+    //check: only searchA
+    if(searchA && !searchB) {
+      return searchA;
+    }
+    //check: types
+    if(typeof searchA !== 'object' || typeof searchB !== 'object'
+    || (searchA.excludeAdapterNames && !Array.isArray(searchA.excludeAdapterNames))
+    || (searchB.excludeAdapterNames && !Array.isArray(searchB.excludeAdapterNames))) {
+      throw new Error('Illegal arguments provided to mergeSearchArguements function.');
+    }
+    /**
+     * Merge "excludeAdapterNames" arrays
+     */
+    let mergedExcludeAdapterNames = [];
+    if(searchA.excludeAdapterNames) mergedExcludeAdapterNames = [...searchA.excludeAdapterNames];
+    if(searchB.excludeAdapterNames) mergedExcludeAdapterNames = [...mergedExcludeAdapterNames, ...searchB.excludeAdapterNames];
+    //copy
+    let csearchA = {...searchA}; 
+    let csearchB = {...searchB};
+    /**
+     * Strip "excludeAdapterNames" from search object
+     */
+    delete csearchA.excludeAdapterNames;
+    delete csearchB.excludeAdapterNames;
+    /**
+     * Merge search objects
+     */
+    let mergedSearch = {
+      "operator": mergeOp,
+      "search": [csearchA, csearchB],
+      "excludeAdapterNames": (mergedExcludeAdapterNames.length > 0) ? mergedExcludeAdapterNames : undefined
+    };
+    return mergedSearch;
+  }
+
+  /**
+   * mergeSequelizeWhereArguments - merge two sequelize where objects into a new sequelize where object containing both
+   * arguments combined with the given operator (and by default).
+   * @param {object} whereA first sequelize where-object of the form: {field: {[OP]: "value"}}
+   * @param {object} whereB second sequelize where-object of the form: {field: {[OP]: "value"}}
+   * @param {object} operator operator to combine whereA and whereB. Valid operators are 'and' or 'or'. default is 'and'.
+   */
+  module.exports.mergeSequelizeWhereArguments = function (whereA, whereB, operator) {
+    if(operator && (operator !=='and' || operator !=='or')) throw new Error('Only "and" or "or" operators are valid.');
+    let mergeOp = operator ? operator : 'and';
+
+    /**
+     * Safety checks
+     */
+    //check: no arguments
+    if(!whereA && !whereB) {
+      // throw new Error('No arguments provided to merge function.');
+      return {};
+    }
+    //check: only whereB
+    if(!whereA && whereB) {
+      return whereB;
+    }
+    //check: only whereA
+    if(whereA && !whereB) {
+      return whereA;
+    }
+    //check: types
+    if(typeof whereA !== 'object' || typeof whereB !== 'object') {
+      throw new Error('Illegal arguments provided to mergeSequelizeWhereArguments function.');
+    }
+    /**
+     * Merge where-objects
+     */
+    let mergedWhere = { [Op[mergeOp]]: [whereA, whereB] }
+    return mergedWhere;
   }
 
   /**
    * isNonEmtpyArray - Test a value for being a non-empty array
-   * 
+   *
    * @param {any} a value to be tested for being a non-empty array
    * @returns {boolean} result
    */
@@ -1296,7 +1388,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
         let storageType = targetModel.definition.storageType;
 
         // Look into the definition of the associated data model and ask for its storage type.
-        // TWO CASES: 
+        // TWO CASES:
         // 1) target model storage type: NON distributed (any other)
         if (storageType !== 'distributed-data-model') {
           return await permissions.reduce(async (prev, curr) => {
@@ -1319,19 +1411,19 @@ module.exports.vueTable = function(req, model, strAttributes) {
           if (module.exports.isNonEmptyArray(newErrors)) {
             throw new Error(newErrors[0]);
           }
-          return acc && newErrors !== []; 
+          return acc && newErrors !== [];
         }, Promise.resolve(true))
       } else {
        return acc
-      
+
       }
     }, Promise.resolve(true));
   }
 
-  /** 
+  /**
    * validateAssociationArgsExistence - Receives arrays of ids on @input, and checks if these ids exists. Returns true
    * if all received ids exist, and throws an error if at least one of the ids does not exist.
-   * 
+   *
    * @param  {object} input   Object with sanitized entries of the form: <add>Association:[id1, ..., idn].
    * @param  {object} context Object with mutation context attributes.
    * @param  {object} associationArgsDef  The definition of the association arguments
@@ -1342,7 +1434,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
   module.exports.validateAssociationArgsExistence = async function(input, context, associationArgsDef, modelsIndex = models_index) {
     await Object.keys(associationArgsDef).reduce(async function(prev, curr){
       let acc = await prev;
-      
+
       //get ids (Int or Array)
       let currAssocIds = input[curr];
 
@@ -1369,15 +1461,15 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
   }
 
-  /** 
+  /**
    * checkAndAdjustRecordLimitForCreateUpdate - If the number of records affected by the input
    * exceeds the current value of recordLimit throws an error, otherwise adjusts context.recordLimit
    * and returns totalCount.
-   * 
+   *
    * @param  {object} input   Input Object.
    * @param  {object} context Object with context attributes.
    * @param  {object} associationArgsDef  Object with entries of the form {'<add>Association' : model}
-   * @return {int} If the number of records affected by the input exceeds the current value of 
+   * @return {int} If the number of records affected by the input exceeds the current value of
    * recordLimit throws an error, otherwise adjusts context.recordLimit and returns totalCount.
    */
   module.exports.checkAndAdjustRecordLimitForCreateUpdate = function(input, context, associationArgsDef) {
@@ -1405,27 +1497,27 @@ module.exports.vueTable = function(req, model, strAttributes) {
   }
   
   /** 
-   * checkCountAndReduceRecordLimitHelper - given a count, checks whether it exceeds the
+   * checkCountAndReduceRecordsLimit - given a count, checks whether it exceeds the
    * defined record limit. Throws desriptive error if it exceeds. If not reduces the record Limit
    * in the GraphQL context.
-   * 
+   *
    * @param {Integer} count count to reduce from the recordsLimit
    * @param {Object} context The GraphQL context passed to the resolver
    * @param {String} resolverName The name of the resolver function
    */
-  module.exports.checkCountAndReduceRecordLimitHelper = function(count, context, resolverName) {
+  module.exports.checkCountAndReduceRecordsLimit = function(count, context, resolverName) {
     if (count > context.recordsLimit) {
       throw new Error(`Max record limit of ${globals.LIMIT_RECORDS} exceeded in ${resolverName}`);
     }
     context.recordsLimit -= count;
   }
 
-  /** 
+  /**
    * checkSearchArgument - check if the @search argument is a valid object.
    * The @search argument can be undefined or null, but if not, then should be an object.
    * Note: this function does not check the validity of the @search object.
    * If the @search argument is not valid, this function will throw an error.
-   * 
+   *
    * @param {object}  search  Search argument for filtering records
    */
   module.exports.checkSearchArgument = function(search) {
@@ -1435,65 +1527,73 @@ module.exports.vueTable = function(req, model, strAttributes) {
     } else return;
   }
 
-  /** 
+  /**
    * checkCursorBasedPaginationArgument - check if the @pagination argument is a valid object
    * in terms of a cursor-based pagination specification.
    * The @pagination argument can be undefined or null, but if not, then should be an object
    * that complies with the cursor-based pagination constraints.
    * If the @pagination argument is not valid, this function will throw an error.
-   * 
+   *
    * @param {object}  pagination  Cursor-based pagination object.
    */
   module.exports.checkCursorBasedPaginationArgument = function(pagination) {
-    let argsValid = (pagination === undefined || pagination === null) 
-    || (typeof pagination === 'object' && pagination.first && !pagination.before && !pagination.last) 
-    || (typeof pagination === 'object' && pagination.last && !pagination.after && !pagination.first);
+    // check for negative pagination. Since we have to increase the LIMIT in the database query by 1,
+    // theoretically the arugment "pagination:{first:-1}" would be valid.
+    if(typeof pagination === 'object' && (pagination.first < 0 || pagination.last < 0)){
+      throw new Error('LIMIT must not be negative')
+    }
+    // check if valid paginationArguments. Pagination is required by the schema, however since forward and backward pagination is possible, none of the
+    // arguments are required by the graphQL schema. Valid options are either only "first" or "last". Or "first" and "after" / "last" and "before"
+    let argsValid = typeof pagination === 'object' &&  (
+      (pagination.first && !(pagination.before || pagination.last)) ||
+      (pagination.last && !(pagination.after || pagination.first)));
     if (!argsValid) {
       throw new Error('Illegal cursor based pagination arguments. Use either "first" and optionally "after", or "last" and optionally "before"!');
     } else return;
   }
 
-  /** 
+  /**
    * isForwardPagination - calculates the direction of the cursor based pagination based on the
    * @pagination argument received. Returns true if the direction is forward or false if it is
    * backward.
-   * 
+   *
    * @param {object}  pagination  Cursor-based pagination object.
    */
   module.exports.isForwardPagination = function(pagination) {
-    return (!pagination || pagination.first);
+    return (!pagination || this.isNotUndefinedAndNotNull(pagination.first));
   }
 
-  /** 
+  /**
    * base64Decode - returns the given @cursor base64-decoded.
-   * 
+   *
    * @param {object}  cursor  base64 encoded cursor.
    */
   module.exports.base64Decode = function(cursor){
     return Buffer.from(cursor, 'base64').toString('utf-8');
   }
 
-  /** 
+  /**
    * getGenericPaginationValues - Given a pagination argument, that can be
    * either a limit-offset or a cursor-base type, calculates generic pagination
    * values: limit, offset and search.
-   * 
+   *
    * @param {object} pagination  If limit-offset pagination, this object will include 'offset' and 'limit' properties
    * to get the records from and to respectively. If cursor-based pagination, this object will include 'first' or 'last'
    * properties to indicate the number of records to fetch, and 'after' or 'before' cursors to indicate from which record
    * to start fetching.
    * @param {string} internalIdName Name of the internal id attribute of the model being queried.
    * This argument is required.
-   * @param {object} inputPaginationValues Input pagination values: {limit, offset, search, order}. 
+   * @param {object} inputPaginationValues Input pagination values: {limit, offset, search, order}.
    * If @pagination object is provided, new values for @limit and @offset will be calculated, and if the
    * @pagination argument is cursor-based type, also a new @search value will be calculated based in the
-   * pagination input. 
+   * pagination input.
    * Note: this object is not modified by this function, instead, a new object is created and
    * initialized, either with default values or with the input values in this argument if any.
-   * 
-   * @return {limit, offset, search}  A new object with the calculated generic pagination values. 
+   *
+   * @return {limit, offset, search}  A new object with the calculated generic pagination values.
    * Note: If no pagination is received, the returned object will contain either default values or values
    * copied from the @inputPaginationValues argument, if any.
+   * @deprecated
    */
   module.exports.getGenericPaginationValues = function(pagination, internalIdName, inputPaginationValues) {
     /**
@@ -1504,7 +1604,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
     }
 
     //defaults
-    let limit = undefined;
+    let limit = 0;
     let offset = 0;
     let search = undefined;
     let order = [ [internalIdName, "ASC"] ];
@@ -1524,8 +1624,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
       /**
        * Case: limit-offset pagination
        */
-      if(pagination.limit !== undefined || pagination.offset !== undefined) {
-        limit = pagination.limit ? pagination.limit : undefined;
+      if(this.isNotUndefinedAndNotNull(pagination.limit) || this.isNotUndefinedAndNotNull(pagination.offset)) {
+        limit = pagination.limit ? pagination.limit : 0;
         offset = pagination.offset ? pagination.offset : 0;
       } else {
         /**
@@ -1539,14 +1639,14 @@ module.exports.vueTable = function(req, model, strAttributes) {
             let decoded_cursor = JSON.parse(module.exports.base64Decode(pagination.after));
             search = module.exports.parseOrderCursorGeneric(inputPaginationValues.search, order, decoded_cursor, internalIdName, pagination.includeCursor);
           }
-          limit = pagination.first ? pagination.first : undefined;
+          limit = pagination.first ? pagination.first : 0;
           offset = 0;
         }else {//backward
           if(pagination.before) {
             let decoded_cursor = JSON.parse(module.exports.base64Decode(pagination.before));
             search = module.exports.parseOrderCursorBeforeGeneric(inputPaginationValues.search, order, decoded_cursor, internalIdName, pagination.includeCursor);
           }
-          limit = pagination.last ? pagination.last : undefined;
+          limit = pagination.last ? pagination.last : 0;
           offset = 0;
         }
       }
@@ -1554,27 +1654,27 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return {limit, offset, search};
   }
 
-  /** 
+  /**
    * getEffectiveRecordsCount - calculates the effective record count, given a count-query result and
    * limit and offset arguments.
-   * 
+   *
    * @param {int} count   Count result of a count-query.
    * @param {int} limit   A generic pagination limit argument.
    * @param {int} offset  A generic pagination offset argument.
    */
   module.exports.getEffectiveRecordsCount = function(count, limit, offset) {
-    return (limit !== undefined) ? Math.min( count-offset, limit ) : count-offset;
+    return this.isNotUndefinedAndNotNull(limit) ? Math.min( count-offset, limit ) : count-offset;
   }
 
   /**
    * mapForeignKeysToPrimaryKeyArray - Maps the given bulkAssociationInput foreignKeys to Arrays of primaryKeys. used for bulkAssociation
    * example: mapForeignKeystoPrimaryKeyArray([{personId: 1, dogId:2},{personId:1, dogId:3}, {personId:2, dogId:4}], 'dogId','personId')
    *          => [ { personId: 1, dogId: [ 2, 3 ] }, { personId: 2, dogId: [ 4 ] } ]
-   * 
+   *
    * @param {Array} bulkAssociationInput bulkAssociationInput as described in schema (see example)
    * @param {ID} primaryKey The primaryKey of the input
    * @param {ID} foreignKey The foreignKey of the input
-   * 
+   *
    * @returns {Array} Array of foreignKeys to Arrays of primaryKeys (see above example)
    */
   module.exports.mapForeignKeysToPrimaryKeyArray = function(bulkAssociationInput, primaryKey, foreignKey){
@@ -1591,3 +1691,359 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return keyMap;
   }
 
+  /**
+   * mergeSchemaSetScalerTypes - merge schema and set scaler types for dates.
+   *
+   * @param {string} path  the path of schema folder.
+   * @returns {GraphQLSchema} the processed GraphQLSchema
+   */
+  module.exports.mergeSchemaSetScalarTypes = (path) => {
+    var merged_schema = mergeSchema(path);
+    var Schema = buildSchema(merged_schema);
+    /*set scalar types for dates */
+    Object.assign(Schema._typeMap.DateTime, GraphQLDateTime);
+    Object.assign(Schema._typeMap.Date, GraphQLDate);
+    Object.assign(Schema._typeMap.Time, GraphQLTime);
+    return Schema;
+  }
+
+  /**
+   * eitherJqOrJsonpath - check whether JQ and JSON path are null or undefined.
+   *
+   * @param {object} jqInput  the JQ.
+   * @param {string} jsonpathInput  the path of JSON.
+   */
+  module.exports.eitherJqOrJsonpath = (jqInput, jsonpathInput) => {
+    let errorString = "State either 'jq' or 'jsonPath' expressions, never both.";
+    if (module.exports.isNotUndefinedAndNotNull(jqInput) && module.exports.isNotUndefinedAndNotNull(jsonpathInput)) {
+      throw new Error(errorString + " - jq is " + jqInput + " and jsonPath is " + jsonpathInput);
+    }
+    if (!module.exports.isNotUndefinedAndNotNull(jqInput) && !module.exports.isNotUndefinedAndNotNull(jsonpathInput)) {
+      throw new Error(errorString + " - both are null or undefined");
+    }
+  }
+
+  /**
+   * handleGraphQlQueriesForMetaQuery - handle graphql queries.
+   *
+   * @param {GraphQlSchema} schema The graphql schmea
+   * @param {object} resolvers The graphql resolvers
+   * @param {[string]} queries  queries
+   * @param {JSON} context  context
+   */
+  module.exports.handleGraphQlQueriesForMetaQuery = async (schema, resolvers, queries, context) => {
+    let compositeResponses = null;
+    let data = [];
+    let errors = [];
+    for (let query of queries) {
+      //prepare:
+      let _query = query.query ? query.query : query;
+      let _variables = query.variables ? query.variables : null;
+      let _operationName = query.operationName ? query.operationName : undefined;
+  
+      let singleResponse = await graphql(schema, _query, resolvers, context, _variables, _operationName);
+      if (singleResponse.errors != null) {
+        errors.push(...singleResponse.errors);
+      }
+      data.push(singleResponse.data);
+    }
+    //prepare:
+    compositeResponses = {
+      data:   data.length === 1 ? data[0] : data,
+      errors: errors.length > 0 ? errors : undefined,
+    }
+    return compositeResponses;
+  }
+
+  /**
+   * searchConditionsToSequelize - translates search conditions as given in the graphQl query to sequelize 'where' options
+   * @param {object} search search argument for filtering records
+   * 
+   * @return {object} sequelize 'where' options
+   */
+  module.exports.searchConditionsToSequelize = function(search){
+    let whereOptions = {};
+    if(search !== undefined && search !== null){
+      if(typeof search !== 'object') throw new Error('Illegal "search" argument type, it must be an object.');
+      let arg = new searchArg(search);
+      whereOptions = arg.toSequelize();
+    }
+    return whereOptions;
+  }
+  /**
+   * orderConditionsToSequelize - build the sequelize order object for default (forward) pagination. Default order is by idAttribute ASC
+   * @param {array} order order array given in the graphQl query 
+   * @param {string} idAttribute idAttribute of the model
+   * 
+   * @returns {object} sequelize order options
+   */
+  module.exports.orderConditionsToSequelize = function(order, idAttribute, isForwardPagination){
+    let orderOptions = [];
+    if (order !== undefined) {
+        orderOptions = order.map((orderItem) => {
+            return [orderItem.field, orderItem.order];
+        });
+    }
+    if (!orderOptions.map(orderItem => {
+            return orderItem[0]
+        }).includes(idAttribute)) {
+        orderOptions = isForwardPagination ?
+        [...orderOptions, ...[[idAttribute, "ASC"]]] :
+        [...orderOptions, ...[[idAttribute, "DESC"]]];
+    }
+    return orderOptions;
+  }
+  /**
+   * reverseOrderConditions - reverse the order from ASC to DESC and the otherway around. Used for backward cursor-based Pagination.
+   * @param {array} order 
+   * 
+   * @returns {array} copy of the input array with reversed order fields.
+   */
+  module.exports.reverseOrderConditions = function(order){
+    if(order === undefined){
+      return;
+    }
+    reverseOrder = [];
+    reverseOrder = order.map(orderItem => {
+      return orderItem.order === "ASC" ? {field: orderItem.field, order: "DESC"} : {field: orderItem.field, order: "ASC"};
+    })
+    return reverseOrder;
+  }
+
+  
+
+  /**
+   * cursorPaginationArgumentsToSequelize - translate cursor based pagination object to the sequelize 'where' options.
+   * merge the original searchArguement ('where' options) and those needed for cursor-based pagination 
+   * @see parseOrderCursor
+   * 
+   * @param {object} pagination cursor-based pagination object
+   * @param {object} sequelizeOptions sequelize options object to extend
+   * @param {string} idAttribute idAttribute of the model
+   */
+  module.exports.cursorPaginationArgumentsToSequelize = function(pagination, sequelizeOptions, idAttribute) {
+    if (pagination) {
+      if (pagination.after || pagination.before){
+        let cursor = pagination.after ? pagination.after : pagination.before;
+        let decoded_cursor = JSON.parse(module.exports.base64Decode(cursor));
+        let sequelizePaginationWhereOptions = module.exports.parseOrderCursor(sequelizeOptions['order'], decoded_cursor, idAttribute, pagination.includeCursor); 
+        sequelizeOptions['where'] = this.mergeSequelizeWhereArguments(sequelizeOptions['where'], sequelizePaginationWhereOptions);
+      }
+    }
+  }
+  /**
+   * cursorPaginationArgumentsToSequelize - translate cursor based pagination object to zendro searchArgument.
+   * merge the original searchArguement and those needed for cursor-based pagination 
+   * @see parseOrderCursorGeneric
+   * 
+   * @param {object} search original search argument for filtering
+   * @param {object} pagination cursor-based pagination object
+   * @param {object} orderOptions zendro order 
+   * @param {string} idAttribute idAttribute of the model
+   */
+  module.exports.cursorPaginationArgumentsToGeneric = function(search, pagination, orderOptions, idAttribute) {
+    let paginationSearch = null;
+    if (pagination) {
+      if (pagination.after || pagination.before){
+        let cursor = pagination.after ? pagination.after : pagination.before;
+        let decoded_cursor = JSON.parse(module.exports.base64Decode(cursor));
+        paginationSearch = module.exports.parseOrderCursorGeneric(orderOptions, decoded_cursor, idAttribute, pagination.includeCursor);
+      }
+    }
+    return module.exports.mergeSearchArguments(paginationSearch, search, 'and');
+  }
+
+  /**
+   * buildLimitOffsetSequelizeOptions - builds the options object used by sequelize for limit-offset based pagination. 
+   * @param {object} search search argument for filtering records
+   * @param {array} order order array given in the graphQl query 
+   * @param {object} pagination cursor-based pagination object
+   * @param {string} idAttribute idAttribute of the model
+   * 
+   * @returns {object} options object consisting of 'where', 'order', 'limit' and 'offset' parameters
+   */
+  module.exports.buildLimitOffsetSequelizeOptions = function(search, order, pagination, idAttribute){
+    let options =  {};
+    options['where'] = module.exports.searchConditionsToSequelize(search);
+    options['order'] = module.exports.orderConditionsToSequelize(order, idAttribute, true);
+    if (pagination){
+      options['limit'] = pagination.limit ? pagination.limit : undefined;
+      options['offset'] = pagination.offset ? pagination.offset : undefined;
+    }
+    return options;
+  }
+
+  /**
+   * buildCursorBasedSequelizeOptions - builds the options object used by sequelize for cursor based pagination. 
+   * @param {object} search search argument for filtering records
+   * @param {array} order order array given in the graphQl query 
+   * @param {object} pagination cursor-based pagination object
+   * @param {string} idAttribute idAttribute of the model
+   * 
+   * @returns {object} options object consisting of 'where', 'order' and 'limit' parameters
+   */
+  module.exports.buildCursorBasedSequelizeOptions = function(search, order, pagination, idAttribute){
+    let options = {};
+    let isForwardPagination = module.exports.isForwardPagination(pagination);
+    // build the sequelize options object.
+    options['where'] = module.exports.searchConditionsToSequelize(search);
+    // depending on the direction build the order object
+    options['order'] = isForwardPagination ? module.exports.orderConditionsToSequelize(order, idAttribute, isForwardPagination) :
+      module.exports.orderConditionsToSequelize(module.exports.reverseOrderConditions(order), idAttribute, isForwardPagination);
+    // extend the where options for the given order and cursor
+    module.exports.cursorPaginationArgumentsToSequelize(pagination, options, idAttribute);
+    // add +1 to the LIMIT to get information about following pages.
+    options['limit'] = this.isNotUndefinedAndNotNull(pagination.first) ? pagination.first + 1 : this.isNotUndefinedAndNotNull(pagination.last) ? pagination.last + 1 : undefined;
+    return options;
+  }
+
+  /**
+   * buildCursorBasedGenericOptions - builds a generic options object used by a generic zendro readAll function for cursor based pagination.
+   * @param {object} search search argument for filtering records
+   * @param {array} order order array given in the graphQl query 
+   * @param {object} pagination cursor-based pagination object
+   * @param {string} idAttribute idAttribute of the model
+   * 
+   * @returns {object} generic options object with 'search', 'order', and 'pagination' which can be passed to any generic zendro readAll function.
+   */
+  module.exports.buildCursorBasedGenericOptions = function(search, order, pagination, idAttribute){
+    let genericOptions = {};
+    module.exports.checkSearchArgument(search);
+    let isForwardPagination = module.exports.isForwardPagination(pagination);
+    // build order array. For backwards pagination the order is reversed.
+    genericOptions['order'] = isForwardPagination ? order : module.exports.reverseOrderConditions(order);
+    genericOptions['order'] === undefined ? genericOptions['order'] = [] : genericOptions['order'];
+    // add the default ordering. ASC for forwad DESC for backward.
+    isForwardPagination ? genericOptions['order'].push({field: idAttribute, order: "ASC"}) : genericOptions['order'].push({field: idAttribute, order: "DESC"});
+    // build order object used by parseOrderCursorGeneric. This function needs the order object to be of the form [["id","ASC"], ["name","DESC"], ...]
+    genericOptions['sequelizeOrder'] = module.exports.orderConditionsToSequelize(genericOptions['order'], idAttribute, isForwardPagination);
+    // extend the zendro searchArgument to contain the given search Argument and the search needed for cursor-based pagination
+    genericOptions['search'] = module.exports.cursorPaginationArgumentsToGeneric(search, pagination, genericOptions['sequelizeOrder'], idAttribute);
+    // add +1 to the LIMIT to get information about following pages.
+    genericOptions['pagination'] = this.isNotUndefinedAndNotNull(pagination.first) ? {limit: pagination.first + 1} : this.isNotUndefinedAndNotNull(pagination.last) ? {limit: pagination.last + 1} : undefined;
+    return genericOptions;
+  }
+
+  /**
+   * reversePaginationArgument -  swaps pagination.after and pagination before. Removes the given Limit and sets it to 0 (Limit will be +1 in the query)
+   * This function is used to build the reverse search in the opposite direction to determine wether a next/previous page exists.
+   * @param {object} pagination cursor-based pagination object
+   * 
+   * @returns {object} returns a copy of the original pagination Input with reverse cursors.
+   */
+  module.exports.reversePaginationArgument = function(pagination){
+    let isForwardPagination = module.exports.isForwardPagination(pagination);
+    // copy pagination object
+    let oppPagination = Object.assign({},pagination)
+    // swap before and after. delete first / last and set the other one to 0.
+    if(isForwardPagination){
+      oppPagination.before = oppPagination.after
+      // 0 because limit will be + 1;
+      oppPagination.last = 0;
+      delete oppPagination.after;
+      delete oppPagination.first;
+    } else {
+      oppPagination.after = oppPagination.before
+      oppPagination.first = 0; 
+      delete oppPagination.before;
+      delete oppPagination.last;
+    }
+    return oppPagination;
+  }
+
+  /**
+   * buildOppositeSearch - build the Search in the opposite direction to determine wether a previous page (in forward pagination) or
+   * a next page (in backward pagination) exists.
+   * @param {object} search search argument for filtering records
+   * @param {array} order order array given in the graphQl query 
+   * @param {object} pagination cursor-based pagination object
+   * @param {string} idAttribute idAttribute of the model
+   * 
+   * @returns {object} options object with reversed search options, LIMIT 1 and no ordering, used by sequelize to execute the database query.
+   */
+  module.exports.buildOppositeSearchSequelize = function(search, order, pagination, idAttribute){
+    // reverse the pagination Arguement. after -> before; set first/last to 0, so LIMIT 1 is executed in the reverse Search
+    let oppPagination = module.exports.reversePaginationArgument(pagination);
+    // build the sequelize options object to execute the correct query
+    let oppOptions = module.exports.buildCursorBasedSequelizeOptions(search, order, oppPagination, idAttribute);
+    // order is not needed since we only need to know if at least 1 record exists.
+    oppOptions['order'] = [];
+    return oppOptions;
+  }
+
+  module.exports.buildOppositeSearchGeneric = function(search, order, pagination, idAttribute){
+    // reverse the pagination Arguement. after -> before; set first/last to 0, so LIMIT 1 is executed in the reverse Search
+    let oppPagination = module.exports.reversePaginationArgument(pagination);
+    // build the sequelize options object to execute the correct query
+    let oppOptions = module.exports.buildCursorBasedGenericOptions(search, order, oppPagination, idAttribute);
+    // order is not needed since we only need to know if at least 1 record exists.
+    oppOptions['order'] = [];
+    return oppOptions;
+  }
+
+
+  /**
+   * buildPageInfo - build the pageInfo object expected in a GraphQl Connection. Depending on the direction of the search Information about
+   * previous and next page is calculated. Uses the records received from the standard search (with LIMIT + 1) and the search
+   * in the opposite direction (with LIMIT 1).
+   * @param {array} edges Array of GraphQl edges ({node, cursor})
+   * @param {array} oppRecords Array of Records received from the reverse search. 
+   * @param {object} pagination pagination Object. This object will include 'first' or 'last' properties to indicate the number of records to fetch,
+   *  and 'after' or 'before' cursors to indicate from which record to start fetching.
+   * @returns {object} returns the pageInfo object consisting of 'hasPreviousPage', 'hasNextPage', 'startCursor' and 'endCursor'
+   */
+  module.exports.buildPageInfo = function(edges, oppRecords, pagination){
+    //default
+    let pageInfo = {
+      hasPreviousPage: false,
+      hasNextPage: false,
+      startCursor: null,
+      endCursor: null
+    }
+    
+    let isForwardPagination = module.exports.isForwardPagination(pagination);
+    if (isForwardPagination) {
+      let hasNextPage = (pagination && pagination.first ? (edges.length > pagination.first)  : false);
+      // pop last edge if hasNextPage. It is only used to determine if a next page exists.
+      if (hasNextPage){edges.pop()};
+      pageInfo = {
+        hasPreviousPage: (oppRecords.length > 0) ? true: false,
+        hasNextPage: hasNextPage,
+        startCursor: (edges.length > 0) ? edges[0].cursor : null,
+        endCursor: (edges.length > 0) ? edges[edges.length - 1].cursor : null
+      }
+    } else { //backward
+      let hasPreviousPage = (pagination && pagination.last ? (edges.length > pagination.last)  : false);
+      // pop last edge if hasPreviousPage. It is only used to determine if a next page exists.
+      if (hasPreviousPage){edges.pop()};
+      // reverse edges for correct output order
+      edges = edges.reverse();
+      pageInfo = {
+          hasPreviousPage: hasPreviousPage,
+          hasNextPage: (oppRecords.length > 0) ? true: false,
+          startCursor: (edges.length > 0) ? edges[0].cursor : null,
+          endCursor: (edges.length > 0) ? edges[edges.length - 1].cursor : null
+      }
+    }
+    return pageInfo;
+  }
+
+  
+  /**
+   * buildEdgeObject - builds the edge object expected in a GraphQL Connection from an array of records. The edge object consists
+   * of the record itself and its base64 encoded String as cursor.
+   * @param {array} records array of records to convert
+   * @returns {object} GraphQl Connection object 
+   */
+  module.exports.buildEdgeObject = function(records){
+    let edges = [];
+    if (records.length > 0) {
+      edges = records.map(record => {
+        return {
+          node: record,
+          cursor: record.base64Enconde()
+        }
+      });
+    }
+    return edges;
+  }
