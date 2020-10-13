@@ -1605,6 +1605,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    */
   module.exports.unionIds = function( ids, ids_to_add){
     if( module.exports.isNonEmptyArray(ids)){
+      ids = ids.map( id => String(id) );
       return Array.from(new Set( [...ids, ...ids_to_add] ) );
     }
     return  Array.from(new Set(ids_to_add));
@@ -1620,6 +1621,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
    */
   module.exports.differenceIds = function(ids, ids_to_remove){
     if( module.exports.isNonEmptyArray(ids)){
+        ids = ids.map( id => String(id) );
         return ids.filter(id => !ids_to_remove.includes(id));
     }
     return ids;
