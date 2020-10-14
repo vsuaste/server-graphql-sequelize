@@ -43,7 +43,7 @@ if (process.argv.length > 2 && process.argv[2] == 'acl') {
   let {
     aclRules
   } = require('./acl_rules');
-  let acl = new node_acl(new node_acl.memoryBackend());
+  acl = new node_acl(new node_acl.memoryBackend());
 
   /* set authorization rules from file acl_rules.js */
   acl.allow(aclRules);
