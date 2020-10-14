@@ -26,12 +26,7 @@ const app = express();
 app.use((req, res, next) => {
   // Website you wish to allow to connect
   if (globals.REQUIRE_SIGN_IN) {
-    if(global.ALLOW_ORIGIN) {
-      globals.ALLOW_ORIGIN.split(',').forEach(origin => {
-        console.log("Allow origin: ", origin);
-        res.setHeader('Access-Control-Allow-Origin', origin);
-      });
-    }
+    res.setHeader('Access-Control-Allow-Origin', globals.ALLOW_ORIGIN);
   }
   next();
 });
