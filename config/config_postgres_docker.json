@@ -4,23 +4,20 @@
     "password": "sciencedb",
     "database": "sciencedb_development",
     "host": "sdb_postgres",
-    "dialect": "postgres",
-    "operatorsAliases": false
+    "dialect": "postgres"
   },
   "test": {
     "username": "sciencedb",
     "password": "sciencedb",
     "database": "sciencedb_test",
     "host": "sdb_postgres",
-    "dialect": "postgres",
-    "operatorsAliases": false
+    "dialect": "postgres"
   },
   "production": {
     "username": "sciencedb",
     "password": "sciencedb",
     "database": "sciencedb_production",
     "host": "sdb_postgres",
-    "dialect": "postgres",
-    "operatorsAliases": false
+    "dialect": "postgres"
   }
 }
