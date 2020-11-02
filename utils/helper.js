@@ -2037,3 +2037,13 @@ module.exports.vueTable = function(req, model, strAttributes) {
     }
     return edges;
   }
+
+  /**
+   * copyWithoutUnsetAttributes - Copy the attributes of a given object into a new object, leaving out all attributes
+   * that are *null*. This can be useful when *Object.keys* or *Object.values* has to be used on an argument object and not all
+   * attributes of this object are mandatory.
+   * @param {Object} obj  The object which attributes are to be copied
+   */
+  module.exports.copyWithoutUnsetAttributes = function(obj) {
+    return Object.fromEntries(Object.entries(obj).filter(entry => module.exports.isNotUndefinedAndNotNull(entry[1])));
+  }
