@@ -127,3 +127,19 @@ getModulesSync(__dirname + "/distributed").forEach(file => {
   models[model.name] = model;
 
 });
+
+// ****************************************************************************
+// IMPORT CASSANDRA MODELS
+getModulesSync(__dirname + "/cassandra").forEach(file => {
+  
+    console.log("loaded model: " + file);
+    let model = require(`./${path.join("./cassandra", file)}`)
+    
+    //setup storageHandler
+    getAndConnectDataModelClass(cassandraClient);
+
+    if(model.name in models)
+        throw Error(`Duplicated model name ${model.name}`);
+
+    models[model.name] = model;
+});

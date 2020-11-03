@@ -2,7 +2,7 @@ const { existsSync }     = require('fs');
 const { join }           = require('path');
 const { Sequelize }      = require('sequelize');
 const { getModulesSync } = require('../../utils/module-helpers');
-const { getConnection, ConnectionError, getAndConnectDataModelClass }  = require('../../connection');
+const { getConnection, ConnectionError, getAndConnectDataModelClass, cassandraClient }  = require('../../connection');
 
 let adapters = {};
 module.exports = adapters;
@@ -29,6 +29,13 @@ getModulesSync(__dirname).forEach(file => {
       // setup storageHandler
       getAndConnectDataModelClass(adapter, connection);
       adapters[adapter.adapterName] = adapter.init(connection, Sequelize);
+      break;
+
+    case 'cassandra-adapter':
+      // setup storageHandler
+      getAndConnectDataModelClass(adapter, cassandraClient);
+      
+      adapters[adapter.adapterName] = adapter;
       break;
 
     case 'default':

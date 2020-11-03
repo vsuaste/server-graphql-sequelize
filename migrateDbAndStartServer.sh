@@ -13,6 +13,19 @@ do
 done
 
 
+# Wait until the cassandra database-server up and running
+waitedCassandra=0
+until node ./scripts/testCassandraServerAvailable.js
+do
+	if [ $waitedCassandra == 240 ]; then
+		echo -e '\nERROR: Time out reached while waiting for cassandra database server to be available.\n'
+		exit 1
+	fi
+	sleep 2
+	waitedCassandra=$(expr $waitedCassandra + 2)
+done
+
+
 # Read config and migrate/seed databases
 CONFIG="./config/data_models_storage_config.json"
 SEQUELIZE="./node_modules/.bin/sequelize"
@@ -55,6 +68,11 @@ for object in ${DB_KEYS[@]}; do
 
 done
 
+
+# Migrate the Cassandra database
+node ./scripts/setup_cassandra_db.js
+
+echo -e 'Cassandra is migrated.\n'
 
 # Start GraphQL-server
 npm start # acl
