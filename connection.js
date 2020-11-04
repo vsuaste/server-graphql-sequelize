@@ -24,11 +24,37 @@ storageConfig.operatorsAliases = {
 };
 
 /**
+ * setup the cassandraClient
+ */
+function setupCassandraDriver() {
+  let cassandraConfig = storageConfig["default-cassandra"];
+  // set up logging of requests
+  let requestTracker = new cassandraDriver.tracker.RequestLogger({ slowThreshold: 1000, logNormalRequests:true, logErroredRequests:true });
+  requestTracker.emitter.on('normal', message => console.log(message));
+  requestTracker.emitter.on('slow', message => console.log(message));
+  requestTracker.emitter.on('failure', message => console.log(message));
+  requestTracker.emitter.on('large', message => console.log(message));
+  // set up new cassandra client as configurated in 'default-cassandra'
+  return new cassandraDriver.Client({
+    contactPoints: [cassandraConfig.host],
+    localDataCenter: 'datacenter1',
+    keyspace: cassandraConfig.keyspace,
+    protocolOptions: {
+        port: cassandraConfig.port
+    },
+    requestTracker: requestTracker
+  });
+}
+
+const cassandraClient = setupCassandraDriver();
+
+
+/**
  * Stored connection instances. Only sequelize for now.
  */
 const connectionInstances = Object.keys(storageConfig).reduce(
 
-  // Reducer function to add only "sql"-type of connections
+  // Reducer function to add connections, depending on the storageType
   (acc, key) => {
     let storageType = storageConfig[key].storageType;
     if (
@@ -36,12 +62,13 @@ const connectionInstances = Object.keys(storageConfig).reduce(
       key !== 'operatorsAliases' &&
       storageType === 'sql'
     ) {
-      acc.set(key, {storageType, connection: new Sequelize(storageConfig[key])})
+      acc.set(key, {storageType, connection: new Sequelize(storageConfig[key])});
     } else if (
       storageConfig.hasOwnProperty(key) &&
+      key !== 'operatorsAliases' &&
       storageType === 'cassandra'
     ) {
-      acc.set(key, {storageType, connection: this.cassandraClient});
+      acc.set(key, {storageType, connection: cassandraClient});
     }
     return acc;
   },
@@ -84,8 +111,7 @@ exports.checkConnections = async () => {
  * @returns A configured connection instance
  */
 exports.getConnection = (key) => {
-
-  return connectionInstances.get(key);
+  return connectionInstances.get(key).connection;
 }
 
 exports.ConnectionError = class ConnectionError extends Error {
@@ -105,27 +131,6 @@ exports.ConnectionError = class ConnectionError extends Error {
   }
 }
 
-
-/**
- * setup the cassandraClient
- */
-const cassandraConfig = storageConfig["default-cassandra"];
-// set up logging of requests
-const requestTracker = new cassandraDriver.tracker.RequestLogger({ slowThreshold: 1000, logNormalRequests:true, logErroredRequests:true });
-requestTracker.emitter.on('normal', message => console.log(message));
-requestTracker.emitter.on('slow', message => console.log(message));
-requestTracker.emitter.on('failure', message => console.log(message));
-requestTracker.emitter.on('large', message => console.log(message));
-// set up new cassandra client as configurated in 'default-cassandra'
-exports.cassandraClient = new cassandraDriver.Client({
-  contactPoints: [cassandraConfig.host],
-  localDataCenter: 'datacenter1',
-  keyspace: cassandraConfig.keyspace,
-  protocolOptions: {
-      port: cassandraConfig.port
-  },
-  requestTracker: requestTracker
-});
 
 /**
  * Add connection as a static property of the data model class.

@@ -135,8 +135,11 @@ getModulesSync(__dirname + "/cassandra").forEach(file => {
     console.log("loaded model: " + file);
     let model = require(`./${path.join("./cassandra", file)}`)
     
+    const connection = getConnection('default-cassandra');
+    if (!connection) throw new ConnectionError(modelFile.definition);
+    
     //setup storageHandler
-    getAndConnectDataModelClass(cassandraClient);
+    getAndConnectDataModelClass(model, connection);
 
     if(model.name in models)
         throw Error(`Duplicated model name ${model.name}`);
