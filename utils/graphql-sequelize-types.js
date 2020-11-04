@@ -12,5 +12,10 @@ module.exports = {
   "Time": "TIME",
   "DateTime": "DATE",
   "[String]": "TEXT",
-  "[Int]": "TEXT"
+  "[Int]": "TEXT",
+  "[Float]": "TEXT",
+  "[Boolean]": "TEXT",
+  "[Date]": "TEXT",
+  "[Time]": "TEXT",
+  "[DateTime]": "TEXT"
 }
