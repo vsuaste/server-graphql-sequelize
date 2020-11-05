@@ -1951,11 +1951,11 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * 
    * @returns {object} options object with reversed search options, LIMIT 1 and no ordering, used by sequelize to execute the database query.
    */
-  module.exports.buildOppositeSearchSequelize = function(search, order, pagination, idAttribute){
+  module.exports.buildOppositeSearchSequelize = function(search, order, pagination, idAttribute, dataModelDefinition){
     // reverse the pagination Arguement. after -> before; set first/last to 0, so LIMIT 1 is executed in the reverse Search
     let oppPagination = module.exports.reversePaginationArgument(pagination);
     // build the sequelize options object to execute the correct query
-    let oppOptions = module.exports.buildCursorBasedSequelizeOptions(search, order, oppPagination, idAttribute);
+    let oppOptions = module.exports.buildCursorBasedSequelizeOptions(search, order, oppPagination, idAttribute, dataModelDefinition);
     // order is not needed since we only need to know if at least 1 record exists.
     oppOptions['order'] = [];
     return oppOptions;
