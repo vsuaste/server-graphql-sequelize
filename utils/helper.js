@@ -1751,12 +1751,12 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * 
    * @return {object} sequelize 'where' options
    */
-  module.exports.searchConditionsToSequelize = function(search){
+  module.exports.searchConditionsToSequelize = function(search, dataModelDefinition){
     let whereOptions = {};
     if(search !== undefined && search !== null){
       if(typeof search !== 'object') throw new Error('Illegal "search" argument type, it must be an object.');
       let arg = new searchArg(search);
-      whereOptions = arg.toSequelize();
+      whereOptions = arg.toSequelize(dataModelDefinition);
     }
     return whereOptions;
   }
@@ -1852,9 +1852,9 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * 
    * @returns {object} options object consisting of 'where', 'order', 'limit' and 'offset' parameters
    */
-  module.exports.buildLimitOffsetSequelizeOptions = function(search, order, pagination, idAttribute){
+  module.exports.buildLimitOffsetSequelizeOptions = function(search, order, pagination, idAttribute, dataModelDefinition){
     let options =  {};
-    options['where'] = module.exports.searchConditionsToSequelize(search);
+    options['where'] = module.exports.searchConditionsToSequelize(search, dataModelDefinition);
     options['order'] = module.exports.orderConditionsToSequelize(order, idAttribute, true);
     if (pagination){
       options['limit'] = pagination.limit ? pagination.limit : undefined;
@@ -1872,11 +1872,11 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * 
    * @returns {object} options object consisting of 'where', 'order' and 'limit' parameters
    */
-  module.exports.buildCursorBasedSequelizeOptions = function(search, order, pagination, idAttribute){
+  module.exports.buildCursorBasedSequelizeOptions = function(search, order, pagination, idAttribute, dataModelDefinition){
     let options = {};
     let isForwardPagination = module.exports.isForwardPagination(pagination);
     // build the sequelize options object.
-    options['where'] = module.exports.searchConditionsToSequelize(search);
+    options['where'] = module.exports.searchConditionsToSequelize(search, dataModelDefinition);
     // depending on the direction build the order object
     options['order'] = isForwardPagination ? module.exports.orderConditionsToSequelize(order, idAttribute, isForwardPagination) :
       module.exports.orderConditionsToSequelize(module.exports.reverseOrderConditions(order), idAttribute, isForwardPagination);
