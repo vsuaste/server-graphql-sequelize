@@ -61,7 +61,8 @@ module.exports = class search{
 
     } else if(this.search === undefined){
       const strType = ['String', 'Time', 'DateTime', 'Date']
-      if (dataModelDefinition[this.field].replace(/\s+/g, '')[0]==='[' && this.operator === 'in'){
+      arrayType = (dataModelDefinition[this.field]!=undefined && dataModelDefinition[this.field].replace(/\s+/g, '')[0]==='[')
+      if ( arrayType && this.operator === 'in'){
         let pattern = null
         if (strType.includes(dataModelDefinition[this.field].replace(/\s+/g, '').slice(1, -1))){
           this.value = '"'+this.value+'"' 
@@ -73,7 +74,7 @@ module.exports = class search{
         searchsInSequelize[this.field] = {
           [Op.or] : pattern
         };
-      } else if (dataModelDefinition[this.field].replace(/\s+/g, '')[0]==='[' && this.operator === 'notIn'){
+      } else if (arrayType && this.operator === 'notIn'){
         let pattern = null
         if (strType.includes(dataModelDefinition[this.field].replace(/\s+/g, '').slice(1, -1))){
           this.value = '"'+this.value+'"' 
