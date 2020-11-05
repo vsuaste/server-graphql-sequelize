@@ -61,7 +61,7 @@ module.exports = class search{
 
     } else if(this.search === undefined){
       const strType = ['String', 'Time', 'DateTime', 'Date']
-      arrayType = (dataModelDefinition[this.field]!=undefined && dataModelDefinition[this.field].replace(/\s+/g, '')[0]==='[')
+      let arrayType = (dataModelDefinition[this.field]!=undefined && dataModelDefinition[this.field].replace(/\s+/g, '')[0]==='[')
       if ( arrayType && this.operator === 'in'){
         let pattern = null
         if (strType.includes(dataModelDefinition[this.field].replace(/\s+/g, '').slice(1, -1))){
