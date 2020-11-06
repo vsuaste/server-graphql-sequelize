@@ -10,5 +10,12 @@ module.exports = {
   "Boolean": 'BOOLEAN',
   "Date": "DATEONLY",
   "Time": "TIME",
-  "DateTime": "DATE"
+  "DateTime": "DATE",
+  "[String]": "TEXT",
+  "[Int]": "TEXT",
+  "[Float]": "TEXT",
+  "[Boolean]": "TEXT",
+  "[Date]": "TEXT",
+  "[Time]": "TEXT",
+  "[DateTime]": "TEXT"
 }
