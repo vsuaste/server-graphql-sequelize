@@ -73,9 +73,42 @@ module.exports = class user extends Sequelize.Model {
         });
     }
 
+    /**
+     * Get the storage handler, which is a static property of the data model class.
+     * @returns sequelize.
+     */
     get storageHandler() {
-        // return sequelize as storageHandler
         return this.sequelize;
+    }
+
+    /**
+      * Cast array to JSON string for the storage.
+      * @param  {object} record  Original data record.
+      * @return {object}         Record with JSON string if necessary.
+      */
+    static preWriteCast(record){
+        for(let attr in definition.attributes){
+            let type = definition.attributes[ attr ].replace(/\s+/g, '');
+            if(type[0]==='[' && record[ attr ]!== undefined && record[ attr ]!== null){
+                record[ attr ] = JSON.stringify(record[attr]);
+            }
+        }
+        return record;
+    }
+
+    /**
+     * Cast JSON string to array for the validation.
+     * @param  {object} record  Record with JSON string if necessary.
+     * @return {object}         Parsed data record.
+     */
+    static postReadCast(record){
+        for(let attr in definition.attributes){
+            let type = definition.attributes[ attr ].replace(/\s+/g, '');
+            if(type[0]==='[' && record[attr] !== undefined && record[ attr ]!== null){
+                record[ attr ] = JSON.parse(record[attr]);
+            }
+        }
+        return record;
     }
 
     static associate(models) {
@@ -92,12 +125,13 @@ module.exports = class user extends Sequelize.Model {
         if (item === null) {
             throw new Error(`Record with ID = "${id}" does not exist`);
         }
+        item = user.postReadCast(item)
         return validatorUtil.validateData('validateAfterRead', this, item);
     }
 
     static async countRecords(search) {
         let options = {}
-        options['where'] = helper.searchConditionsToSequelize(search);
+        options['where'] = helper.searchConditionsToSequelize(search, user.definition.attributes);
         return super.count(options);
     }
 
@@ -105,8 +139,10 @@ module.exports = class user extends Sequelize.Model {
         //use default BenignErrorReporter if no BenignErrorReporter defined
         benignErrorReporter = errorHelper.getDefaultBenignErrorReporterIfUndef(benignErrorReporter);
         // build the sequelize options object for limit-offset-based pagination
-        let options = helper.buildLimitOffsetSequelizeOptions(search, order, pagination, this.idAttribute());
+        let options = helper.buildLimitOffsetSequelizeOptions(search, order, pagination, 
+            this.idAttribute(), user.definition.attributes);
         let records = await super.findAll(options);
+        records = records.map(x => user.postReadCast(x))
         // validationCheck after read
         return validatorUtil.bulkValidateData('validateAfterRead', this, records, benignErrorReporter);
     }
@@ -116,15 +152,20 @@ module.exports = class user extends Sequelize.Model {
         benignErrorReporter = errorHelper.getDefaultBenignErrorReporterIfUndef(benignErrorReporter);
 
         // build the sequelize options object for cursor-based pagination
-        let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, this.idAttribute());
+        let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, 
+            this.idAttribute(), user.definition.attributes);
         let records = await super.findAll(options);
+
+        records = records.map(x => user.postReadCast(x))
         // validationCheck after read
         records = await validatorUtil.bulkValidateData('validateAfterRead', this, records, benignErrorReporter);
         // get the first record (if exists) in the opposite direction to determine pageInfo.
         // if no cursor was given there is no need for an extra query as the results will start at the first (or last) page.
         let oppRecords = [];
         if (pagination && (pagination.after || pagination.before)) {
-            let oppOptions = helper.buildOppositeSearchSequelize(search, order, {...pagination, includeCursor: false}, this.idAttribute());
+            let oppOptions = helper.buildOppositeSearchSequelize(search, order, 
+                {...pagination, includeCursor: false}, 
+                this.idAttribute(), user.definition.attributes);
             oppRecords = await super.findAll(oppOptions);
         }
         // build the graphql Connection Object
@@ -139,6 +180,7 @@ module.exports = class user extends Sequelize.Model {
     static async addOne(input) {
         //validate input
         await validatorUtil.validateData('validateForCreate', this, input);
+        input = user.preWriteCast(input)
         try {
             let hash = await bcrypt.hash(input.password, globals.SALT_ROUNDS);
             input.password = hash;
@@ -148,6 +190,8 @@ module.exports = class user extends Sequelize.Model {
                 });
                 return item;
             });
+            user.postReadCast(result.dataValues)
+            user.postReadCast(result._previousDataValues)
             return result;
         } catch (error) {
             throw error;
@@ -173,6 +217,7 @@ module.exports = class user extends Sequelize.Model {
     static async updateOne(input) {
         //validate input
         await validatorUtil.validateData('validateForUpdate', this, input);
+        input = user.preWriteCast(input)
         try {
             //check if password wants to be updated:
             if(input.password !== undefined){
@@ -189,6 +234,8 @@ module.exports = class user extends Sequelize.Model {
                 });
                 return updated;
             });
+            user.postReadCast(result[1][0].dataValues)
+            user.postReadCast(result[1][0]._previousDataValues)
             if (result[0] === 0) {
                 throw new Error(`Record with ID = ${input[this.idAttribute()]} does not exist`);
             }
@@ -273,7 +320,8 @@ module.exports = class user extends Sequelize.Model {
         pagination
     }) {
         // build the sequelize options object for limit-offset-based pagination
-        let options = helper.buildLimitOffsetSequelizeOptions(search, order, pagination, models.role.idAttribute());
+        let options = helper.buildLimitOffsetSequelizeOptions(search, order, pagination, 
+            models.role.idAttribute(), models.role.definition.attributes);
         return this.getRoles(options);
     }
 
@@ -284,13 +332,16 @@ module.exports = class user extends Sequelize.Model {
         pagination
     }) {
         // build the sequelize options object for cursor-based pagination
-        let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, models.role.idAttribute());
+        let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, 
+            models.role.idAttribute(), models.role.definition.attributes);
         let records = await this.getRoles(options);
         // get the first record (if exists) in the opposite direction to determine pageInfo.
         // if no cursor was given there is no need for an extra query as the results will start at the first (or last) page.
         let oppRecords = [];
         if (pagination && (pagination.after || pagination.before)) {
-            let oppOptions = helper.buildOppositeSearchSequelize(search, order, {...pagination, includeCursor: false}, models.role.idAttribute());
+            let oppOptions = helper.buildOppositeSearchSequelize(search, order, 
+                {...pagination, includeCursor: false}, 
+                models.role.idAttribute(), models.role.definition.attributes);
             oppRecords = await this.getRoles(oppOptions);
         }
         // build the graphql Connection Object
@@ -306,7 +357,7 @@ module.exports = class user extends Sequelize.Model {
         search
     }) {
         let options = {}
-        options['where'] = helper.searchConditionsToSequelize(search);
+        options['where'] = helper.searchConditionsToSequelize(search, models.role.definition.attributes);
         return this.countRoles(options);
     }
 
