@@ -159,3 +159,25 @@ module.exports.addDateTimeAjvKeywords = function(ajv) {
 
   return ajv
 }
+
+/**
+ * Adds AJV asynchronous keyword to the custom validation function 
+ *
+ * @param {object} ajv - An instance of AJV (see package 'ajv' for details).
+ *
+ * @return {object} the modified instance of ajv. As Javascript uses references
+ * this return value can be ignored, as long as the original argument is kept
+ * and used.
+ */
+module.exports.addValidatorFunc = function addValFuncKeyword(ajv) {
+  ajv.addKeyword('asyncValidatorFunction', {
+    async: true,
+    errors: 'full',
+    compile: function(schema, parentSchema) {
+      return async function(data) {
+        return await schema(data)
+      }
+    }
+  })
+  return ajv
+}
