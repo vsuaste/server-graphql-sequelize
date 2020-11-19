@@ -133,7 +133,7 @@ getModulesSync(__dirname + "/distributed").forEach(file => {
 getModulesSync(__dirname + "/cassandra").forEach(file => {
   
     console.log("loaded model: " + file);
-    let model = require(`./${path.join("./cassandra", file)}`)
+    let model = require(`./${join("./cassandra", file)}`)
     
     const connection = getConnection('default-cassandra');
     if (!connection) throw new ConnectionError(modelFile.definition);

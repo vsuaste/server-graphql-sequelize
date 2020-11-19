@@ -46,7 +46,7 @@ function setupCassandraDriver() {
   });
 }
 
-const cassandraClient = setupCassandraDriver();
+// const cassandraClient = setupCassandraDriver();
 
 
 /**
@@ -68,7 +68,7 @@ const connectionInstances = Object.keys(storageConfig).reduce(
       key !== 'operatorsAliases' &&
       storageType === 'cassandra'
     ) {
-      acc.set(key, {storageType, connection: cassandraClient});
+      acc.set(key, {storageType, connection: setupCassandraDriver()});
     }
     return acc;
   },

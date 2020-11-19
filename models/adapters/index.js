@@ -32,7 +32,7 @@ getModulesSync(__dirname).forEach(file => {
       break;
 
     case 'cassandra-adapter':
-      const connection = getConnection('default-cassandra');
+      connection = getConnection('default-cassandra');
       if (!connection) throw new ConnectionError(adapter.definition);
       // setup storageHandler
       getAndConnectDataModelClass(adapter, connection);
