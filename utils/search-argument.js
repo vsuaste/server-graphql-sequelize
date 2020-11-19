@@ -49,7 +49,7 @@ module.exports = class search{
    *
    * @return {object}  Translated search instance into sequelize object format.
    */
-  toSequelize(){
+  toSequelize(dataModelDefinition){
     let searchsInSequelize = {};
 
     if((this.operator === undefined || (this.value === undefined && this.search === undefined))){
@@ -59,22 +59,50 @@ module.exports = class search{
     } else if(this.search === undefined && this.field === undefined){
       searchsInSequelize[Op[this.operator]] = this.value;
 
-    }else if(this.search === undefined){
-      searchsInSequelize[this.field] = {
-         [Op[this.operator]] : this.value
-      };
+    } else if(this.search === undefined){
+      const strType = ['String', 'Time', 'DateTime', 'Date']
+      let arrayType = (dataModelDefinition[this.field]!=undefined && dataModelDefinition[this.field].replace(/\s+/g, '')[0]==='[')
+      if ( arrayType && this.operator === 'in'){
+        let pattern = null
+        if (strType.includes(dataModelDefinition[this.field].replace(/\s+/g, '').slice(1, -1))){
+          this.value = '"'+this.value+'"' 
+        } 
+        pattern = [ '['+this.value+',%', '%,'+this.value+',%', '%,'+this.value+']'].map((item) => {
+            return {[Op.like] : item};
+          }); 
+        pattern.push({[Op.eq] : '['+this.value+']'})       
+        searchsInSequelize[this.field] = {
+          [Op.or] : pattern
+        };
+      } else if (arrayType && this.operator === 'notIn'){
+        let pattern = null
+        if (strType.includes(dataModelDefinition[this.field].replace(/\s+/g, '').slice(1, -1))){
+          this.value = '"'+this.value+'"' 
+        } 
+        pattern = [ '['+this.value+',%', '%,'+this.value+',%', '%,'+this.value+']'].map((item) => {
+          return {[Op.notLike] : item};
+        }); 
+        pattern.push({[Op.ne] : '['+this.value+']'})
+        searchsInSequelize[this.field] = {
+          [Op.and] : pattern
+        };
+      } else {
+        searchsInSequelize[this.field] = {
+          [Op[this.operator]] : this.value
+        };
+      }
 
     }else if(this.field === undefined){
       searchsInSequelize[Op[this.operator]] = this.search.map(sa => {
         let new_sa = new search(sa);
-        return new_sa.toSequelize();
+        return new_sa.toSequelize(dataModelDefinition);
       });
 
     }else{
        searchsInSequelize[this.field] = {
          [Op[this.operator]] : this.search.map(sa => {
            let new_sa = new search(sa);
-           return new_sa.toSequelize();
+           return new_sa.toSequelize(dataModelDefinition);
          })
        }
     }
