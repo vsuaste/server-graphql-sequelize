@@ -1,14 +1,15 @@
 const {  getModulesSync } = require('../utils/module-helpers');
 const {  getConnection, ConnectionError } = require('../connection');
-
+const { join } = require('path');
 // get the default cassandra client
 const cassandraClient = getConnection("default-cassandra");
 if (!cassandraClient) throw new ConnectionError(adapter.definition);
 
 // require all cassandra migrations
-const migrations_cassandra = {};
-getModulesSync(__dirname, +"../migrations/default-cassandra").forEach(file => {
-  let migration = require('./' + file);
+let migrations_cassandra = {};
+const migrationPath = "../migrations/default-cassandra"
+getModulesSync(join(__dirname, migrationPath)).forEach(file => {
+  let migration = require(`${join(migrationPath, file)}`);
   migrations_cassandra[file.slice(0,file.length -3)] = migration
 });
 
