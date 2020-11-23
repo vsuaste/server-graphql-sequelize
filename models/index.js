@@ -9,6 +9,8 @@ const { getModulesSync } = require('../utils/module-helpers');
 var models = {};
 module.exports = models;
 
+let connection;
+
 // ****************************************************************************
 // IMPORT SEQUELIZE MODELS
 
@@ -21,7 +23,7 @@ getModulesSync(__dirname + "/sql").forEach(file => {
   let modelFile = require(join(__dirname,'sql', file));
 
   const { database } = modelFile.definition;
-  const connection = getConnection(database || 'default-sql');
+  connection = getConnection(database || 'default-sql');
   if (!connection) throw new ConnectionError(modelFile.definition);
 
   // setup storageHandler
@@ -135,7 +137,7 @@ getModulesSync(__dirname + "/cassandra").forEach(file => {
     console.log("loaded model: " + file);
     let model = require(`./${join("./cassandra", file)}`)
     
-    const connection = getConnection('default-cassandra');
+    connection = getConnection('default-cassandra');
     if (!connection) throw new ConnectionError(modelFile.definition);
     
     //setup storageHandler

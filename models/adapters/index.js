@@ -6,7 +6,7 @@ const { getConnection, ConnectionError, getAndConnectDataModelClass }  = require
 
 let adapters = {};
 module.exports = adapters;
-
+let connection;
 getModulesSync(__dirname).forEach(file => {
 
   let adapter = require(join(__dirname, file));
@@ -24,7 +24,7 @@ getModulesSync(__dirname).forEach(file => {
 
     case 'sql-adapter':
       const { database } = adapter.definition;
-      const connection = getConnection(database || 'default-sql');
+      connection = getConnection(database || 'default-sql');
       if (!connection) throw new ConnectionError(adapter.definition);
       // setup storageHandler
       getAndConnectDataModelClass(adapter, connection);
