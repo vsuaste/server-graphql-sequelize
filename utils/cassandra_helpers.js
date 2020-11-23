@@ -1,6 +1,7 @@
 
 const _ = require('lodash');
-const helper = require('./helper');
+const { isNotUndefinedAndNotNull, base64Decode } = require('./helper');
+const searchArg = require('./search-argument');
 
 /**
  * order records records recieved from multiple cassandra-adapters. ordering by token
@@ -12,44 +13,48 @@ module.exports.orderCassandraRecords = function(matchingRecords) {
 
 /**
  * 
- * @param {*} search 
- * @param {*} allowFiltering 
+ * @param {object} search zendro search
+ * @param {object} definition definition as specified in the model
+ * @param {boolean} allowFiltering set cql allowFiltering
+ * 
+ * @returns {string} cql WHERE ... string
  */
-module.exports.searchConditionsToCassandra = function(search, allowFiltering){
+module.exports.searchConditionsToCassandra = function(search, definition, allowFiltering){
 
   let whereOptions = '';
   if (search !== undefined && search !== null) {    
-    if (typeof searchTerms !== 'object') {
+    if (typeof search !== 'object') {
         throw new Error('Illegal "search" argument type, it must be an object.');
     }
     let arg = new searchArg(search);
-    whereOptions = 'WHERE ' + arg.toCassandra(definition.attributes, allowFiltering) + ';';
+    whereOptions = ' WHERE ' + arg.toCassandra(definition.attributes, allowFiltering) + ';';
   }
   return whereOptions;
 }
 
-/*
-* In this section, a special operator is used: "tgt", meaning "TOKEN > TOKEN".
-* This operator is implemented in utils/search-argument.js, toCassandra(idAttribute, allowFiltering)
-*
-* The Cassandra database is ordered by the TOKEN of the ID value, so if we want to cut away entries above the cursor,
-* we need to enforce the condition TOKEN(id) > TOKEN(cursor_id), which is realized here by: id TGT cursor_id
-*/
+/**
+ * In this function, a special operator is used: "tgt", meaning "TOKEN > TOKEN".
+ * This operator is implemented in utils/search-argument.js, toCassandra(idAttribute, allowFiltering)
+ *
+ * The Cassandra database is ordered by the TOKEN of the ID value, so if we want to cut away entries above the cursor,
+ * we need to enforce the condition TOKEN(id) > TOKEN(cursor_id), which is realized here by: id TGT cursor_id
+ * @param {object} search zendro search
+ * @param {String} offsetCursor cursor given as pagination argument
+ * @param {String} idAttribute idAttribute of the model calling this funtion
+ */
 module.exports.cursorPaginationArgumentsToCassandra = function(search, offsetCursor, idAttribute) {
   
   let cassandraSearch = Object.assign({},search);
-  if (helper.isNotUndefinedAndNotNull(offsetCursor)) {
-    let decoded_cursor = JSON.parse(helper.base64Decode(offsetCursor));
+  if (isNotUndefinedAndNotNull(offsetCursor)) {
+    let decoded_cursor = JSON.parse(base64Decode(offsetCursor));
     let cursorId = decoded_cursor[idAttribute];
-    cassandraSearch  = {
-        field: 'book_id',
-        value: {
-            value: cursorId
-        },
+    let cursorSearchCondition  = {
+        field: idAttribute,
+        value: cursorId,
         operator: 'tgt',
         search: undefined
     };
-    if (helper.isNotUndefinedAndNotNull(search)) {
+    if (isNotUndefinedAndNotNull(search)) {
         // -- Use *both* the given search condition and the cursor --
         cassandraSearch = {
             operator: 'and',

@@ -1782,7 +1782,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
   /**
    * searchConditionsToSequelize - translates search conditions as given in the graphQl query to sequelize 'where' options
    * @param {object} search search argument for filtering records
-   *
+   * @param {object} dataModelDefinition definition as specified in the model
    * @return {object} sequelize 'where' options
    */
   module.exports.searchConditionsToSequelize = function(search, dataModelDefinition){
