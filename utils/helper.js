@@ -1766,15 +1766,25 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param {JSON} context  context
    */
   module.exports.handleGraphQlQueriesForMetaQuery = async (schema, resolvers, queries, context) => {
-    let compositeResponses = {};
-    compositeResponses.data = [];
-    compositeResponses.errors = [];
+    let compositeResponses = null;
+    let data = [];
+    let errors = [];
     for (let query of queries) {
-      let singleResponse = await graphql(schema, query, resolvers, context);
+      //prepare:
+      let _query = query.query ? query.query : query;
+      let _variables = query.variables ? query.variables : null;
+      let _operationName = query.operationName ? query.operationName : undefined;
+  
+      let singleResponse = await graphql(schema, _query, resolvers, context, _variables, _operationName);
       if (singleResponse.errors != null) {
-        compositeResponses.errors.push(...singleResponse.errors);
+        errors.push(...singleResponse.errors);
       }
-      compositeResponses.data.push(singleResponse.data);
+      data.push(singleResponse.data);
+    }
+    //prepare:
+    compositeResponses = {
+      data:   data.length === 1 ? data[0] : data,
+      errors: errors.length > 0 ? errors : undefined,
     }
     return compositeResponses;
   }

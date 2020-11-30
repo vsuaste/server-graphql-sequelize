@@ -139,6 +139,8 @@ app.use('/graphql', cors(), graphqlHTTP((req) => ({
   }
 })));
 
+let metaQueryCorsOptions = {allowedHeaders: ['Content-Type', 'Authorization']};
+app.options("/meta_query", cors(metaQueryCorsOptions));
 app.post('/meta_query', cors(), async (req, res, next) => {
   try {
     let context = {
@@ -147,6 +149,7 @@ app.post('/meta_query', cors(), async (req, res, next) => {
       benignErrors: [],
       recordsLimit: globals.LIMIT_RECORDS
     }
+
     if (req != null) {
       if (await checkAuthorization(context, 'meta_query', '') === true) {
         let queries = req.body.queries;
@@ -160,9 +163,10 @@ app.post('/meta_query', cors(), async (req, res, next) => {
         }
 
         let graphQlResponses = await helper.handleGraphQlQueriesForMetaQuery(Schema, resolvers, queries, context);
-        let output;
+        let output = null;
+
         if (helper.isNotUndefinedAndNotNull(jq)) { // jq
-          output = await nodejq.run(jq, graphQlResponses, { input: 'json', output: 'json' });
+          output = await nodejq.run(jq, graphQlResponses, { input: 'json', output: 'json' }).catch((err) => {throw err});
         } else { // JSONPath
           output = JSONPath({ path: jsonPath, json: graphQlResponses, wrap: false });
         }
@@ -176,6 +180,10 @@ app.post('/meta_query', cors(), async (req, res, next) => {
     res.json({ data: null, errors: [formatError(error)] });
   }
 });
+/**
+ * uncaughtException handler needed to prevent node from crashing upon receiving a malformed jq filter.
+ */
+process.on('uncaughtException', err => {console.log("!!uncaughtException:", err)});
 
 // Error handling
 app.use(function (err, req, res, next) {
