@@ -4,7 +4,9 @@ const { Sequelize }      = require('sequelize');
 const { getModulesSync } = require('../../utils/module-helpers');
 const { getConnection, ConnectionError, getAndConnectDataModelClass }  = require('../../connection');
 
-let adapters = {};
+let adapters = {
+  mongoDbs: {}
+};
 module.exports = adapters;
 
 getModulesSync(__dirname).forEach(file => {
@@ -31,6 +33,10 @@ getModulesSync(__dirname).forEach(file => {
       adapters[adapter.adapterName] = adapter.init(connection, Sequelize);
       break;
 
+    case 'mongodb-adapter':
+      adapters.mongoDbs[adapter.adapterName] = adapter.definition;
+      adapters[adapter.adapterName] = adapter;
+      break;
     case 'default':
       throw new Error(`
         Adapter storageType '${adapter.storageType}' is not supported`

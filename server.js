@@ -14,6 +14,12 @@ const nodejq = require('node-jq')
 const { JSONPath } = require('jsonpath-plus');
 const errors = require('./utils/errors');
 const { formatError } = require('graphql');
+let models = require(path.join(__dirname, 'models', 'index.js'))
+console.log('models in server.js')
+console.log(models)
+const initializeStorageHandlersForModels = require(path.join(__dirname, 'utils', 'helper.js')).initializeStorageHandlersForModels
+let adapters = require(path.join(__dirname, 'models', 'adapters', 'index.js'))
+const initializeStorageHandlersForAdapters = require(path.join(__dirname, 'utils', 'helper.js')).initializeStorageHandlersForAdapters
 
 var acl = null;
 
@@ -195,7 +201,10 @@ app.use(function (err, req, res, next) {
   }
 });
 
-var server = app.listen(APP_PORT, () => {
+var server = app.listen(APP_PORT, async () => {
+  await initializeStorageHandlersForModels(models)
+  console.log(models)
+  await initializeStorageHandlersForAdapters(adapters)
   console.log(`App listening on port ${APP_PORT}`);
 });
 

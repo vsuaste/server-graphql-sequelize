@@ -1,6 +1,6 @@
 const { Sequelize } = require('sequelize');
 const storageConfig = require('./config/data_models_storage_config.json');
-
+const {MongoClient} = require('mongodb')
 
 const Op = Sequelize.Op;
 storageConfig.operatorsAliases = {
@@ -23,19 +23,44 @@ storageConfig.operatorsAliases = {
 };
 
 /**
+ * setup the MongoClient
+ */
+async function setupMongoDriver() {
+  let config = storageConfig["default-mongodb"];
+  const uri = `mongodb://${config.username}:${config.password}@${config.host}:${config.port}/${config.database}`;
+  console.log(uri)
+  const client = new MongoClient(uri, { useUnifiedTopology: true });
+  const db = await connectMongoDb(client)
+  return db
+}
+
+
+async function connectMongoDb (client) {
+  try {
+    await client.connect();
+    let config = storageConfig["default-mongodb"];
+    console.log(`Connecting to MongoDB: ${config.database}`)
+    const db = await client.db(config.database);
+    console.log(`Connected successfully to MongoDB: ${config.database}`);
+    return db
+  } catch (e) {
+    console.log('MongoDB connection error: '+e)
+  } 
+}
+/**
  * Stored connection instances. Only sequelize for now.
  */
 const connectionInstances = Object.keys(storageConfig).reduce(
 
   // Reducer function to add only "sql"-type of connections
   (acc, key) => {
-
+    let storageType = storageConfig[key].storageType;
     if (
       storageConfig.hasOwnProperty(key) &&
       key !== 'operatorsAliases' &&
       storageConfig[key].storageType === 'sql'
     ) {
-      acc.set(key, new Sequelize(storageConfig[key]))
+      acc.set(key, {storageType, connection: new Sequelize(storageConfig[key])});
     }
     return acc;
   },
@@ -46,6 +71,23 @@ const connectionInstances = Object.keys(storageConfig).reduce(
 )
 
 /**
+ * Add connection instances. 
+ */
+exports.addConnectionInstances = async () => {
+  for (let key of Object.keys(storageConfig)) {
+    let storageType = storageConfig[key].storageType;
+    if (
+      storageConfig.hasOwnProperty(key) &&
+      key !== 'operatorsAliases' &&
+      storageType === 'mongodb'
+    ) {
+      connectionInstances.set(key, {storageType, connection: await setupMongoDriver()});
+    }
+  }
+  return connectionInstances
+}
+
+/**
  * Async verification of all connections imported from
  * data_models_storage_config.json.
  */
@@ -53,10 +95,18 @@ exports.checkConnections = async () => {
 
   const checks = [];
 
-  for (const { 0: key, 1: connection } of connectionInstances.entries()) {
+  await exports.addConnectionInstances()
+
+  for (const { 0: key, 1: instance } of connectionInstances.entries()) {
 
     try {
-      await connection.authenticate();
+      if (instance.storageType === 'sql') {
+        await instance.connection.authenticate();
+      } else if (instance.storageType === 'mongodb') { 
+        console.log('check connection for mongodb:')
+        const result = await instance.connection.command({ ping: 1 });
+        console.log(result)
+      }
       checks.push({ key, valid: true });
     }
     catch (exception) {
@@ -75,7 +125,7 @@ exports.checkConnections = async () => {
  */
 exports.getConnection = (key) => {
 
-  return connectionInstances.get(key);
+  return connectionInstances.get(key).connection;
 }
 
 exports.ConnectionError = class ConnectionError extends Error {

@@ -5,8 +5,10 @@ const { Sequelize }  = require('sequelize');
 const { getConnection, ConnectionError, getAndConnectDataModelClass } = require('../connection');
 const { getModulesSync } = require('../utils/module-helpers');
 
+let models = {
+  mongoDbs: {}
+};
 
-var models = {};
 module.exports = models;
 
 // ****************************************************************************
@@ -127,3 +129,18 @@ getModulesSync(__dirname + "/distributed").forEach(file => {
   models[model.name] = model;
 
 });
+
+
+// // ****************************************************************************
+// // IMPORT MONGODB MODELS
+  
+// getModulesSync(__dirname + "/mongodb").forEach(file => {
+//   console.log("loaded model: " + file);
+//   let model = require(`./${join("./mongodb", file)}`)
+//   models.mongoDbs[model.name] = model.definition;
+  
+//   if(model.name in models)
+//       throw Error(`Duplicated model name ${model.name}`);
+
+//   models[model.name] = model;
+// })
