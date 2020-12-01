@@ -3,8 +3,6 @@ const objectAssign = require('object-assign');
 const math = require('mathjs');
 const _ = require('lodash');
 const models_index = require('../models/index');
-console.log('models_index in helper')
-console.log(models_index)
 const { Op } = require("sequelize");
 
 const globals = require('../config/globals');
@@ -13,8 +11,8 @@ var { buildSchema, GraphQLSchema } = require('graphql');
 const {GraphQLDateTime, GraphQLDate, GraphQLTime } = require('graphql-iso-date');
 var { graphql } = require('graphql');
 const searchArg = require('./search-argument');
-const { addConnectionInstances, ConnectionError, getAndConnectDataModelClass} = require('../connection');
-
+const { Sequelize }  = require('sequelize');
+const { getConnectionInstances, ConnectionError, getAndConnectDataModelClass} = require('../connection');
   /**
    * paginate - Creates pagination argument as needed in sequelize cotaining limit and offset accordingly to the current
    * page implicit in the request info.
@@ -2087,7 +2085,35 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
   module.exports.initializeStorageHandlersForModels = async (models) => {
     console.log('initialize storage handlers for models')
-    const connectionInstances = await addConnectionInstances()
+    const connectionInstances = await getConnectionInstances()
+  
+    console.log('assign storage handler to sql models')
+  
+    for (let name of Object.keys(models.sqlDatabases)){
+      const database = models.sqlDatabases[name].database
+      const connection = connectionInstances.get(database || 'default-sql').connection
+      if (!connection) throw new ConnectionError(models.sqlDatabases[name]);
+  
+      // setup storageHandler
+      let model = models[name]
+      getAndConnectDataModelClass(model, connection);
+  
+      models[name] = model.init(connection, Sequelize);
+      console.log("assign storage handler to model: "+name);
+  
+    }
+    /**
+     * Important: creates associations based on associations defined in associate
+     * function of the model files
+     */
+    console.log('create associations among sql models')
+    Object.keys(models.sqlDatabases).forEach(function(modelName) {
+      if (models[modelName].associate) {
+        models[modelName].associate(models);
+      }
+    });
+  
+    console.log('assign storage handler to mongodb models')
 
     for (let name of Object.keys(models.mongoDbs)){
       const database = models.mongoDbs[name].database
@@ -2098,13 +2124,29 @@ module.exports.vueTable = function(req, model, strAttributes) {
       let model = models[name]
       getAndConnectDataModelClass(model, connection);
   
-      console.log("add storage handler to model: "+name);
+      console.log("assign storage handler to model: "+name);
     }
   }
 
   module.exports.initializeStorageHandlersForAdapters = async (adapters) => {
     console.log('initialize storage handlers for adapters')
-    const connectionInstances = await addConnectionInstances()
+    const connectionInstances = await getConnectionInstances()
+    console.log('assign storage handler to sql adapters')
+  
+    for (let name of Object.keys(adapters.sqlDatabases)){
+      const database = adapters.sqlDatabases[name].database
+      const connection = connectionInstances.get(database || 'default-sql').connection
+      if (!connection) throw new ConnectionError(adapters.sqlDatabases[name]);
+  
+      // setup storageHandler
+      let adapter = adapters[name]
+      getAndConnectDataModelClass(adapter, connection);
+  
+      adapters[name] = adapter.init(connection, Sequelize);
+      console.log("assign storage handler to adapter: "+name);
+    }
+
+    console.log('assign storage handler to mongodb adapters')
   
     for (let name of Object.keys(adapters.mongoDbs)){
       const database = adapters.mongoDbs[name].database
@@ -2115,6 +2157,6 @@ module.exports.vueTable = function(req, model, strAttributes) {
       let adapter = adapters[name]
       getAndConnectDataModelClass(adapter, connection);
   
-      console.log("add storage handler to adapter: "+name);
+      console.log("assign storage handler to adapter: "+name);
     }
   }

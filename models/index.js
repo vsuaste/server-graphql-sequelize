@@ -1,11 +1,9 @@
 const { existsSync } = require('fs');
 const { join }       = require('path');
-const { Sequelize }  = require('sequelize');
-//
-const { getConnection, ConnectionError, getAndConnectDataModelClass } = require('../connection');
 const { getModulesSync } = require('../utils/module-helpers');
 
 let models = {
+  sqlDatabases: {},
   mongoDbs: {}
 };
 
@@ -20,16 +18,9 @@ module.exports = models;
 getModulesSync(__dirname + "/sql").forEach(file => {
 
   console.log("loaded model: " + file);
-  let modelFile = require(join(__dirname,'sql', file));
-
-  const { database } = modelFile.definition;
-  const connection = getConnection(database || 'default-sql');
-  if (!connection) throw new ConnectionError(modelFile.definition);
-
-  // setup storageHandler
-  getAndConnectDataModelClass(modelFile, connection);
-
-  let model = modelFile.init(connection, Sequelize);
+  let model = require(join(__dirname,'sql', file));
+ 
+  models.sqlDatabases[model.name] = model.definition;
 
   let validator_patch = join('./validations', file);
   if(existsSync(validator_patch)){
@@ -46,15 +37,6 @@ getModulesSync(__dirname + "/sql").forEach(file => {
   models[model.name] = model;
 });
 
-/**
- * Important: creates associations based on associations defined in associate
- * function of the model files
- */
-Object.keys(models).forEach(function(modelName) {
-  if (models[modelName].associate) {
-    models[modelName].associate(models);
-  }
-});
 
 /**
  * Update tables with association (temporary, just for testing purposes)

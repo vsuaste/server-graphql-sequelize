@@ -1,10 +1,9 @@
 const { existsSync }     = require('fs');
 const { join }           = require('path');
-const { Sequelize }      = require('sequelize');
 const { getModulesSync } = require('../../utils/module-helpers');
-const { getConnection, ConnectionError, getAndConnectDataModelClass }  = require('../../connection');
 
 let adapters = {
+  sqlDatabases: {},
   mongoDbs: {}
 };
 module.exports = adapters;
@@ -25,12 +24,8 @@ getModulesSync(__dirname).forEach(file => {
       break;
 
     case 'sql-adapter':
-      const { database } = adapter.definition;
-      const connection = getConnection(database || 'default-sql');
-      if (!connection) throw new ConnectionError(adapter.definition);
-      // setup storageHandler
-      getAndConnectDataModelClass(adapter, connection);
-      adapters[adapter.adapterName] = adapter.init(connection, Sequelize);
+      adapters.sqlDatabases[adapter.adapterName] = adapter.definition;
+      adapters[adapter.adapterName] = adapter;
       break;
 
     case 'mongodb-adapter':

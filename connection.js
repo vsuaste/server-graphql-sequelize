@@ -47,36 +47,23 @@ async function connectMongoDb (client) {
     console.log('MongoDB connection error: '+e)
   } 
 }
-/**
- * Stored connection instances. Only sequelize for now.
- */
-const connectionInstances = Object.keys(storageConfig).reduce(
 
-  // Reducer function to add only "sql"-type of connections
-  (acc, key) => {
+
+/**
+ * Stored connection instances. 
+ */
+const addConnectionInstances = async () => {
+  let connectionInstances = new Map()
+  for (let key of Object.keys(storageConfig)) {
     let storageType = storageConfig[key].storageType;
     if (
       storageConfig.hasOwnProperty(key) &&
       key !== 'operatorsAliases' &&
-      storageConfig[key].storageType === 'sql'
+      storageType === 'sql'
     ) {
-      acc.set(key, {storageType, connection: new Sequelize(storageConfig[key])});
-    }
-    return acc;
-  },
+      connectionInstances.set(key, {storageType, connection: new Sequelize(storageConfig[key])});
 
-  // Object reference
-  new Map()
-
-)
-
-/**
- * Add connection instances. 
- */
-exports.addConnectionInstances = async () => {
-  for (let key of Object.keys(storageConfig)) {
-    let storageType = storageConfig[key].storageType;
-    if (
+    } else if (
       storageConfig.hasOwnProperty(key) &&
       key !== 'operatorsAliases' &&
       storageType === 'mongodb'
@@ -94,10 +81,10 @@ exports.addConnectionInstances = async () => {
 exports.checkConnections = async () => {
 
   const checks = [];
+  const connectionInstances = await addConnectionInstances()
+  // console.log(connectionInstances)
 
-  await exports.addConnectionInstances()
-
-  for (const { 0: key, 1: instance } of connectionInstances.entries()) {
+  for (let { 0: key, 1: instance } of connectionInstances.entries()) {
 
     try {
       if (instance.storageType === 'sql') {
@@ -123,10 +110,14 @@ exports.checkConnections = async () => {
  * @param {string} key connection key as defined in the model config
  * @returns A configured connection instance
  */
-exports.getConnection = (key) => {
+exports.getConnectionInstances = async () => {
 
-  return connectionInstances.get(key).connection;
+  const connectionInstances = await addConnectionInstances()
+
+  return connectionInstances;
+
 }
+
 
 exports.ConnectionError = class ConnectionError extends Error {
 
