@@ -925,15 +925,18 @@ module.exports.vueTable = function(req, model, strAttributes) {
    * @param  {Array} paginatedRecords List of records to be translated
    * @param  {Object} model            Record's type
    * @param  {Boolean} hasNextPage      hasNextPage parameter for pagination info
+   * @param  {Boolean} hasPreviousPage  hasPreviousPage parameter for pagination info
+   * @param  {String} nodesName         field name for direct access to nodes
    * @return {type}                  description
    */
-  module.exports.toGraphQLConnectionObject = function(paginatedRecords, model, hasNextPage, hasPreviousPage) {
-    let edges = paginatedRecords.map(e => {
-        let temp_node = new model(e);
-        return {
-            node: temp_node,
-            cursor: temp_node.base64Enconde()
-        }
+  module.exports.toGraphQLConnectionObject = function(paginatedRecords, model, hasNextPage, hasPreviousPage, nodesName) {
+    let nodes = paginatedRecords.map(e => new model(e));
+    
+    nodes.map(temp_node => {
+      return {
+          node: temp_node,
+          cursor: temp_node.base64Enconde()
+      }
     })
 
     let pageInfo = {
@@ -945,7 +948,8 @@ module.exports.vueTable = function(req, model, strAttributes) {
 
     return {
         edges,
-        pageInfo
+        pageInfo,
+        nodesName: nodes
     };
   }
 
