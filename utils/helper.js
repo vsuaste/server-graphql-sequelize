@@ -932,7 +932,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
   module.exports.toGraphQLConnectionObject = function(paginatedRecords, model, hasNextPage, hasPreviousPage, nodesName) {
     let nodes = paginatedRecords.map(e => new model(e));
     
-    nodes.map(temp_node => {
+    let edges = nodes.map(temp_node => {
       return {
           node: temp_node,
           cursor: temp_node.base64Enconde()
@@ -949,7 +949,7 @@ module.exports.vueTable = function(req, model, strAttributes) {
     return {
         edges,
         pageInfo,
-        nodesName: nodes
+        [nodesName]: nodes
     };
   }
 
