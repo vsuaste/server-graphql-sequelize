@@ -150,16 +150,23 @@ module.exports = class search{
       
     } else if (this.search === undefined && (this.operator === 'tlt' || this.operator === 'tgt')) {
       let op = (this.operator === 'tlt') ? '<' : '>';
-      searchsInCassandra = `token(${this.field}) ${op} token('${this.value}')`;
+      searchsInCassandra = `token("${this.field}") ${op} token('${this.value}')`;
     } else if(this.search === undefined) {
       let value = this.value;
-      if(type === 'String' || type.includes('Date')){
+      if(type.includes('String') || type.includes('Date')){
         value = `'${this.value}'`;
       }
-      searchsInCassandra = this.field + this.transformCassandraOperator(this.operator) + value;
+      if(Array.isArray(this.value)) {
+        if (type.includes('String') || type.includes('Date')){
+          value = `(${this.value.map(e => `'${e}'`)})`;
+        } else {
+          value = `(${this.value.map(e => `${e}`)})`;
+        }
+      }
+      searchsInCassandra = `"${this.field}"` + this.transformCassandraOperator(this.operator) + value;
 
     } else if (this.operator === 'and') {
-      searchsInCassandra = this.search.map(singleSearch => new search(singleSearch).toCassandra()).join(' and ');
+      searchsInCassandra = this.search.map(singleSearch => new search(singleSearch).toCassandra(attributesDefinition)).join(' and ');
       
     } else {
       throw new Error('Statement not supported by CQL:\n' + JSON.stringify(this, null, 2));
