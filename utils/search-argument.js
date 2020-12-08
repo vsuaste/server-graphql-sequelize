@@ -120,8 +120,8 @@ module.exports = class search{
       case 'gt': return ' > ';
       case 'lte': return ' <= ';
       case 'gte': return ' >= ';
-      case '_in': return ' IN ';
-      case 'cont': return ' CONTAINS ';
+      case 'in': return ' IN ';
+      case 'contains': return ' CONTAINS ';
       case 'ctk': return ' CONTAINS KEY ';
       // AND not supported here, because this.search is undefined if this is executed
       case 'and': throw new Error(`Operator 'and' can only be used with an array of search terms`);
