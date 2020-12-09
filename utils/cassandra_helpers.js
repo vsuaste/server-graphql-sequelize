@@ -39,11 +39,13 @@ module.exports.searchConditionsToCassandra = function(search, definition, allowF
  * The Cassandra database is ordered by the TOKEN of the ID value, so if we want to cut away entries above the cursor,
  * we need to enforce the condition TOKEN(id) > TOKEN(cursor_id), which is realized here by: id TGT cursor_id
  * @param {object} search zendro search
- * @param {String} offsetCursor cursor given as pagination argument
+ * @param {object} pagination pagination argument given to the query
  * @param {String} idAttribute idAttribute of the model calling this funtion
  */
-module.exports.cursorPaginationArgumentsToCassandra = function(search, offsetCursor, idAttribute) {
+module.exports.cursorPaginationArgumentsToCassandra = function(search, pagination, idAttribute) {
   
+  let offsetCursor = pagination ? pagination.after : null;
+  let operator = pagination.includeCursor ? 'tget' : 'tgt';
   let cassandraSearch = Object.assign({},search);
   if (isNotUndefinedAndNotNull(offsetCursor)) {
     let decoded_cursor = JSON.parse(base64Decode(offsetCursor));
@@ -51,7 +53,7 @@ module.exports.cursorPaginationArgumentsToCassandra = function(search, offsetCur
     let cursorSearchCondition  = {
         field: idAttribute,
         value: cursorId,
-        operator: 'tgt',
+        operator: operator,
         search: undefined
     };
     if (isNotUndefinedAndNotNull(search)) {

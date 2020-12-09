@@ -123,6 +123,8 @@ module.exports = class search{
       case 'in': return ' IN ';
       case 'contains': return ' CONTAINS ';
       case 'ctk': return ' CONTAINS KEY ';
+      case 'tgt': return ' > ';
+      case 'tget': return ' >= ';
       // AND not supported here, because this.search is undefined if this is executed
       case 'and': throw new Error(`Operator 'and' can only be used with an array of search terms`);
       default: throw new Error(`Operator ${operatorString} not supported`);
@@ -134,7 +136,6 @@ module.exports = class search{
    * 
    * @param{string} idAttribute - The name of the ID attribute which isn't cast into apostrophes if it is a UUID
    * @param{boolean} allowFiltering - Set 'ALLOW FILTERING'
-   * @param{Array<string> | undefined} stringAttributeArray - An array of the string attributes, if present
    * 
    * @returns{string} Translated search instance into CQL string
    */
@@ -148,8 +149,8 @@ module.exports = class search{
     } else if(this.search === undefined && this.field === undefined) {
       searchsInCassandra = this.transformCassandraOperator(this.operator) + this.value;
       
-    } else if (this.search === undefined && (this.operator === 'tlt' || this.operator === 'tgt')) {
-      let op = (this.operator === 'tlt') ? '<' : '>';
+    } else if (this.search === undefined && (this.operator === 'tgt' || this.operator === 'tget')) {
+      let op = this.transformCassandraOperator(this.operator);
       searchsInCassandra = `token("${this.field}") ${op} token('${this.value}')`;
     } else if(this.search === undefined) {
       let value = this.value;
