@@ -109,4 +109,63 @@ module.exports = class search{
 
     return searchsInSequelize;
   }
+
+  /**
+   * 
+   * @param {*} operator 
+   */
+  transformMongoDbOperator(operator) {
+    const allowedOperators = ["or", "and", "not", "all", "eq", "ne", "in", "notIn", "gt", "gte", "lt", "lte", "regexp"]
+    
+    if (allowedOperators.includes(operator)){
+      if (operator === "notIn"){
+        return "$nin"
+      } else if (operator === "regexp") {
+        return "regex"
+      } else {
+        return "$"+operator
+      }
+
+    } else {
+      throw new Error(`Operator ${operator} not supported in MongoDB`);
+    }    
+  }
+
+  /**
+   * toMongoDb - Convert recursive search instance to search object in MongoDb
+   * 
+   */
+  toMongoDb(){
+    let searchsInMongoDb = {};
+
+    if((this.operator === undefined || (this.value === undefined && this.search === undefined))){
+      //there's no search-operation arguments
+      return searchsInMongoDb;
+
+    } else if(this.search === undefined && this.field === undefined){
+      searchsInMongoDb[this.transformMongoDbOperator(this.operator)] = this.value;
+
+    } else if(this.search === undefined){
+        searchsInMongoDb[this.field] = {
+          [this.transformMongoDbOperator(this.operator)] : this.value
+        };
+    
+    }else if(this.field === undefined){
+      searchsInMongoDb[this.transformMongoDbOperator(this.operator)] = this.search.map(sa => {
+        let new_sa = new search(sa);
+        return new_sa.toMongoDb();
+      });
+
+    }else{
+       searchsInMongoDb[this.field] = {
+         [this.transformMongoDbOperator(this.operator)] : this.search.map(sa => {
+           let new_sa = new search(sa);
+           return new_sa.toMongoDb();
+         })
+       }
+    }
+
+    return searchsInMongoDb;
+    
+  }
 };

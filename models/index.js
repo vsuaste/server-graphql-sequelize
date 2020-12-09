@@ -113,16 +113,16 @@ getModulesSync(__dirname + "/distributed").forEach(file => {
 });
 
 
-// // ****************************************************************************
-// // IMPORT MONGODB MODELS
+// ****************************************************************************
+// IMPORT MONGODB MODELS
   
-// getModulesSync(__dirname + "/mongodb").forEach(file => {
-//   console.log("loaded model: " + file);
-//   let model = require(`./${join("./mongodb", file)}`)
-//   models.mongoDbs[model.name] = model.definition;
+getModulesSync(__dirname + "/mongodb").forEach(file => {
+  console.log("loaded model: " + file);
+  let model = require(`./${join("./mongodb", file)}`)
+  models.mongoDbs[model.name] = model.definition;
   
-//   if(model.name in models)
-//       throw Error(`Duplicated model name ${model.name}`);
+  if(model.name in models)
+      throw Error(`Duplicated model name ${model.name}`);
 
-//   models[model.name] = model;
-// })
+  models[model.name] = model;
+})
