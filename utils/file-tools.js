@@ -108,7 +108,7 @@ exports.replacePojoNullValueWithLiteralNull = function(pojo) {
  * @param  {Object} attributes_type Key is the name of the attribute/column as given in the json file of the model, value is the type of the attribute.
  * @return {any}                 The value casted according to the attribute type given in attributes_type.
  */
-castCsv = function( value, column, attributes_type){
+castCsv = function( value, column, attributes_type, array_delimiter=","){
   if(!(typeof value === "string" && value.match(/\s*null\s*/i) )){
     switch ( attributes_type[column] ) {
       case 'String':
@@ -123,7 +123,7 @@ castCsv = function( value, column, attributes_type){
       case 'Time':
         value = String(value);
         break;
-      case 'Date':
+      case 'DateTime':
         value = String(value);
         break;
       case 'Boolean':
@@ -133,6 +133,28 @@ castCsv = function( value, column, attributes_type){
       case 'Float':
         value = Number(value);
         break;
+      case '[String]':
+        value = value.split(array_delimiter)
+        break;
+      case '[Int]':
+        value = value.split(array_delimiter).map(x=>parseInt(x))
+        break;
+      case '[Date]':
+        value = value.split(array_delimiter)
+        break;
+      case '[Time]':
+        value = value.split(array_delimiter)
+        break;
+      case '[DateTime]':
+        value = value.split(array_delimiter)
+        break;
+      case '[Boolean]':
+        value.split(array_delimiter).map(x=> x === 'true')
+        break;
+      case '[Float]':
+        value = value.split(array_delimiter).map(x=>parseFloat(x))
+        break;
+
       default:
         value = String(value);
         break;

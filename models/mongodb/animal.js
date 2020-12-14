@@ -12,6 +12,7 @@ const models = require(path.join(__dirname, '..', 'index.js'));
 const {ObjectId} = require('mongodb')
 const errorHelper = require('../../utils/errors');
 const { off } = require('process');
+const { help } = require('mathjs');
 
 // An exact copy of the the model definition that comes from the .json file
 const definition = {
@@ -87,11 +88,9 @@ module.exports = class animal {
         let filter = mongoDbHelper.searchConditionsToMongoDb(search);
         console.log('filter in readAll')
         console.log(filter)
-        let sort = mongoDbHelper.orderConditionsToMongoDb(order, this.idAttribute());
+        let sort = mongoDbHelper.orderConditionsToMongoDb(order, this.idAttribute(), true);
         console.log(sort)
         
-        const db = await this.storageHandler
-        const collection = await db.collection('animal')
         let limit;
         let offset;
         if (pagination){
@@ -100,42 +99,84 @@ module.exports = class animal {
         }
         console.log(pagination.offset)
         console.log(offset+";"+limit)
+
+        const db = await this.storageHandler
+        const collection = await db.collection('animal')
         let documents = await collection.find(filter).skip(offset).limit(limit).sort(sort).toArray()
         console.log(documents)
         // validationCheck after read
         return validatorUtil.bulkValidateData('validateAfterRead', this, documents, benignErrorReporter);
     }
 
-    // static async readAllCursor(search, order, pagination, benignErrorReporter) {
-    //     //use default BenignErrorReporter if no BenignErrorReporter defined
-    //     benignErrorReporter = errorHelper.getDefaultBenignErrorReporterIfUndef(benignErrorReporter);
+    static async readAllCursor(search, order, pagination, benignErrorReporter) {
+        //use default BenignErrorReporter if no BenignErrorReporter defined
+        benignErrorReporter = errorHelper.getDefaultBenignErrorReporterIfUndef(benignErrorReporter);
 
-    //     // build the sequelize options object for cursor-based pagination
-    //     let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, this.idAttribute(), user.definition.attributes);
-    //     let records = await super.findAll(options);
+        let isForwardPagination = helper.isForwardPagination(pagination);
+        // build the filter object.
+        let filter = mongoDbHelper.searchConditionsToMongoDb(search);
+        // depending on the direction build the order object
+        let sort = isForwardPagination ? mongoDbHelper.orderConditionsToMongoDb(order, this.idAttribute(), isForwardPagination)
+        : mongoDbHelper.orderConditionsToMongoDb(helper.reverseOrderConditions(order), this.idAttribute(), isForwardPagination);
+        // extend the where options for the given order and cursor
+        mongoDbHelper.cursorPaginationArgumentsToMongoDb(pagination, sort, filter, this.idAttribute());
+        // add +1 to the LIMIT to get information about following pages.
+        let limit = helper.isNotUndefinedAndNotNull(pagination.first) ? pagination.first + 1 : helper.isNotUndefinedAndNotNull(pagination.last) ? pagination.last + 1 : undefined;
+        
+        const db = await this.storageHandler
+        const collection = await db.collection('animal')
+        let documents = await collection.find(filter).limit(limit).sort(sort).toArray()
+        console.log(documents)
 
-    //     records = records.map(x => user.postReadCast(x))
+        // validationCheck after read
+        records = await validatorUtil.bulkValidateData('validateAfterRead', this, records, benignErrorReporter);
+        // get the first record (if exists) in the opposite direction to determine pageInfo.
+        // if no cursor was given there is no need for an extra query as the results will start at the first (or last) page.
+        let oppDocuments = [];
+        if (pagination && (pagination.after || pagination.before)) {
+            // reverse the pagination Arguement. after -> before; set first/last to 0, so LIMIT 1 is executed in the reverse Search
+            let oppPagination = helper.reversePaginationArgument({...pagination, includeCursor: false});
+            // build the filter object.
+            let oppFilter = mongoDbHelper.searchConditionsToMongoDb(search);
+            // extend the where options for the given order and cursor
+            mongoDbHelper.cursorPaginationArgumentsToMongoDb(oppPagination, oppFilter, [], this.idAttribute());
+            // add +1 to the LIMIT to get information about following pages.
+            let oppLimit = helper.isNotUndefinedAndNotNull(oppPagination.first) ? oppPagination.first + 1 : helper.isNotUndefinedAndNotNull(oppPagination.last) ? oppPagination.last + 1 : undefined;
+            
+            oppDocuments = await collection.find(oppFilter).limit(oppLimit).toArray()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+        }
 
-    //     // validationCheck after read
-    //     records = await validatorUtil.bulkValidateData('validateAfterRead', this, records, benignErrorReporter);
-    //     // get the first record (if exists) in the opposite direction to determine pageInfo.
-    //     // if no cursor was given there is no need for an extra query as the results will start at the first (or last) page.
-    //     let oppRecords = [];
-    //     if (pagination && (pagination.after || pagination.before)) {
-    //         let oppOptions = helper.buildOppositeSearchSequelize(search, order, {
-    //             ...pagination,
-    //             includeCursor: false
-    //         }, this.idAttribute(), user.definition.attributes);
-    //         oppRecords = await super.findAll(oppOptions);
-    //     }
-    //     // build the graphql Connection Object
-    //     let edges = helper.buildEdgeObject(records);
-    //     let pageInfo = helper.buildPageInfo(edges, oppRecords, pagination);
-    //     return {
-    //         edges,
-    //         pageInfo
-    //     };
-    // }
+        // build the graphql Connection Object
+        let edges = helper.buildEdgeObject(records);
+        let pageInfo = helper.buildPageInfo(edges, oppDocuments, pagination);
+        return {
+            edges,
+            pageInfo
+        };
+        // // build the filter object for cursor-based pagination
+        // let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, this.idAttribute(), user.definition.attributes);
+        // let records = await super.findAll(options);
+
+        // // validationCheck after read
+        // records = await validatorUtil.bulkValidateData('validateAfterRead', this, records, benignErrorReporter);
+        // // get the first record (if exists) in the opposite direction to determine pageInfo.
+        // // if no cursor was given there is no need for an extra query as the results will start at the first (or last) page.
+        // let oppRecords = [];
+        // if (pagination && (pagination.after || pagination.before)) {
+        //     let oppOptions = helper.buildOppositeSearchSequelize(search, order, {
+        //         ...pagination,
+        //         includeCursor: false
+        //     }, this.idAttribute(), user.definition.attributes);
+        //     oppRecords = await super.findAll(oppOptions);
+        // }
+        // // build the graphql Connection Object
+        // let edges = helper.buildEdgeObject(records);
+        // let pageInfo = helper.buildPageInfo(edges, oppRecords, pagination);
+        // return {
+        //     edges,
+        //     pageInfo
+        // };
+    }
 
     static async addOne(input) {
         // validate input
@@ -197,72 +238,72 @@ module.exports = class animal {
         }
     }
 
-    // static bulkAddCsv(context) {
+    static bulkAddCsv(context) {
 
-    //     let delim = context.request.body.delim;
-    //     let cols = context.request.body.cols;
-    //     let tmpFile = path.join(os.tmpdir(), uuidv4() + '.csv');
+        let delim = context.request.body.delim;
+        let cols = context.request.body.cols;
+        let tmpFile = path.join(os.tmpdir(), uuidv4() + '.csv');
 
-    //     context.request.files.csv_file.mv(tmpFile).then(() => {
+        context.request.files.csv_file.mv(tmpFile).then(() => {
 
-    //         fileTools.parseCsvStream(tmpFile, this, delim, cols).then((addedZipFilePath) => {
-    //             try {
-    //                 console.log(`Sending ${addedZipFilePath} to the user.`);
+            fileTools.parseCsvStream(tmpFile, this, delim, cols).then((addedZipFilePath) => {
+                try {
+                    console.log(`Sending ${addedZipFilePath} to the user.`);
 
-    //                 let attach = [];
-    //                 attach.push({
-    //                     filename: path.basename("added_data.zip"),
-    //                     path: addedZipFilePath
-    //                 });
+                    let attach = [];
+                    attach.push({
+                        filename: path.basename("added_data.zip"),
+                        path: addedZipFilePath
+                    });
 
-    //                 email.sendEmail(helpersAcl.getTokenFromContext(context).email,
-    //                     'ScienceDB batch add',
-    //                     'Your data has been successfully added to the database.',
-    //                     attach).then(function(info) {
-    //                     fileTools.deleteIfExists(addedZipFilePath);
-    //                     console.log(info);
-    //                 }).catch(function(err) {
-    //                     fileTools.deleteIfExists(addedZipFilePath);
-    //                     console.error(err);
-    //                 });
+                    email.sendEmail(helpersAcl.getTokenFromContext(context).email,
+                        'ScienceDB batch add',
+                        'Your data has been successfully added to the database.',
+                        attach).then(function(info) {
+                        fileTools.deleteIfExists(addedZipFilePath);
+                        console.log(info);
+                    }).catch(function(err) {
+                        fileTools.deleteIfExists(addedZipFilePath);
+                        console.error(err);
+                    });
 
-    //             } catch (error) {
-    //                 console.error(error.message);
-    //             }
+                } catch (error) {
+                    console.error(error.message);
+                }
 
-    //             fs.unlinkSync(tmpFile);
-    //         }).catch((error) => {
-    //             email.sendEmail(helpersAcl.getTokenFromContext(context).email,
-    //                 'ScienceDB batch add', `${error.message}`).then(function(info) {
-    //                 console.error(info);
-    //             }).catch(function(err) {
-    //                 console.error(err);
-    //             });
+                fs.unlinkSync(tmpFile);
+            }).catch((error) => {
+                email.sendEmail(helpersAcl.getTokenFromContext(context).email,
+                    'ScienceDB batch add', `${error.message}`).then(function(info) {
+                    console.error(info);
+                }).catch(function(err) {
+                    console.error(err);
+                });
 
-    //             fs.unlinkSync(tmpFile);
-    //         });
+                fs.unlinkSync(tmpFile);
+            });
 
 
 
-    //     }).catch((error) => {
-    //         throw new Error(error);
-    //     });
+        }).catch((error) => {
+            throw new Error(error);
+        });
 
-    //     return `Bulk import of user records started. You will be send an email to ${helpersAcl.getTokenFromContext(context).email} informing you about success or errors`;
-    // }
+        return `Bulk import of user records started. You will be send an email to ${helpersAcl.getTokenFromContext(context).email} informing you about success or errors`;
+    }
 
-    // /**
-    //  * csvTableTemplate - Allows the user to download a template in CSV format with the
-    //  * properties and types of this model.
-    //  *
-    //  * @param {BenignErrorReporter} benignErrorReporter can be used to generate the standard
-    //  * GraphQL output {error: ..., data: ...}. If the function reportError of the benignErrorReporter
-    //  * is invoked, the server will include any so reported errors in the final response, i.e. the
-    //  * GraphQL response will have a non empty errors property.
-    //  */
-    // static async csvTableTemplate(benignErrorReporter) {
-    //     return helper.csvTableTemplate(definition);
-    // }
+    /**
+     * csvTableTemplate - Allows the user to download a template in CSV format with the
+     * properties and types of this model.
+     *
+     * @param {BenignErrorReporter} benignErrorReporter can be used to generate the standard
+     * GraphQL output {error: ..., data: ...}. If the function reportError of the benignErrorReporter
+     * is invoked, the server will include any so reported errors in the final response, i.e. the
+     * GraphQL response will have a non empty errors property.
+     */
+    static async csvTableTemplate(benignErrorReporter) {
+        return helper.csvTableTemplate(definition);
+    }
 
 
     // async rolesFilterImpl({

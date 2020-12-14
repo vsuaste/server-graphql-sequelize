@@ -102,31 +102,31 @@ module.exports = {
         }
     },
 
-    // /**
-    //  * rolesConnection - Check user authorization and return certain number, specified in pagination argument, of records that
-    //  * holds the condition of search argument, all of them sorted as specified by the order argument.
-    //  *
-    //  * @param  {object} search     Search argument for filtering records
-    //  * @param  {array} order       Type of sorting (ASC, DESC) for each field
-    //  * @param  {object} pagination Cursor and first(indicatig the number of records to retrieve) arguments to apply cursor-based pagination.
-    //  * @param  {object} context     Provided to every resolver holds contextual information like the resquest query and user info.
-    //  * @return {array}             Array of records as grapqhql connections holding conditions specified by search, order and pagination argument
-    //  */
-    // rolesConnection: async function({
-    //     search,
-    //     order,
-    //     pagination
-    // }, context) {
-    //     if (await checkAuthorization(context, 'role', 'read') === true) {
-    //         helper.checkCursorBasedPaginationArgument(pagination);
-    //         let limit = helper.isNotUndefinedAndNotNull(pagination.first) ? pagination.first : pagination.last;
-    //         helper.checkCountAndReduceRecordsLimit(limit, context, "rolesConnection");
-    //         let benignErrorReporter = new errorHelper.BenignErrorReporter(context);
-    //         return await role.readAllCursor(search, order, pagination, benignErrorReporter);
-    //     } else {
-    //         throw new Error("You don't have authorization to perform this action");
-    //     }
-    // },
+    /**
+     * animalsConnection - Check user authorization and return certain number, specified in pagination argument, of records that
+     * holds the condition of search argument, all of them sorted as specified by the order argument.
+     *
+     * @param  {object} search     Search argument for filtering records
+     * @param  {array} order       Type of sorting (ASC, DESC) for each field
+     * @param  {object} pagination Cursor and first(indicatig the number of records to retrieve) arguments to apply cursor-based pagination.
+     * @param  {object} context     Provided to every resolver holds contextual information like the resquest query and user info.
+     * @return {array}             Array of records as grapqhql connections holding conditions specified by search, order and pagination argument
+     */
+    animalsConnection: async function({
+        search,
+        order,
+        pagination
+    }, context) {
+        if (await checkAuthorization(context, 'animal', 'read') === true) {
+            helper.checkCursorBasedPaginationArgument(pagination);
+            let limit = helper.isNotUndefinedAndNotNull(pagination.first) ? pagination.first : pagination.last;
+            helper.checkCountAndReduceRecordsLimit(limit, context, "animalsConnection");
+            let benignErrorReporter = new errorHelper.BenignErrorReporter(context);
+            return await animal.readAllCursor(search, order, pagination, benignErrorReporter);
+        } else {
+            throw new Error("You don't have authorization to perform this action");
+        }
+    },
 
     /**
      * readOneAnimal - Check user authorization and return one record with the specified id in the id argument.
@@ -185,8 +185,6 @@ module.exports = {
             }
             let benignErrorReporter = new errorHelper.BenignErrorReporter(context);
             let createdAnimal = await animal.addOne(inputSanitized, benignErrorReporter);
-            console.log('createdAnimal:')
-            console.log(createdAnimal)
             await createdAnimal.handleAssociations(inputSanitized, benignErrorReporter);
             return createdAnimal;
         } else {
@@ -194,20 +192,20 @@ module.exports = {
         }
     },
 
-//     /**
-//      * bulkAddRoleCsv - Load csv file of records
-//      *
-//      * @param  {string} _       First parameter is not used
-//      * @param  {object} context Provided to every resolver holds contextual information like the resquest query and user info.
-//      */
-//     bulkAddRoleCsv: async function(_, context) {
-//         if (await checkAuthorization(context, 'role', 'create') === true) {
-//             let benignErrorReporter = new errorHelper.BenignErrorReporter(context);
-//             return role.bulkAddCsv(context, benignErrorReporter);
-//         } else {
-//             throw new Error("You don't have authorization to perform this action");
-//         }
-//     },
+    /**
+     * bulkAddAnimalCsv - Load csv file of documents
+     *
+     * @param  {string} _       First parameter is not used
+     * @param  {object} context Provided to every resolver holds contextual information like the resquest query and user info.
+     */
+    bulkAddAnimalCsv: async function(_, context) {
+        if (await checkAuthorization(context, 'animal', 'create') === true) {
+            let benignErrorReporter = new errorHelper.BenignErrorReporter(context);
+            return animal.bulkAddCsv(context, benignErrorReporter);
+        } else {
+            throw new Error("You don't have authorization to perform this action");
+        }
+    },
 
     /**
      * deleteAnimal - Check user authorization and delete a record with the specified _id in the _id argument.
@@ -257,20 +255,20 @@ module.exports = {
     },
 
 
-//     /**
-//      * csvTableTemplateRole - Returns table's template
-//      *
-//      * @param  {string} _       First parameter is not used
-//      * @param  {object} context Provided to every resolver holds contextual information like the resquest query and user info.
-//      * @return {Array}         Strings, one for header and one columns types
-//      */
-//     csvTableTemplateRole: async function(_, context) {
-//         if (await checkAuthorization(context, 'role', 'read') === true) {
-//             let benignErrorReporter = new errorHelper.BenignErrorReporter(context);
-//             return role.csvTableTemplate(benignErrorReporter);
-//         } else {
-//             throw new Error("You don't have authorization to perform this action");
-//         }
-//     }
+    /**
+     * csvTableTemplateAnimal - Returns table's template
+     *
+     * @param  {string} _       First parameter is not used
+     * @param  {object} context Provided to every resolver holds contextual information like the resquest query and user info.
+     * @return {Array}         Strings, one for header and one columns types
+     */
+    csvTableTemplateAnimal: async function(_, context) {
+        if (await checkAuthorization(context, 'animal', 'read') === true) {
+            let benignErrorReporter = new errorHelper.BenignErrorReporter(context);
+            return animal.csvTableTemplate(benignErrorReporter);
+        } else {
+            throw new Error("You don't have authorization to perform this action");
+        }
+    }
 
 }
