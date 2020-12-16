@@ -13,6 +13,11 @@ const {ObjectId} = require('mongodb')
 const errorHelper = require('../../utils/errors');
 const { off } = require('process');
 const { help } = require('mathjs');
+const os = require('os');
+const helpersAcl = require('../../utils/helpers-acl');
+const fileTools = require('../../utils/file-tools');
+const email = require('../../utils/email');
+const fs = require('fs');
 
 // An exact copy of the the model definition that comes from the .json file
 const definition = {
@@ -81,8 +86,6 @@ module.exports = class animal {
         const db = await this.storageHandler
         const collection = await db.collection('animal')
         let number = await collection.countDocuments(filter)
-        console.log('count Records')
-        console.log(number)
         return number
     }
 
@@ -103,7 +106,6 @@ module.exports = class animal {
         const db = await this.storageHandler
         const collection = await db.collection('animal')
         let documents = await collection.find(filter).skip(offset).limit(limit).sort(sort).toArray()
-        console.log(documents)
         // validationCheck after read
         return validatorUtil.bulkValidateData('validateAfterRead', this, documents, benignErrorReporter);
     }
@@ -229,12 +231,13 @@ module.exports = class animal {
     static bulkAddCsv(context) {
 
         let delim = context.request.body.delim;
+        let arrayDelim = ";"
         let cols = context.request.body.cols;
         let tmpFile = path.join(os.tmpdir(), uuidv4() + '.csv');
 
         context.request.files.csv_file.mv(tmpFile).then(() => {
 
-            fileTools.parseCsvStream(tmpFile, this, delim, cols).then((addedZipFilePath) => {
+            fileTools.parseCsvStream(tmpFile, this, delim, cols, "mongodb", arrayDelim).then((addedZipFilePath) => {
                 try {
                     console.log(`Sending ${addedZipFilePath} to the user.`);
 

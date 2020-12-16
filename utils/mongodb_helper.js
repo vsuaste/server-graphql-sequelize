@@ -9,7 +9,6 @@ const {ObjectId} = require('mongodb')
  */
 module.exports.orderConditionsToMongoDb = function(order, idAttribute, isForwardPagination){
   let sort = {};
-  console.log(order)
   if (order !== undefined) {
     for (let item of order){
       if (item.order==="ASC"){
