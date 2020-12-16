@@ -19,7 +19,7 @@ const definition = {
     model: 'animal',
     storageType: 'mongodb',
     attributes: {
-        _id: 'ObjectId',
+        _id: 'String',
         category: 'String',
         name: 'String',
         age: 'Int',
@@ -27,6 +27,11 @@ const definition = {
         health: 'Boolean',
         birthday: 'DateTime',
         personality: '[String]'
+    },
+    internalId: '_id',
+    id: {
+        name: '_id',
+        type: 'String'
     }
 };
 
@@ -86,10 +91,7 @@ module.exports = class animal {
         benignErrorReporter = errorHelper.getDefaultBenignErrorReporterIfUndef(benignErrorReporter);
         // build the filter object for limit-offset-based pagination
         let filter = mongoDbHelper.searchConditionsToMongoDb(search);
-        console.log('filter in readAll')
-        console.log(filter)
         let sort = mongoDbHelper.orderConditionsToMongoDb(order, this.idAttribute(), true);
-        console.log(sort)
         
         let limit;
         let offset;
@@ -97,8 +99,6 @@ module.exports = class animal {
             limit = pagination.limit ? pagination.limit : undefined;
             offset = pagination.offset ? pagination.offset : 0;
         }
-        console.log(pagination.offset)
-        console.log(offset+";"+limit)
 
         const db = await this.storageHandler
         const collection = await db.collection('animal')
@@ -111,71 +111,59 @@ module.exports = class animal {
     static async readAllCursor(search, order, pagination, benignErrorReporter) {
         //use default BenignErrorReporter if no BenignErrorReporter defined
         benignErrorReporter = errorHelper.getDefaultBenignErrorReporterIfUndef(benignErrorReporter);
-
         let isForwardPagination = helper.isForwardPagination(pagination);
         // build the filter object.
         let filter = mongoDbHelper.searchConditionsToMongoDb(search);
+        let newOrder = isForwardPagination ? order : helper.reverseOrderConditions(order)
         // depending on the direction build the order object
-        let sort = isForwardPagination ? mongoDbHelper.orderConditionsToMongoDb(order, this.idAttribute(), isForwardPagination)
-        : mongoDbHelper.orderConditionsToMongoDb(helper.reverseOrderConditions(order), this.idAttribute(), isForwardPagination);
-        // extend the where options for the given order and cursor
-        mongoDbHelper.cursorPaginationArgumentsToMongoDb(pagination, sort, filter, this.idAttribute());
+        let sort = mongoDbHelper.orderConditionsToMongoDb(newOrder, this.idAttribute(), isForwardPagination)
+        let orderFields = newOrder.map( x => x.field )
+        // extend the filter for the given order and cursor
+        filter = mongoDbHelper.cursorPaginationArgumentsToMongoDb(pagination, sort, filter, orderFields, this.idAttribute());
+
         // add +1 to the LIMIT to get information about following pages.
         let limit = helper.isNotUndefinedAndNotNull(pagination.first) ? pagination.first + 1 : helper.isNotUndefinedAndNotNull(pagination.last) ? pagination.last + 1 : undefined;
         
         const db = await this.storageHandler
         const collection = await db.collection('animal')
         let documents = await collection.find(filter).limit(limit).sort(sort).toArray()
-        console.log(documents)
 
         // validationCheck after read
-        records = await validatorUtil.bulkValidateData('validateAfterRead', this, records, benignErrorReporter);
+        documents = await validatorUtil.bulkValidateData('validateAfterRead', this, documents, benignErrorReporter);
         // get the first record (if exists) in the opposite direction to determine pageInfo.
         // if no cursor was given there is no need for an extra query as the results will start at the first (or last) page.
         let oppDocuments = [];
         if (pagination && (pagination.after || pagination.before)) {
             // reverse the pagination Arguement. after -> before; set first/last to 0, so LIMIT 1 is executed in the reverse Search
             let oppPagination = helper.reversePaginationArgument({...pagination, includeCursor: false});
+            let oppForwardPagination = helper.isForwardPagination(oppPagination);
             // build the filter object.
             let oppFilter = mongoDbHelper.searchConditionsToMongoDb(search);
-            // extend the where options for the given order and cursor
-            mongoDbHelper.cursorPaginationArgumentsToMongoDb(oppPagination, oppFilter, [], this.idAttribute());
+
+            let oppOrder = oppForwardPagination ? order : helper.reverseOrderConditions(order)
+            // depending on the direction build the order object
+            let oppSort = mongoDbHelper.orderConditionsToMongoDb(oppOrder, this.idAttribute(), oppForwardPagination)
+            let oppOrderFields = oppOrder.map( x => x.field )
+            // extend the filter for the given order and cursor
+            oppFilter = mongoDbHelper.cursorPaginationArgumentsToMongoDb(oppPagination, oppSort, oppFilter, oppOrderFields, this.idAttribute());
             // add +1 to the LIMIT to get information about following pages.
             let oppLimit = helper.isNotUndefinedAndNotNull(oppPagination.first) ? oppPagination.first + 1 : helper.isNotUndefinedAndNotNull(oppPagination.last) ? oppPagination.last + 1 : undefined;
-            
-            oppDocuments = await collection.find(oppFilter).limit(oppLimit).toArray()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+            oppDocuments = await collection.find(oppFilter).limit(oppLimit).toArray()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
         }
 
         // build the graphql Connection Object
-        let edges = helper.buildEdgeObject(records);
+        let edges = documents.map( doc => {
+            let edge = {}
+            let animalDoc= new animal(doc)
+            edge.node = animalDoc
+            edge.cursor = animalDoc.base64Enconde()
+            return edge
+        })
         let pageInfo = helper.buildPageInfo(edges, oppDocuments, pagination);
         return {
             edges,
             pageInfo
         };
-        // // build the filter object for cursor-based pagination
-        // let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, this.idAttribute(), user.definition.attributes);
-        // let records = await super.findAll(options);
-
-        // // validationCheck after read
-        // records = await validatorUtil.bulkValidateData('validateAfterRead', this, records, benignErrorReporter);
-        // // get the first record (if exists) in the opposite direction to determine pageInfo.
-        // // if no cursor was given there is no need for an extra query as the results will start at the first (or last) page.
-        // let oppRecords = [];
-        // if (pagination && (pagination.after || pagination.before)) {
-        //     let oppOptions = helper.buildOppositeSearchSequelize(search, order, {
-        //         ...pagination,
-        //         includeCursor: false
-        //     }, this.idAttribute(), user.definition.attributes);
-        //     oppRecords = await super.findAll(oppOptions);
-        // }
-        // // build the graphql Connection Object
-        // let edges = helper.buildEdgeObject(records);
-        // let pageInfo = helper.buildPageInfo(edges, oppRecords, pagination);
-        // return {
-        //     edges,
-        //     pageInfo
-        // };
     }
 
     static async addOne(input) {
@@ -389,7 +377,7 @@ module.exports = class animal {
      * @return {type} Name of the attribute that functions as an internalId
      */
     static idAttribute() {
-        return "_id";
+        return animal.definition.id.name;
     }
 
     /**
@@ -398,7 +386,7 @@ module.exports = class animal {
      * @return {type} Type given in the JSON model
      */
     static idAttributeType() {
-        return "ObjectId";
+        return animal.definition.id.type;
     }
 
     /**

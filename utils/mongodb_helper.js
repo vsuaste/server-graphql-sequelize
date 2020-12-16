@@ -1,4 +1,5 @@
 const searchArg = require('./search-argument');
+const {ObjectId} = require('mongodb')
 /**
  * orderConditionsToMongoDb - build the sort object for default pagination. Default order is by idAttribute ASC
  * @param {array} order order array given in the graphQl query
@@ -74,34 +75,13 @@ module.exports.mergeMongoDbFilters = function (filterA, filterB, operator) {
  *
  * Returns a set of {AND / OR} conditions that cause a ‘WHERE’ clause to deliver only the records ‘greater that’ a given cursor.
  *
- * The meaning of a record being ‘greater than’ a given cursor is that any of the following conditions are fullfilled for the given cursor,
- * order set and idAttribute:
- *
- *    (1) At least the idAttribute of the record is greater than the idAttribute of the cursor if the idAttribute’s order is ASC,
- *    or smaller than if it is DESC.
- *
- *    This condition is sufficient to the record being ‘greater than’ a given cursor, but not strictly necessary.
- *    That is, if some field, different of the idAttribute, appears before the idAttribute on the order array,
- *    and this field fulfills condition 2.a, then the record is considered being ‘greater than’ the given cursor.
- *
- *    (2) If other fields different from idAttribute are given on the order set, as entries of the form [value, ORDER], then, starting from
- *    the first entry, we test the following condition on it:
- *
- *        a) If record.value  is [ > on ASC, or  < on DESC] than cursor.value, then this record is greater than the given cursor.
- *        b) If record.value  is equal to  cursor.value,  then:
- *            i) test the next value on cursor set to determine if it fullfils condition 1) or some of the subconditions 2).[a, b, c],
- *               in order tho determine if the record is 'greater than', or not, the given cursor.
- *        c) else: this record is not greater than the given cursor.
- *
- *
- *
  * @param  {Array} order  Order entries. Must contains at least the entry for 'idAttribute'.
  * @param  {Object} cursor Cursor record taken as start point(exclusive) to create the filter object.
  * @param  {String} idAttribute  idAttribute of the calling model.
  * @param  {Boolean} includeCursor Boolean flag that indicates if a strict or relaxed operator must be used for produce idAttribute conditions.
  * @return {Object}        filter object which is used for retrieving records after the given cursor holding the order conditions.
  */
-module.exports.parseOrderCursor = function(order, cursor, idAttribute, includeCursor){
+module.exports.parseOrderCursor = function(order, cursor, idAttribute, orderFields, includeCursor){
   /**
    * Checks
    */
@@ -110,8 +90,7 @@ module.exports.parseOrderCursor = function(order, cursor, idAttribute, includeCu
     return {};
   }
   //order: must have idAttribute
-  if(!order||!order.length||order.length===0||
-    !order.map( orderItem=>{return orderItem[0] }).includes(idAttribute)) {
+  if(!Object.keys(order).includes(idAttribute)) {
       return {};
   }
   //cursor: must have idAttribute
@@ -119,40 +98,32 @@ module.exports.parseOrderCursor = function(order, cursor, idAttribute, includeCu
     return {};
   }
 
-  /**
-   * Construct AND/OR conditions using a left-recursive grammar (A => Aa).
-   *
-   * The base step of the recursion will produce the conditions for the last entry (most right) on the order-array.
-   * And each recursive step will produce the conditions for the other entries, starting from the last to the first (from right to left).
-   *
-   *    order: [ [0], [1], [2], ..., [n]]
-   *             |<----------|        |
-   *             recursive steps      base step
-   *             from right to left
-   *
-   */
+  if (!orderFields.includes(idAttribute)){
+    orderFields.push(idAttribute)
+  }
   //index of base step
-  let last_index = order.length-1;
+  let last_index = orderFields.length-1;
   //index of the starting recursive step
-  let start_index = order.length-2;
+  let start_index = orderFields.length-2;
 
   /*
     * Base step.
     */
-
-  /*
-    * Set operator for base step.
-    */
   //set operator according to order type.
-  let operator = order[last_index][1] === 1 ? 'gte' : 'lte';
+  let operator = order[orderFields[last_index]] === 1 ? 'gte' : 'lte';
   //set strictly '>' or '<' for idAttribute (condition (1)).
-  if (!includeCursor && order[last_index][0] === idAttribute) { operator = operator.substring(0, 2); }
+  if (!includeCursor && orderFields[last_index] === idAttribute) { operator = operator.substring(0, 2); }
 
   /*
     * Produce condition for base step.
     */
   let filter = {
-    [order[last_index][0]]: { ["$"+operator]: cursor[order[last_index][0]] }
+    [orderFields[last_index]]: { ["$"+operator]: cursor[orderFields[last_index]] }
+  }
+  if (orderFields[last_index] === idAttribute) {
+    filter = {
+      [orderFields[last_index]]: { ["$"+operator]: new ObjectId(cursor[orderFields[last_index]]) }
+    }
   }
 
   /*
@@ -164,39 +135,35 @@ module.exports.parseOrderCursor = function(order, cursor, idAttribute, includeCu
      * Set operators
      */
     //set relaxed operator '>=' or '<=' for condition (2.a or 2.b)
-    operator = order[i][1] === 1 ? 'gte' : 'lte';
+    operator = order[orderFields[i]] === 1 ? 'gte' : 'lte';
     //set strict operator '>' or '<' for condition (2.a).
-    let strict_operator = order[i][1] === 1 ? 'gt' : 'lt';
+    let strict_operator = order[orderFields[i]] === 1 ? 'gt' : 'lt';
     //set strictly '>' or '<' for idAttribute (condition (1)).
-    if(!includeCursor && order[i][0] === idAttribute){ operator = operator.substring(0, 2);}
+    if(!includeCursor && orderFields[i] === idAttribute){ operator = operator.substring(0, 2);}
 
     /**
      * Produce: AND/OR conditions
      */
-    filter = {
-      ['$and'] :[
-        /**
-         * Set
-         * condition (1) in the case of idAttribute or
-         * condition (2.a or 2.b) for other fields.
-         */
-        { [order[i][0] ] : { ["$"+operator]: cursor[ order[i][0] ] } },
-
-        { ['$or'] :[
-          /**
-           * Set
-           * condition (1) in the case of idAttribute or
-           * condition (2.a) for other fields.
-           */
-          { [order[i][0]]: { ["$"+strict_operator]: cursor[ order[i][0] ]} },
-
-          /**
-           * Add the previous produced conditions.
-           * This will include the base step condition as the most right condition.
-           */
-          filter  ]
-        }
-      ]
+    if (orderFields[i] === idAttribute){
+      filter = {
+        ['$and'] :[
+          { [orderFields[i] ] : { ["$"+operator]: new ObjectId(cursor[ orderFields[i]]) } },
+          { ['$or'] :[
+            { [orderFields[i]]: { ["$"+strict_operator]: new ObjectId(cursor[ orderFields[i]]) } },
+            filter  ]
+          }
+        ]
+      } 
+    } else {
+      filter = {
+        ['$and'] :[
+          { [orderFields[i] ] : { ["$"+operator]: cursor[ orderFields[i] ] } },
+          { ['$or'] :[
+            { [orderFields[i]]: { ["$"+strict_operator]: cursor[ orderFields[i] ]} },
+            filter  ]
+          }
+        ]
+      }      
     }
   }
   return filter
@@ -212,13 +179,14 @@ module.exports.parseOrderCursor = function(order, cursor, idAttribute, includeCu
  * @param {object} filter filter object
  * @param {string} idAttribute idAttribute of the model
  */
-module.exports.cursorPaginationArgumentsToMongoDb = function(pagination, sort, filter, idAttribute) {
+module.exports.cursorPaginationArgumentsToMongoDb = function(pagination, sort, filter, orderFields, idAttribute) {
   if (pagination) {
     if (pagination.after || pagination.before){
       let cursor = pagination.after ? pagination.after : pagination.before;
       let decoded_cursor = JSON.parse(Buffer.from(cursor, 'base64').toString('utf-8'));
-      let filterB = module.exports.parseOrderCursor(sort, decoded_cursor, idAttribute, pagination.includeCursor);
+      let filterB = module.exports.parseOrderCursor(sort, decoded_cursor, idAttribute, orderFields, pagination.includeCursor);
       filter = module.exports.mergeMongoDbFilters(filter, filterB);
     }
   }
+  return filter
 }
