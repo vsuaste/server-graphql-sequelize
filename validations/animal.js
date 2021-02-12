@@ -19,10 +19,10 @@ module.exports.validator_patch = function(animal) {
     animal.prototype.validatorSchema = {
         "$async": true,
         "properties": {
-            "_id": {
+            "animal_id": {
                 "type": ["string", "null"]
             },
-            "name": {
+            "animal_name": {
                 "type": ["string", "null"]
             },
             "category": {
@@ -45,6 +45,9 @@ module.exports.validator_patch = function(animal) {
             },
             "personality": {
                 "type": ["array", "null"]
+            },
+            "farm_id": {
+                "type": ["string", "null"]
             }
         }
     }

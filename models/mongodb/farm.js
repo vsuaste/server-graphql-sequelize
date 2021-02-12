@@ -20,32 +20,26 @@ const fs = require('fs');
 
 // An exact copy of the the model definition that comes from the .json file
 const definition = {
-    model: 'animal',
+    model: 'farm',
     storageType: 'mongodb',
     attributes: {
-        animal_id: 'String',
-        category: 'String',
-        animal_name: 'String',
-        age: 'Int',
-        weight: 'Float',
-        health: 'Boolean',
-        birthday: 'DateTime',
-        personality: '[String]',
-        farm_id: 'String'
+        farm_id: 'String',
+        farm_name: 'String',
+        owner: 'String'
     },
     associations: {
-        farm: {
-            type: 'to_one',
-            target: 'farm',
+        animal: {
+            type: 'to_many',
+            target: 'animal',
             targetKey: 'farm_id',
             keyIn: 'animal',
             targetStorageType: 'mongodb',
-            label: 'farm_name'
+            label: 'animal_id'
         }
     },
-    internalId: 'animal_id',
+    internalId: 'farm_id',
     id: {
-        name: 'animal_id',
+        name: 'farm_id',
         type: 'String'
     }
 };
@@ -53,7 +47,7 @@ const definition = {
 /**
  * module - Creates a MongoDB data model
  */
-module.exports = class animal {
+module.exports = class farm {
 
     constructor(input){
         for (let key of Object.keys(input)) {
@@ -66,7 +60,7 @@ module.exports = class animal {
      * @returns connected mongodb
      */
     get storageHandler() {
-        return animal.storageHandler;
+        return farm.storageHandler;
     }
 
     /**
@@ -76,26 +70,26 @@ module.exports = class animal {
      * @return {string} The name of the model
      */
     static get name(){
-        return "animal";
+        return "farm";
     }
 
     static async readById(id) {
         const db = await this.storageHandler
-        const collection = await db.collection('animal')
+        const collection = await db.collection('farm')
         const id_name = this.idAttribute();
         let item = await collection.findOne({[id_name] : id});
         if (item === null) {
             throw new Error(`Record with ID = "${id}" does not exist`);
         }
         validatorUtil.validateData('validateAfterRead', this, item);
-        item = new animal(item);
+        item = new farm(item);
         return item
     }
 
     static async countRecords(search) {
         let filter = mongoDbHelper.searchConditionsToMongoDb(search);
         const db = await this.storageHandler
-        const collection = await db.collection('animal')
+        const collection = await db.collection('farm')
         let number = await collection.countDocuments(filter)
         return number
     }
@@ -115,9 +109,9 @@ module.exports = class animal {
         }
 
         const db = await this.storageHandler
-        const collection = await db.collection('animal')
+        const collection = await db.collection('farm')
         let documents = await collection.find(filter).skip(offset).limit(limit).sort(sort).toArray()
-        documents = documents.map( doc => new animal(doc) )
+        documents = documents.map( doc => new farm(doc) )
         // validationCheck after read
         return validatorUtil.bulkValidateData('validateAfterRead', this, documents, benignErrorReporter);
     }
@@ -133,13 +127,13 @@ module.exports = class animal {
         let sort = mongoDbHelper.orderConditionsToMongoDb(newOrder, this.idAttribute(), isForwardPagination)
         let orderFields = newOrder? newOrder.map( x => x.field ) : []
         // extend the filter for the given order and cursor
-        filter = mongoDbHelper.cursorPaginationArgumentsToMongoDb(pagination, sort, filter, orderFields, this.idAttribute());
+        filter = mongoDbHelper.cursorPaginationArgumentsToMongoDb(pagination, sort, filter, orderFields, this.idAttribute())
 
         // add +1 to the LIMIT to get information about following pages.
         let limit = helper.isNotUndefinedAndNotNull(pagination.first) ? pagination.first + 1 : helper.isNotUndefinedAndNotNull(pagination.last) ? pagination.last + 1 : undefined;
         
         const db = await this.storageHandler
-        const collection = await db.collection('animal')
+        const collection = await db.collection('farm')
         let documents = await collection.find(filter).limit(limit).sort(sort).toArray()
 
         // validationCheck after read
@@ -168,9 +162,9 @@ module.exports = class animal {
         // build the graphql Connection Object
         let edges = documents.map( doc => {
             let edge = {}
-            let animalDoc= new animal(doc)
-            edge.node = animalDoc
-            edge.cursor = animalDoc.base64Enconde()
+            let farmDoc= new farm(doc)
+            edge.node = farmDoc
+            edge.cursor = farmDoc.base64Enconde()
             return edge
         })
         let pageInfo = helper.buildPageInfo(edges, oppDocuments, pagination);
@@ -185,7 +179,7 @@ module.exports = class animal {
         await validatorUtil.validateData('validateForCreate', this, input);
         try {
             const db = await this.storageHandler
-            const collection = await db.collection('animal')
+            const collection = await db.collection('farm')
             // remove skipAssociationsExistenceChecks
             delete input.skipAssociationsExistenceChecks
             const result =  await collection.insertOne(input);
@@ -202,7 +196,7 @@ module.exports = class animal {
         await validatorUtil.validateData('validateForDelete', this, id);
         try {
             const db = await this.storageHandler
-            const collection = await db.collection('animal')
+            const collection = await db.collection('farm')
             const id_name = this.idAttribute();
             const response = await collection.deleteOne({[id_name]: id});
             if (response.result.ok !== 1){
@@ -220,7 +214,7 @@ module.exports = class animal {
         await validatorUtil.validateData('validateForUpdate', this, input);
         try {
             const db = await this.storageHandler
-            const collection = await db.collection('animal')
+            const collection = await db.collection('farm')
             // remove skipAssociationsExistenceChecks
             delete input.skipAssociationsExistenceChecks
             const updatedContent = {}
@@ -311,117 +305,12 @@ module.exports = class animal {
     }
 
     /**
-     * add_farmId - field Mutation (model-layer) for to_one associationsArguments to add
-     *
-     * @param {Id}   animal_id   IdAttribute of the root model to be updated
-     * @param {Id}   farm_id Foreign Key (stored in "Me") of the Association to be updated.
-     */
-    static async add_farm_id(animal_id, farm_id) {
-        try {
-            const db = await this.storageHandler
-            const collection = await db.collection('animal')
-            const updatedContent = {farm_id: farm_id}
-            const response = await collection.updateOne({animal_id:animal_id}, {$set: updatedContent});
-            if (response.result.ok !== 1){
-                throw new Error(`Record with ID = ${animal_id} has not been updated`);
-            }
-            const document = await this.readById(animal_id);
-            return document
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    /**
-     * remove_farm_id - field Mutation (model-layer) for to_one associationsArguments to remove
-     *
-     * @param {Id}   animal_id   IdAttribute of the root model to be updated
-     * @param {Id}   farm_id Foreign Key (stored in "Me") of the Association to be updated.
-     */
-    static async remove_farm_id(animal_id, farm_id) {
-        try {
-            const db = await this.storageHandler
-            const collection = await db.collection('animal')
-            const updatedContent = {farm_id: null}
-            const response = await collection.updateOne({animal_id:animal_id, farm_id: farm_id}, 
-                {$set: updatedContent});
-            if (response.result.ok !== 1){
-                throw new Error(`Record with ID = ${animal_id} has not been updated`);
-            }
-            const document = await this.readById(animal_id);
-            return document
-        } catch (error) {
-            throw error;
-        }
-    }
-
-
-    /**
-     * bulkAssociateAnimalWithFarmId - bulkAssociaton of given ids
-     *
-     * @param  {array} bulkAssociationInput Array of associations to add
-     * @param  {BenignErrorReporter} benignErrorReporter Error Reporter used for reporting Errors from remote zendro services
-     * @return {string} returns message on success
-     */
-    static async bulkAssociateAnimalWithFarmId(bulkAssociationInput) {
-        let mappedForeignKeys = helper.mapForeignKeysToPrimaryKeyArray(bulkAssociationInput, "animal_id", "farm_id");
-        let collection;
-        try {
-            const db = await this.storageHandler
-            collection = await db.collection('animal')
-        } catch (error) {
-            throw error;
-        }
-        var promises = [];
-        // note: animal_id here is an array
-        mappedForeignKeys.forEach(({
-            farm_id,
-            animal_id
-        }) => {
-            promises.push(
-                collection.updateMany({animal_id:{$in: animal_id}}, {$set: {farm_id: farm_id}})
-            );
-        })
-        await Promise.all(promises);
-        return "Records successfully updated!"
-    }
-
-    /**
-     * bulkDisAssociateAnimalWithFarmId - bulkDisAssociaton of given ids
-     *
-     * @param  {array} bulkAssociationInput Array of associations to remove
-     * @param  {BenignErrorReporter} benignErrorReporter Error Reporter used for reporting Errors from remote zendro services
-     * @return {string} returns message on success
-     */
-    static async bulkDisAssociateAnimalWithFarmId(bulkAssociationInput) {
-        let mappedForeignKeys = helper.mapForeignKeysToPrimaryKeyArray(bulkAssociationInput, "animal_id", "farm_id");
-        let collection;
-        try {
-            const db = await this.storageHandler
-            collection = await db.collection('animal')
-        } catch (error) {
-            throw error;
-        }
-        var promises = [];
-        mappedForeignKeys.forEach(({
-            farm_id,
-            animal_id
-        }) => {
-            promises.push(
-                collection.updateMany({animal_id:{$in: animal_id}, farm_id: farm_id}, {$set: {farm_id: null}})
-            );
-        })
-        await Promise.all(promises);
-        return "Records successfully updated!"
-    }
-
-    /**
      * idAttribute - Check whether an attribute "internalId" is given in the JSON model. If not the standard "id" is used instead.
      *
      * @return {type} Name of the attribute that functions as an internalId
      */
     static idAttribute() {
-        return animal.definition.id.name;
+        return farm.definition.id.name;
     }
 
     /**
@@ -430,7 +319,7 @@ module.exports = class animal {
      * @return {type} Type given in the JSON model
      */
     static idAttributeType() {
-        return animal.definition.id.type;
+        return farm.definition.id.type;
     }
 
     /**
@@ -439,7 +328,7 @@ module.exports = class animal {
      * @return {type} id value
      */
     getIdValue() {
-        return this[animal.idAttribute()]
+        return this[farm.idAttribute()]
     }
 
     static get definition() {
@@ -455,7 +344,7 @@ module.exports = class animal {
     }
 
     stripAssociations() {
-        let attributes = Object.keys(animal.definition.attributes);
+        let attributes = Object.keys(farm.definition.attributes);
         let data_values = _.pick(this, attributes);
         return data_values;
     }

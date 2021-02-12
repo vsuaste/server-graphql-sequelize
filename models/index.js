@@ -120,7 +120,10 @@ getModulesSync(__dirname + "/mongodb").forEach(file => {
   console.log("loaded model: " + file);
   let model = require(`./${join("./mongodb", file)}`)
   models.mongoDbs[model.name] = model.definition;
-  
+  let validator_patch = join('./validations', file);
+  if(existsSync(validator_patch)){
+    model = require(`../${validator_patch}`).validator_patch(model);
+  }
   if(model.name in models)
       throw Error(`Duplicated model name ${model.name}`);
 

@@ -3,12 +3,12 @@ module.exports = `
         """
         @original-field
         """
-        _id: ID
+        animal_id: ID
         """
         @original-field
 
         """
-        name: String
+        animal_name: String
 
         """
         @original-field
@@ -42,6 +42,13 @@ module.exports = `
 
         """
         personality: [String]
+
+        """
+        @original-field
+
+        """
+        farm_id: String
+        farm(search: searchFarmInput): farm
     }
     type AnimalConnection{
         edges: [AnimalEdge]
@@ -54,14 +61,15 @@ module.exports = `
     }
 
     enum animalField {
-        _id
-        name
+        animal_id
+        animal_name
         category
         age
         weight
         health
         birthday
         personality
+        farm_id
     }
 
     input searchAnimalInput {
@@ -77,18 +85,24 @@ module.exports = `
         order: Order
     }
 
+    input bulkAssociationAnimalWithFarmIdInput{
+        animal_id: ID!
+        farm_id: ID!
+    }
 
     type Query {
         animals(search: searchAnimalInput, order: [ orderAnimalInput ], pagination: paginationInput! ): [animal]
-        readOneAnimal(_id: ID!): animal
+        readOneAnimal(animal_id: ID!): animal
         countAnimals(search: searchAnimalInput ): Int
         animalsConnection(search:searchAnimalInput, order: [ orderAnimalInput ], pagination: paginationCursorInput! ): AnimalConnection
     }
 
     type Mutation {
-        addAnimal( name: String, category: String, age: Int, weight: Float, health: Boolean, birthday: DateTime, personality: [String], skipAssociationsExistenceChecks:Boolean = false): animal!
-        updateAnimal(_id: ID!, name: String, category: String, age: Int, weight: Float, health: Boolean, birthday: DateTime, personality: [String], skipAssociationsExistenceChecks:Boolean = false): animal!
-        deleteAnimal(_id: ID!): String!
+        addAnimal(animal_id: ID!, animal_name: String, category: String, age: Int, weight: Float, health: Boolean, birthday: DateTime, personality: [String], addFarm:ID, skipAssociationsExistenceChecks:Boolean = false): animal!
+        updateAnimal(animal_id: ID!, animal_name: String, category: String, age: Int, weight: Float, health: Boolean, birthday: DateTime, personality: [String], addFarm:ID, removeFarm:ID, skipAssociationsExistenceChecks:Boolean = false): animal!
+        deleteAnimal(animal_id: ID!): String!
         bulkAddAnimalCsv: String!
+        bulkAssociateAnimalWithFarmId(bulkAssociationInput: [bulkAssociationAnimalWithFarmIdInput], skipAssociationsExistenceChecks:Boolean = false): String!
+        bulkDisAssociateAnimalWithFarmId(bulkAssociationInput: [bulkAssociationAnimalWithFarmIdInput], skipAssociationsExistenceChecks:Boolean = false): String!
     }
 `;

@@ -1,5 +1,5 @@
 const searchArg = require('./search-argument');
-const {ObjectId} = require('mongodb')
+// const {ObjectId} = require('mongodb')
 /**
  * orderConditionsToMongoDb - build the sort object for default pagination. Default order is by idAttribute ASC
  * @param {array} order order array given in the graphQl query
@@ -21,6 +21,8 @@ module.exports.orderConditionsToMongoDb = function(order, idAttribute, isForward
   if (!Object.keys(sort).includes(idAttribute)) {
     sort[idAttribute] = isForwardPagination ? 1 : -1
   }
+  console.log("orderConditionsToMongoDb")
+  console.log(sort)
   return sort;
 }
 
@@ -119,11 +121,6 @@ module.exports.parseOrderCursor = function(order, cursor, idAttribute, orderFiel
   let filter = {
     [orderFields[last_index]]: { ["$"+operator]: cursor[orderFields[last_index]] }
   }
-  if (orderFields[last_index] === idAttribute) {
-    filter = {
-      [orderFields[last_index]]: { ["$"+operator]: new ObjectId(cursor[orderFields[last_index]]) }
-    }
-  }
 
   /*
     * Recursive steps.
@@ -143,27 +140,15 @@ module.exports.parseOrderCursor = function(order, cursor, idAttribute, orderFiel
     /**
      * Produce: AND/OR conditions
      */
-    if (orderFields[i] === idAttribute){
-      filter = {
-        ['$and'] :[
-          { [orderFields[i] ] : { ["$"+operator]: new ObjectId(cursor[ orderFields[i]]) } },
-          { ['$or'] :[
-            { [orderFields[i]]: { ["$"+strict_operator]: new ObjectId(cursor[ orderFields[i]]) } },
-            filter  ]
-          }
-        ]
-      } 
-    } else {
-      filter = {
-        ['$and'] :[
-          { [orderFields[i] ] : { ["$"+operator]: cursor[ orderFields[i] ] } },
-          { ['$or'] :[
-            { [orderFields[i]]: { ["$"+strict_operator]: cursor[ orderFields[i] ]} },
-            filter  ]
-          }
-        ]
-      }      
-    }
+    filter = {
+      ['$and'] :[
+        { [orderFields[i] ] : { ["$"+operator]: cursor[ orderFields[i] ] } },
+        { ['$or'] :[
+          { [orderFields[i]]: { ["$"+strict_operator]: cursor[ orderFields[i] ]} },
+          filter  ]
+        }
+      ]
+    }    
   }
   return filter
 }
