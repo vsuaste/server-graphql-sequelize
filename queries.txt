@@ -116,3 +116,89 @@ mutation{
 #     }
 #   }
 # }
+
+  mutation{
+    addFood(food_id:"1", food_name:"pork", addAnimals:[2,5]){
+      food_id
+      animal_ids
+    }
+  }
+  
+    mutation{
+    addFood(food_id:"2", food_name:"fish", addAnimals:[2,5]){
+      food_id
+      animal_ids
+    }
+  }
+  
+    mutation{
+    addFood(food_id:"3", food_name:"rice", addAnimals:[2,5]){
+      food_id
+      animal_ids
+      countFilteredAnimals(search: {field:category, value:"Dog", operator: eq})
+      animalsFilter(pagination:{offset: 0, limit: 10}){
+        animal_name
+      }
+      animalsConnection(search: {field:category, value:"Dog", operator: eq},
+        pagination: {first:10})
+        {
+            edges{
+              node{
+                animal_id
+              }
+            }
+        }
+      }
+  }
+
+
+{
+  readOneAnimal(animal_id: "2"){
+    animal_name
+    food_ids
+    countFilteredFood(search: {field:food_name, value:"pork", operator: eq})
+		foodFilter(search:{field:food_name, value:"pork", operator: eq},
+    pagination:{offset: 0, limit: 10}){
+      food_name
+    }
+    foodConnection(pagination:{first: 10}){
+      edges{
+        node{
+          food_name
+        }
+      }
+    }
+  }
+}
+
+
+/////////////////////////////one to one
+mutation{
+	updateTracker(tracker_id:1, location:"garden", addUnique_animal:3){
+    tracker_id
+    animal_id
+  }
+}
+{
+  animals(search: {field: animal_id, operator: eq, value: "3"}, pagination: {limit: 10}) {
+    animal_id
+    unique_tracker {
+      tracker_id
+    }
+  }
+}
+
+introduce conflict
+mutation{
+	addTracker(tracker_id:2, location:"living room", addUnique_animal:3){
+    tracker_id
+    animal_id
+  }
+}
+
+mutation{
+	updateTracker(tracker_id:1,removeUnique_animal:3){
+    tracker_id
+    animal_id
+  }
+}

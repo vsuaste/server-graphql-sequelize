@@ -21,8 +21,6 @@ module.exports.orderConditionsToMongoDb = function(order, idAttribute, isForward
   if (!Object.keys(sort).includes(idAttribute)) {
     sort[idAttribute] = isForwardPagination ? 1 : -1
   }
-  console.log("orderConditionsToMongoDb")
-  console.log(sort)
   return sort;
 }
 
