@@ -27,6 +27,8 @@ const initializeStorageHandlersForAdapters = require(path.join(
 )).initializeStorageHandlersForAdapters;
 
 var acl = null;
+let resolvers = null;
+let simpleExport = null;
 
 var cors = require("cors");
 
@@ -67,7 +69,6 @@ let Schema = helper.mergeSchemaSetScalarTypes(
   path.join(__dirname, "./schemas")
 );
 
-let resolvers = null;
 const { leftShift } = require("mathjs");
 /* Parse urlencoded bodies and JSON by bodyParser middlewares*/
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -105,7 +106,6 @@ app.use("/export", cors(), async (req, res) => {
   let body_info = req.query;
 
   try {
-    const simpleExport = require("./utils/simple-export");
     await simpleExport(context, body_info, res);
     res.end();
   } catch (err) {
@@ -228,6 +228,7 @@ var server = app.listen(APP_PORT, async () => {
   await initializeStorageHandlersForModels(models);
   await initializeStorageHandlersForAdapters(adapters);
   resolvers = require("./resolvers/index");
+  simpleExport = require("./utils/simple-export");
   console.log(`App listening on port ${APP_PORT}`);
 });
 
