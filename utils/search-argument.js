@@ -1,12 +1,9 @@
-
 const { Op } = require("sequelize");
 
 /**
  * search Class to parse search argument for any model and translate it so sequelize model will accept it
  */
-module.exports = class search{
-
-
+module.exports = class search {
   /**
    * constructor - Creates an instace with the given arguments
    *
@@ -17,13 +14,12 @@ module.exports = class search{
    * @param  {object} search  recursive search instance.
    * @return {object}          instace of search class.
    */
-  constructor({field, value, valueType, operator, search}){
+  constructor({ field, value, valueType, operator, search }) {
     this.field = field;
     this.value = this.constructor.parseValue(value, valueType);
     this.operator = operator;
-    this.search = search
+    this.search = search;
   }
-
 
   /**
    * @static parseValue - Creates the proper type(either array or string) of the value that user wants to filter.
@@ -31,141 +27,170 @@ module.exports = class search{
    * @param  {object} val value object to parse.
    * @return {(array|string|number)}     Parsed value
    */
-  static parseValue(val, type){
-    if(val !== undefined)
-    {
-      if(type === "Array")
-      {
+  static parseValue(val, type) {
+    if (val !== undefined) {
+      if (type === "Array") {
         return val.split(",");
-      }else{
+      } else {
         return val;
       }
     }
   }
-
 
   /**
    * toSequelize - Convert recursive search instance to search object that sequelize will accept as input.
    *
    * @return {object}  Translated search instance into sequelize object format.
    */
-  toSequelize(dataModelDefinition){
+  toSequelize(dataModelDefinition) {
     let searchsInSequelize = {};
 
-    if((this.operator === undefined || (this.value === undefined && this.search === undefined))){
+    if (
+      this.operator === undefined ||
+      (this.value === undefined && this.search === undefined)
+    ) {
       //there's no search-operation arguments
       return searchsInSequelize;
-
-    } else if(this.search === undefined && this.field === undefined){
+    } else if (this.search === undefined && this.field === undefined) {
       searchsInSequelize[Op[this.operator]] = this.value;
-
-    } else if(this.search === undefined){
-      const strType = ['String', 'Time', 'DateTime', 'Date']
-      let arrayType = (dataModelDefinition[this.field]!=undefined && dataModelDefinition[this.field].replace(/\s+/g, '')[0]==='[')
-      if ( arrayType && this.operator === 'in'){
-        let pattern = null
-        if (strType.includes(dataModelDefinition[this.field].replace(/\s+/g, '').slice(1, -1))){
-          this.value = '"'+this.value+'"' 
-        } 
-        pattern = [ '['+this.value+',%', '%,'+this.value+',%', '%,'+this.value+']'].map((item) => {
-            return {[Op.like] : item};
-          }); 
-        pattern.push({[Op.eq] : '['+this.value+']'})       
+    } else if (this.search === undefined) {
+      const strType = ["String", "Time", "DateTime", "Date"];
+      let arrayType =
+        dataModelDefinition[this.field] != undefined &&
+        dataModelDefinition[this.field].replace(/\s+/g, "")[0] === "[";
+      if (arrayType && this.operator === "in") {
+        let pattern = null;
+        if (
+          strType.includes(
+            dataModelDefinition[this.field].replace(/\s+/g, "").slice(1, -1)
+          )
+        ) {
+          this.value = '"' + this.value + '"';
+        }
+        pattern = [
+          "[" + this.value + ",%",
+          "%," + this.value + ",%",
+          "%," + this.value + "]",
+        ].map((item) => {
+          return { [Op.like]: item };
+        });
+        pattern.push({ [Op.eq]: "[" + this.value + "]" });
         searchsInSequelize[this.field] = {
-          [Op.or] : pattern
+          [Op.or]: pattern,
         };
-      } else if (arrayType && this.operator === 'notIn'){
-        let pattern = null
-        if (strType.includes(dataModelDefinition[this.field].replace(/\s+/g, '').slice(1, -1))){
-          this.value = '"'+this.value+'"' 
-        } 
-        pattern = [ '['+this.value+',%', '%,'+this.value+',%', '%,'+this.value+']'].map((item) => {
-          return {[Op.notLike] : item};
-        }); 
-        pattern.push({[Op.ne] : '['+this.value+']'})
+      } else if (arrayType && this.operator === "notIn") {
+        let pattern = null;
+        if (
+          strType.includes(
+            dataModelDefinition[this.field].replace(/\s+/g, "").slice(1, -1)
+          )
+        ) {
+          this.value = '"' + this.value + '"';
+        }
+        pattern = [
+          "[" + this.value + ",%",
+          "%," + this.value + ",%",
+          "%," + this.value + "]",
+        ].map((item) => {
+          return { [Op.notLike]: item };
+        });
+        pattern.push({ [Op.ne]: "[" + this.value + "]" });
         searchsInSequelize[this.field] = {
-          [Op.and] : pattern
+          [Op.and]: pattern,
         };
       } else {
         searchsInSequelize[this.field] = {
-          [Op[this.operator]] : this.value
+          [Op[this.operator]]: this.value,
         };
       }
-
-    }else if(this.field === undefined){
-      searchsInSequelize[Op[this.operator]] = this.search.map(sa => {
+    } else if (this.field === undefined) {
+      searchsInSequelize[Op[this.operator]] = this.search.map((sa) => {
         let new_sa = new search(sa);
         return new_sa.toSequelize(dataModelDefinition);
       });
-
-    }else{
-       searchsInSequelize[this.field] = {
-         [Op[this.operator]] : this.search.map(sa => {
-           let new_sa = new search(sa);
-           return new_sa.toSequelize(dataModelDefinition);
-         })
-       }
+    } else {
+      searchsInSequelize[this.field] = {
+        [Op[this.operator]]: this.search.map((sa) => {
+          let new_sa = new search(sa);
+          return new_sa.toSequelize(dataModelDefinition);
+        }),
+      };
     }
 
     return searchsInSequelize;
   }
 
   /**
-   * 
-   * @param {*} operator 
+   *
+   * @param {*} operator
    */
   transformMongoDbOperator(operator) {
-    const allowedOperators = ["or", "and", "not", "all", "eq", "ne", "in", "notIn", "gt", "gte", "lt", "lte", "regexp"]
-    
-    if (allowedOperators.includes(operator)){
-      if (operator === "notIn"){
-        return "$nin"
-      } else if (operator === "regexp") {
-        return "regex"
-      } else {
-        return "$"+operator
-      }
+    if (operator === undefined) {
+      return;
+    }
+    const allowedOperators = [
+      "or",
+      "and",
+      "not",
+      "all",
+      "eq",
+      "ne",
+      "in",
+      "notIn",
+      "gt",
+      "gte",
+      "lt",
+      "lte",
+      "regexp",
+    ];
 
+    if (allowedOperators.includes(operator)) {
+      if (operator === "notIn") {
+        return "$nin";
+      } else if (operator === "regexp") {
+        return "$regex";
+      } else {
+        return "$" + operator;
+      }
     } else {
       throw new Error(`Operator ${operator} not supported in MongoDB`);
-    }    
+    }
   }
 
   /**
    * toMongoDb - Convert recursive search instance to search object in MongoDb
-   * 
+   *
    */
-  toMongoDb(){
+  toMongoDb() {
     let searchsInMongoDb = {};
+    const transformedOperator = this.transformMongoDbOperator(this.operator);
 
-    if((this.operator === undefined || (this.value === undefined && this.search === undefined))){
+    if (
+      this.operator === undefined ||
+      (this.value === undefined && this.search === undefined)
+    ) {
       //there's no search-operation arguments
       return searchsInMongoDb;
-
-    } else if(this.search === undefined && this.field === undefined){
-      searchsInMongoDb[this.transformMongoDbOperator(this.operator)] = this.value;
-
-    } else if(this.search === undefined){
-        searchsInMongoDb[this.field] = {
-          [this.transformMongoDbOperator(this.operator)] : this.value
-        };
-    
-    }else if(this.field === undefined){
-      searchsInMongoDb[this.transformMongoDbOperator(this.operator)] = this.search.map(sa => {
+    } else if (this.search === undefined && this.field === undefined) {
+      searchsInMongoDb[transformedOperator] = this.value;
+    } else if (this.search === undefined) {
+      searchsInMongoDb[this.field] = {
+        [transformedOperator]: this.value,
+      };
+    } else if (this.field === undefined) {
+      searchsInMongoDb[transformedOperator] = this.search.map((sa) => {
         let new_sa = new search(sa);
         return new_sa.toMongoDb();
       });
-
-    }else{
-       searchsInMongoDb[this.field] = {
-         [this.transformMongoDbOperator(this.operator)] : this.search.map(sa => {
-           let new_sa = new search(sa);
-           return new_sa.toMongoDb();
-         })
-       }
+    } else {
+      searchsInMongoDb[this.field] = {
+        [transformedOperator]: this.search.map((sa) => {
+          let new_sa = new search(sa);
+          return new_sa.toMongoDb();
+        }),
+      };
     }
 
     return searchsInMongoDb;
-    
   }
 };
