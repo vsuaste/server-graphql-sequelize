@@ -14,8 +14,9 @@ getModulesSync(join(__dirname, migrationPath)).forEach((file) => {
 async function createTableMigrated() {
   // get the default cassandra client
   const connectionInstances = await getConnectionInstances();
-  const cassandraClient = connectionInstances.get("default-cassandra");
-  if (!cassandraClient) throw new ConnectionError(adapter.definition);
+  const cassandraClient = connectionInstances.get("default-cassandra")
+    .connection;
+  if (!cassandraClient) throw new Error("cassandra client is undefined");
   const tableQuery =
     "SELECT table_name FROM system_schema.tables WHERE keyspace_name='sciencedb';";
   let result = await cassandraClient.execute(tableQuery);
