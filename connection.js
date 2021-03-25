@@ -108,7 +108,10 @@ const addConnectionInstances = async () => {
       key !== "operatorsAliases" &&
       storageType === "cassandra"
     ) {
-      acc.set(key, { storageType, connection: setupCassandraDriver() });
+      connectionInstances.set(key, {
+        storageType,
+        connection: setupCassandraDriver(),
+      });
     }
   }
   return connectionInstances;
