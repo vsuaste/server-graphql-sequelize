@@ -1,6 +1,8 @@
-const { Sequelize } = require('sequelize');
-const storageConfig = require('./config/data_models_storage_config.json');
-const {MongoClient} = require('mongodb')
+const { Sequelize } = require("sequelize");
+const storageConfig = require("./config/data_models_storage_config.json");
+const { MongoClient } = require("mongodb");
+
+const cassandraDriver = require("cassandra-driver");
 
 const Op = Sequelize.Op;
 storageConfig.operatorsAliases = {
@@ -19,8 +21,37 @@ storageConfig.operatorsAliases = {
   $lte: Op.lte,
   $ne: Op.ne,
   $regexp: Op.regexp,
-  $notRegexp: Op.notRegexp
+  $notRegexp: Op.notRegexp,
 };
+
+/**
+ * setup the cassandraClient
+ */
+function setupCassandraDriver() {
+  let cassandraConfig = storageConfig["default-cassandra"];
+  // set up logging of requests
+  let requestTracker = new cassandraDriver.tracker.RequestLogger({
+    slowThreshold: 1000,
+    logNormalRequests: true,
+    logErroredRequests: true,
+  });
+  requestTracker.emitter.on("normal", (message) => console.log(message));
+  requestTracker.emitter.on("slow", (message) => console.log(message));
+  requestTracker.emitter.on("failure", (message) => console.log(message));
+  requestTracker.emitter.on("large", (message) => console.log(message));
+  // set up new cassandra client as configurated in 'default-cassandra'
+  return new cassandraDriver.Client({
+    contactPoints: [cassandraConfig.host],
+    localDataCenter: "datacenter1",
+    keyspace: cassandraConfig.keyspace,
+    protocolOptions: {
+      port: cassandraConfig.port,
+    },
+    requestTracker: requestTracker,
+  });
+}
+
+// const cassandraClient = setupCassandraDriver();
 
 /**
  * setup the MongoClient
@@ -28,82 +59,87 @@ storageConfig.operatorsAliases = {
 async function setupMongoDriver() {
   let config = storageConfig["default-mongodb"];
   const uri = `mongodb://${config.username}:${config.password}@${config.host}:${config.port}/${config.database}`;
-  console.log(uri)
+  console.log(uri);
   const client = new MongoClient(uri, { useUnifiedTopology: true });
-  const db = await connectMongoDb(client)
-  return db
+  const db = await connectMongoDb(client);
+  return db;
 }
 
-
-async function connectMongoDb (client) {
+async function connectMongoDb(client) {
   try {
     await client.connect();
     let config = storageConfig["default-mongodb"];
-    console.log(`Connecting to MongoDB: ${config.database}`)
+    console.log(`Connecting to MongoDB: ${config.database}`);
     const db = await client.db(config.database);
     console.log(`Connected successfully to MongoDB: ${config.database}`);
-    return db
+    return db;
   } catch (e) {
-    console.log('MongoDB connection error: '+e)
-  } 
+    console.log("MongoDB connection error: " + e);
+  }
 }
 
-
 /**
- * Stored connection instances. 
+ * Stored connection instances.
  */
 const addConnectionInstances = async () => {
-  let connectionInstances = new Map()
+  let connectionInstances = new Map();
   for (let key of Object.keys(storageConfig)) {
     let storageType = storageConfig[key].storageType;
     if (
       storageConfig.hasOwnProperty(key) &&
-      key !== 'operatorsAliases' &&
-      storageType === 'sql'
+      key !== "operatorsAliases" &&
+      storageType === "sql"
     ) {
-      connectionInstances.set(key, {storageType, connection: new Sequelize(storageConfig[key])});
-
+      connectionInstances.set(key, {
+        storageType,
+        connection: new Sequelize(storageConfig[key]),
+      });
     } else if (
       storageConfig.hasOwnProperty(key) &&
-      key !== 'operatorsAliases' &&
-      storageType === 'mongodb'
+      key !== "operatorsAliases" &&
+      storageType === "mongodb"
     ) {
-      connectionInstances.set(key, {storageType, connection: await setupMongoDriver()});
+      connectionInstances.set(key, {
+        storageType,
+        connection: await setupMongoDriver(),
+      });
+    } else if (
+      storageConfig.hasOwnProperty(key) &&
+      key !== "operatorsAliases" &&
+      storageType === "cassandra"
+    ) {
+      acc.set(key, { storageType, connection: setupCassandraDriver() });
     }
   }
-  return connectionInstances
-}
+  return connectionInstances;
+};
 
 /**
  * Async verification of all connections imported from
  * data_models_storage_config.json.
  */
 exports.checkConnections = async () => {
-
   const checks = [];
-  const connectionInstances = await addConnectionInstances()
+  const connectionInstances = await addConnectionInstances();
   // console.log(connectionInstances)
 
   for (let { 0: key, 1: instance } of connectionInstances.entries()) {
-
     try {
-      if (instance.storageType === 'sql') {
+      if (instance.storageType === "sql") {
         await instance.connection.authenticate();
-      } else if (instance.storageType === 'mongodb') { 
-        console.log('check connection for mongodb:')
-        const result = await instance.connection.command({ ping: 1 });
-        console.log(result)
+      } else if (instance.storageType === "mongodb") {
+        await instance.connection.command({ ping: 1 });
+      } else if (instance.storageType === "cassandra") {
+        await instance.connection.connect();
       }
       checks.push({ key, valid: true });
-    }
-    catch (exception) {
+    } catch (exception) {
       checks.push({ key, valid: false });
     }
   }
 
   return checks;
-
-}
+};
 
 /**
  * Get an existing sequelize instance using the specified database.
@@ -111,30 +147,24 @@ exports.checkConnections = async () => {
  * @returns A configured connection instance
  */
 exports.getConnectionInstances = async () => {
-
-  const connectionInstances = await addConnectionInstances()
+  const connectionInstances = await addConnectionInstances();
 
   return connectionInstances;
-
-}
-
+};
 
 exports.ConnectionError = class ConnectionError extends Error {
-
   /**
    * Create a new instance of a data model connection error.
    * @param {object} modelDefinition model definition as a JSON object
    */
-  constructor ({ database, model, storageType }) {
-
-    const message = (
+  constructor({ database, model, storageType }) {
+    const message =
       `Model "${model}" connection to its database failed. Verify that ` +
       `database "${database}" and storageType "${storageType}" are ` +
-      `correctly set and match the config in "data_models_storage_config.json"`
-    )
-    super(message)
+      `correctly set and match the config in "data_models_storage_config.json"`;
+    super(message);
   }
-}
+};
 
 /**
  * Add connection as a static property of the data model class.
@@ -142,11 +172,11 @@ exports.ConnectionError = class ConnectionError extends Error {
  * @param {object} connection the connection
  * @returns The data model class with connection as a static property.
  */
-exports.getAndConnectDataModelClass = ( modelClass, connection ) => {
-  return Object.defineProperty(modelClass, 'storageHandler', {
-      value: connection,
-      writable : false, // cannot be changed in the future
-      enumerable : true,
-      configurable : false
-  }); 
-}
+exports.getAndConnectDataModelClass = (modelClass, connection) => {
+  return Object.defineProperty(modelClass, "storageHandler", {
+    value: connection,
+    writable: false, // cannot be changed in the future
+    enumerable: true,
+    configurable: false,
+  });
+};

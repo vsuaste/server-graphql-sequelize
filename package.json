@@ -1,6 +1,6 @@
 {
   "name": "second-server-graphql",
-  "version": "0.5.1",
+  "version": "0.5.6",
   "description": "Schema as string",
   "main": "index.js",
   "scripts": {
@@ -16,6 +16,7 @@
     "awaitify-stream": "^1.0.2",
     "bcrypt": "^4.0.1",
     "bcryptjs": "^2.4.3",
+    "cassandra-driver": "^4.5.2",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "cors": "^2.8.5",

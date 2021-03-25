@@ -156,6 +156,41 @@ module.exports = class search {
       throw new Error(`Operator ${operator} not supported in MongoDB`);
     }
   }
+  /**
+   *
+   * @param {*} operatorString
+   */
+  transformCassandraOperator(operatorString) {
+    switch (operatorString) {
+      case "eq":
+        return " = ";
+      case "lt":
+        return " < ";
+      case "gt":
+        return " > ";
+      case "lte":
+        return " <= ";
+      case "gte":
+        return " >= ";
+      case "in":
+        return " IN ";
+      case "contains":
+        return " CONTAINS ";
+      case "ctk":
+        return " CONTAINS KEY ";
+      case "tgt":
+        return " > ";
+      case "tget":
+        return " >= ";
+      // AND not supported here, because this.search is undefined if this is executed
+      case "and":
+        throw new Error(
+          `Operator 'and' can only be used with an array of search terms`
+        );
+      default:
+        throw new Error(`Operator ${operatorString} not supported`);
+    }
+  }
 
   /**
    * toMongoDb - Convert recursive search instance to search object in MongoDb
@@ -192,5 +227,65 @@ module.exports = class search {
     }
 
     return searchsInMongoDb;
+  }
+  /**
+   * toCassandra - Convert recursive search instance to search string for use in CQL
+   *
+   * @param{string} idAttribute - The name of the ID attribute which isn't cast into apostrophes if it is a UUID
+   * @param{boolean} allowFiltering - Set 'ALLOW FILTERING'
+   *
+   * @returns{string} Translated search instance into CQL string
+   */
+  toCassandra(attributesDefinition, allowFiltering) {
+    let searchsInCassandra = "";
+    let type = attributesDefinition[this.field];
+    if (
+      this.operator === undefined ||
+      (this.value === undefined && this.search === undefined)
+    ) {
+      //there's no search-operation arguments
+      return searchsInCassandra;
+    } else if (this.search === undefined && this.field === undefined) {
+      searchsInCassandra =
+        this.transformCassandraOperator(this.operator) + this.value;
+    } else if (
+      this.search === undefined &&
+      (this.operator === "tgt" || this.operator === "tget")
+    ) {
+      let op = this.transformCassandraOperator(this.operator);
+      searchsInCassandra = `token("${this.field}") ${op} token('${this.value}')`;
+    } else if (this.search === undefined) {
+      let value = this.value;
+      if (type.includes("String") || type.includes("Date")) {
+        value = `'${this.value}'`;
+      }
+      if (Array.isArray(this.value)) {
+        if (type.includes("String") || type.includes("Date")) {
+          value = `(${this.value.map((e) => `'${e}'`)})`;
+        } else {
+          value = `(${this.value.map((e) => `${e}`)})`;
+        }
+      }
+      searchsInCassandra =
+        `"${this.field}"` +
+        this.transformCassandraOperator(this.operator) +
+        value;
+    } else if (this.operator === "and") {
+      searchsInCassandra = this.search
+        .map((singleSearch) =>
+          new search(singleSearch).toCassandra(attributesDefinition)
+        )
+        .join(" and ");
+    } else {
+      throw new Error(
+        "Statement not supported by CQL:\n" + JSON.stringify(this, null, 2)
+      );
+    }
+
+    if (allowFiltering) {
+      searchsInCassandra += " ALLOW FILTERING";
+    }
+
+    return searchsInCassandra;
   }
 };
