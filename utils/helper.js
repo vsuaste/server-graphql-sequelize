@@ -2538,11 +2538,11 @@ module.exports.initializeStorageHandlersForModels = async (models) => {
 
   console.log("assign storage handler to sql models");
 
-  for (let name of Object.keys(models.sqlDatabases)) {
-    const database = models.sqlDatabases[name].database;
+  for (let name of Object.keys(models.sql)) {
+    const database = models.sql[name].database;
     const connection = connectionInstances.get(database || "default-sql")
       .connection;
-    if (!connection) throw new ConnectionError(models.sqlDatabases[name]);
+    if (!connection) throw new ConnectionError(models.sql[name]);
 
     // setup storageHandler
     let model = models[name];
@@ -2556,40 +2556,29 @@ module.exports.initializeStorageHandlersForModels = async (models) => {
    * function of the model files
    */
   console.log("create associations among sql models");
-  Object.keys(models.sqlDatabases).forEach(function (modelName) {
+  Object.keys(models.sql).forEach(function (modelName) {
     if (models[modelName].associate) {
       models[modelName].associate(models);
     }
   });
 
-  console.log("assign storage handler to mongodb models");
+  const storageTypes = ["mongodb", "cassandra", "amazonS3"];
+  for (let storage of storageTypes) {
+    console.log(`assign storage handler to ${storage} models`);
 
-  for (let name of Object.keys(models.mongoDbs)) {
-    const database = models.mongoDbs[name].database;
-    const connection = connectionInstances.get(database || "default-mongodb")
-      .connection;
-    if (!connection) throw new ConnectionError(models.mongoDbs[name]);
+    for (let name of Object.keys(models[storage])) {
+      const database = models[storage][name].database;
+      const connection = connectionInstances.get(
+        database || `default-${storage}`
+      ).connection;
+      if (!connection) throw new ConnectionError(models[storage][name]);
 
-    // setup storageHandler
-    let model = models[name];
-    getAndConnectDataModelClass(model, connection);
+      // setup storageHandler
+      let model = models[name];
+      getAndConnectDataModelClass(model, connection);
 
-    console.log("assign storage handler to model: " + name);
-  }
-
-  console.log("assign storage handler to cassandra models");
-
-  for (let name of Object.keys(models.cassandra)) {
-    const database = models.cassandra[name].database;
-    const connection = connectionInstances.get(database || "default-cassandra")
-      .connection;
-    if (!connection) throw new ConnectionError(models.cassandra[name]);
-
-    // setup storageHandler
-    let model = models[name];
-    getAndConnectDataModelClass(model, connection);
-
-    console.log("assign storage handler to model: " + name);
+      console.log("assign storage handler to model: " + name);
+    }
   }
 };
 
@@ -2598,11 +2587,11 @@ module.exports.initializeStorageHandlersForAdapters = async (adapters) => {
   const connectionInstances = await getConnectionInstances();
   console.log("assign storage handler to sql adapters");
 
-  for (let name of Object.keys(adapters.sqlDatabases)) {
-    const database = adapters.sqlDatabases[name].database;
+  for (let name of Object.keys(adapters.sql)) {
+    const database = adapters.sql[name].database;
     const connection = connectionInstances.get(database || "default-sql")
       .connection;
-    if (!connection) throw new ConnectionError(adapters.sqlDatabases[name]);
+    if (!connection) throw new ConnectionError(adapters.sql[name]);
 
     // setup storageHandler
     let adapter = adapters[name];
@@ -2612,34 +2601,23 @@ module.exports.initializeStorageHandlersForAdapters = async (adapters) => {
     console.log("assign storage handler to adapter: " + name);
   }
 
-  console.log("assign storage handler to mongodb adapters");
+  const storageTypes = ["mongodb", "cassandra", "amazonS3"];
+  for (let storage of storageTypes) {
+    console.log(`assign storage handler to ${storage} models`);
 
-  for (let name of Object.keys(adapters.mongoDbs)) {
-    const database = adapters.mongoDbs[name].database;
-    const connection = connectionInstances.get(database || "default-mongodb")
-      .connection;
-    if (!connection) throw new ConnectionError(adapters.mongoDbs[name]);
+    for (let name of Object.keys(adapters[storage])) {
+      const database = adapters[storage][name].database;
+      const connection = connectionInstances.get(
+        database || `default-${storage}`
+      ).connection;
+      if (!connection) throw new ConnectionError(adapters[storage][name]);
 
-    // setup storageHandler
-    let adapter = adapters[name];
-    getAndConnectDataModelClass(adapter, connection);
+      // setup storageHandler
+      let adapter = adapters[name];
+      getAndConnectDataModelClass(adapter, connection);
 
-    console.log("assign storage handler to adapter: " + name);
-  }
-
-  console.log("assign storage handler to cassandra adapters");
-
-  for (let name of Object.keys(adapters.cassandra)) {
-    const database = adapters.cassandra[name].database;
-    const connection = connectionInstances.get(database || "default-cassandra")
-      .connection;
-    if (!connection) throw new ConnectionError(adapters.cassandra[name]);
-
-    // setup storageHandler
-    let adapter = adapters[name];
-    getAndConnectDataModelClass(adapter, connection);
-
-    console.log("assign storage handler to adapter: " + name);
+      console.log("assign storage handler to adapter: " + name);
+    }
   }
 };
 /**

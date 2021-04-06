@@ -3,12 +3,12 @@ const { join } = require("path");
 const { getModulesSync } = require("../../utils/module-helpers");
 
 let adapters = {
-  sqlDatabases: {},
-  mongoDbs: {},
+  sql: {},
+  mongodb: {},
   cassandra: {},
+  amazonS3: {},
 };
 module.exports = adapters;
-let connection;
 getModulesSync(__dirname).forEach((file) => {
   let adapter = require(join(__dirname, file));
 
@@ -24,17 +24,11 @@ getModulesSync(__dirname).forEach((file) => {
       break;
 
     case "sql-adapter":
-      adapters.sqlDatabases[adapter.adapterName] = adapter.definition;
-      adapters[adapter.adapterName] = adapter;
-      break;
-
     case "mongodb-adapter":
-      adapters.mongoDbs[adapter.adapterName] = adapter.definition;
-      adapters[adapter.adapterName] = adapter;
-      break;
-
     case "cassandra-adapter":
-      adapters.cassandra[adapter.adapterName] = adapter.definition;
+    case "amazonS3-adapter":
+      adapters[adapter.adapterType.split("-")[0]][adapter.adapterName] =
+        adapter.definition;
       adapters[adapter.adapterName] = adapter;
       break;
 

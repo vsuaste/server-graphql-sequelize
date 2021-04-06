@@ -22,5 +22,17 @@
     "keyspace": "sciencedb",
     "host": "127.0.0.1",
     "port": "9042"
+  },
+  "default-amazonS3": {
+    "storageType": "amazonS3",
+    "username": "admin",
+    "password": "minioAdmin",
+    "bucket": "sciencedb-development",
+    "host": "127.0.0.1",
+    "port": "9000",
+    "fileHeaderInfo": "USE",
+    "recordDelimiter": "\n",
+    "fieldDelimiter": ",",
+    "arrayDelimiter": ";"
   }
 }

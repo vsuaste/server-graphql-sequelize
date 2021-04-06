@@ -1,6 +1,7 @@
 const { Sequelize } = require("sequelize");
 const storageConfig = require("./config/data_models_storage_config.json");
 const { MongoClient } = require("mongodb");
+const AWS = require("aws-sdk");
 
 const cassandraDriver = require("cassandra-driver");
 
@@ -78,6 +79,28 @@ async function connectMongoDb(client) {
   }
 }
 
+const setupAmazonS3 = async () => {
+  let config = storageConfig["default-amazonS3"];
+  const s3 = new AWS.S3({
+    accessKeyId: config.username,
+    secretAccessKey: config.password,
+    endpoint: `http://${config.host}:${config.port}`,
+    s3ForcePathStyle: true,
+    signatureVersion: "v4",
+  });
+
+  let res = await s3.listBuckets().promise();
+  let buckets = res.Buckets.map((bucketObj) => bucketObj.Name);
+  if (buckets.includes(config.bucket)) {
+    console.log(`bucket ${config.bucket} in Minio exists`);
+  } else {
+    console.log(`create a new bucket in Minio: ${config.bucket}`);
+    res = await s3.createBucket({ Bucket: config.bucket }).promise();
+  }
+
+  return s3;
+};
+
 /**
  * Stored connection instances.
  */
@@ -112,6 +135,15 @@ const addConnectionInstances = async () => {
         storageType,
         connection: setupCassandraDriver(),
       });
+    } else if (
+      storageConfig.hasOwnProperty(key) &&
+      key !== "operatorsAliases" &&
+      storageType === "amazonS3"
+    ) {
+      connectionInstances.set(key, {
+        storageType,
+        connection: await setupAmazonS3(),
+      });
     }
   }
   return connectionInstances;
@@ -134,6 +166,12 @@ exports.checkConnections = async () => {
         await instance.connection.command({ ping: 1 });
       } else if (instance.storageType === "cassandra") {
         await instance.connection.connect();
+      } else if (instance.storageType === "amazonS3") {
+        await instance.connection
+          .waitFor("bucketExists", {
+            Bucket: storageConfig["default-amazonS3"].bucket,
+          })
+          .promise();
       }
       checks.push({ key, valid: true });
     } catch (exception) {

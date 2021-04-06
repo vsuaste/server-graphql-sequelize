@@ -191,7 +191,39 @@ module.exports = class search {
         throw new Error(`Operator ${operatorString} not supported`);
     }
   }
-
+  /**
+   *
+   * @param {*} operator
+   */
+  // didn't support notLike notBetween notIn all contains contained regexp notRegexp
+  transformAmazonS3Operator(operator) {
+    if (operator === undefined) {
+      return;
+    }
+    switch (operator) {
+      case "eq":
+        return " = ";
+      case "ne":
+        return " != ";
+      case "lt":
+        return " < ";
+      case "gt":
+        return " > ";
+      case "lte":
+        return " <= ";
+      case "gte":
+        return " >= ";
+      case "like":
+      case "and":
+      case "or":
+      case "not":
+      case "between":
+      case "in":
+        return ` ${operator.toUpperCase()} `;
+      default:
+        throw new Error(`Operator ${operator} not supported`);
+    }
+  }
   /**
    * toMongoDb - Convert recursive search instance to search object in MongoDb
    *
@@ -287,5 +319,87 @@ module.exports = class search {
     }
 
     return searchsInCassandra;
+  }
+  /**
+   * toAmazonS3 - Convert recursive search instance to search string for use in SQL
+   *
+   * @param{string} idAttribute - The name of the ID attribute
+   *
+   * @returns{string} Translated search instance
+   */
+  toAmazonS3(dataModelDefinition, arrayDelimiter) {
+    let searchsInAmazonS3 = "";
+    let type = dataModelDefinition[this.field];
+    const transformedOperator = this.transformAmazonS3Operator(this.operator);
+    const stringType = ["String", "Date", "DateTime", "Time"];
+    const logicOperaters = ["and", "or", "not"];
+    if (
+      this.operator === undefined ||
+      (this.value === undefined && this.search === undefined)
+    ) {
+      return searchsInAmazonS3;
+    } else if (this.search === undefined && this.field === undefined) {
+      searchsInAmazonS3 = transformedOperator + this.value;
+    } else if (this.search === undefined) {
+      let arrayType = type != undefined && type.replace(/\s+/g, "")[0] === "[";
+      const pattern = [
+        `'${this.value}${arrayDelimiter}%'`,
+        `'%${arrayDelimiter}${this.value}${arrayDelimiter}%'`,
+        `'%${arrayDelimiter}${this.value}'`,
+      ];
+      let value = this.value;
+      if (arrayType && this.operator === "in") {
+        if (stringType.includes(type.replace(/\s+/g, "").slice(1, -1))) {
+          value = `'${this.value}'`;
+        }
+        searchsInAmazonS3 += pattern
+          .map((item) => {
+            return ` ${this.field} LIKE ${item} `;
+          })
+          .join(" OR ");
+        searchsInAmazonS3 += ` OR ${this.field} = ${value} `;
+      } else {
+        if (Array.isArray(value)) {
+          if (stringType.includes(type)) {
+            value = `(${value.map((e) => `'${e}'`)})`;
+          } else {
+            value = `(${value.map((e) => `${e}`)})`;
+          }
+        } else {
+          if (
+            stringType.includes(type) ||
+            stringType.includes(type.replace(/\s+/g, "").slice(1, -1))
+          ) {
+            value = `'${value}'`;
+          }
+        }
+
+        searchsInAmazonS3 = this.field + transformedOperator + value;
+      }
+    } else if (logicOperaters.includes(this.operator)) {
+      if (this.operator === "not") {
+        let new_search = new search(this.search[0]);
+        searchsInAmazonS3 =
+          transformedOperator +
+          "(" +
+          new_search.toAmazonS3(dataModelDefinition, arrayDelimiter) +
+          ")";
+      } else {
+        searchsInAmazonS3 = this.search
+          .map((singleSearch) =>
+            new search(singleSearch).toAmazonS3(
+              dataModelDefinition,
+              arrayDelimiter
+            )
+          )
+          .join(transformedOperator);
+      }
+    } else {
+      throw new Error(
+        "Statement not supported by AmazonS3:\n" + JSON.stringify(this, null, 2)
+      );
+    }
+
+    return searchsInAmazonS3;
   }
 };
