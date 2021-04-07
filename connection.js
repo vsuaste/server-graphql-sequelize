@@ -138,7 +138,7 @@ const addConnectionInstances = async () => {
     } else if (
       storageConfig.hasOwnProperty(key) &&
       key !== "operatorsAliases" &&
-      storageType === "amazonS3"
+      storageType === "amazon-s3"
     ) {
       connectionInstances.set(key, {
         storageType,
@@ -166,7 +166,7 @@ exports.checkConnections = async () => {
         await instance.connection.command({ ping: 1 });
       } else if (instance.storageType === "cassandra") {
         await instance.connection.connect();
-      } else if (instance.storageType === "amazonS3") {
+      } else if (instance.storageType === "amazon-s3") {
         await instance.connection
           .waitFor("bucketExists", {
             Bucket: storageConfig["default-amazonS3"].bucket,
