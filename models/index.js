@@ -8,7 +8,7 @@ let models = {
   cassandra: {},
   amazonS3: {},
 };
-
+const storageTypes = Object.keys(models);
 module.exports = models;
 
 // ****************************************************************************
@@ -42,7 +42,7 @@ for (let folder of folders) {
 /**
  * Grabs all the models in your models folder, adds them to the models object
  */
-for (let storageType of Object.keys(models)) {
+for (let storageType of storageTypes) {
   getModulesSync(__dirname + "/" + storageType).forEach((file) => {
     console.log("loaded model: " + file);
     let model = require(join(__dirname, storageType, file));
