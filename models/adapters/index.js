@@ -26,12 +26,14 @@ getModulesSync(__dirname).forEach((file) => {
     case "sql-adapter":
     case "mongodb-adapter":
     case "cassandra-adapter":
-    case "amazonS3-adapter":
       adapters[adapter.adapterType.split("-")[0]][adapter.adapterName] =
         adapter.definition;
       adapters[adapter.adapterName] = adapter;
       break;
-
+    case "amazon-s3-adapter":
+      adapters["amazonS3"][adapter.adapterName] = adapter.definition;
+      adapters[adapter.adapterName] = adapter;
+      break;
     case "default":
       throw new Error(`
         Adapter storageType '${adapter.storageType}' is not supported`);
