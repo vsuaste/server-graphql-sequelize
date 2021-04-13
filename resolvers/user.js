@@ -64,7 +64,7 @@ user.prototype.rolesConnection = async function({
 }, context) {
     if (await checkAuthorization(context, 'role', 'read') === true) {
         helper.checkCursorBasedPaginationArgument(pagination);
-        let limit = pagination.first !== undefined ? pagination.first : pagination.last;
+        let limit = helper.isNotUndefinedAndNotNull(pagination.first) ? pagination.first : pagination.last;
         helper.checkCountAndReduceRecordsLimit(limit, context, "rolesConnection");
         return this.rolesConnectionImpl({
             search,
@@ -107,15 +107,20 @@ user.prototype.countFilteredRoles = async function({
  * @param {BenignErrorReporter} benignErrorReporter Error Reporter used for reporting Errors from remote zendro services
  */
 user.prototype.handleAssociations = async function(input, benignErrorReporter) {
-    let promises = [];
+
+    let promises_add = [];
     if (helper.isNonEmptyArray(input.addRoles)) {
-        promises.push(this.add_roles(input, benignErrorReporter));
-    }
-    if (helper.isNonEmptyArray(input.removeRoles)) {
-        promises.push(this.remove_roles(input, benignErrorReporter));
+        promises_add.push(this.add_roles(input, benignErrorReporter));
     }
 
-    await Promise.all(promises);
+    await Promise.all(promises_add);
+    let promises_remove = [];
+    if (helper.isNonEmptyArray(input.removeRoles)) {
+        promises_remove.push(this.remove_roles(input, benignErrorReporter));
+    }
+
+    await Promise.all(promises_remove);
+
 }
 /**
  * add_roles - field Mutation for to_many associations to add
@@ -220,7 +225,7 @@ module.exports = {
     }, context) {
         if (await checkAuthorization(context, 'user', 'read') === true) {
             helper.checkCursorBasedPaginationArgument(pagination);
-            let limit = pagination.first !== undefined ? pagination.first : pagination.last;
+            let limit = helper.isNotUndefinedAndNotNull(pagination.first) ? pagination.first : pagination.last;
             helper.checkCountAndReduceRecordsLimit(limit, context, "usersConnection");
             let benignErrorReporter = new errorHelper.BenignErrorReporter(context);
             return await user.readAllCursor(search, order, pagination, benignErrorReporter);
@@ -369,6 +374,7 @@ module.exports = {
             throw new Error("You don't have authorization to perform this action");
         }
     },
+
 
     /**
      * csvTableTemplateUser - Returns table's template

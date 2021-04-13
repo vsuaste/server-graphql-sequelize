@@ -29,11 +29,16 @@ const associationArgsDef = {}
  * @param {BenignErrorReporter} benignErrorReporter Error Reporter used for reporting Errors from remote zendro services
  */
 role_to_user.prototype.handleAssociations = async function(input, benignErrorReporter) {
-    let promises = [];
+
+    let promises_add = [];
 
 
+    await Promise.all(promises_add);
+    let promises_remove = [];
 
-    await Promise.all(promises);
+
+    await Promise.all(promises_remove);
+
 }
 
 
@@ -120,7 +125,7 @@ module.exports = {
     }, context) {
         if (await checkAuthorization(context, 'role_to_user', 'read') === true) {
             helper.checkCursorBasedPaginationArgument(pagination);
-            let limit = pagination.first !== undefined ? pagination.first : pagination.last;
+            let limit = helper.isNotUndefinedAndNotNull(pagination.first) ? pagination.first : pagination.last;
             helper.checkCountAndReduceRecordsLimit(limit, context, "role_to_usersConnection");
             let benignErrorReporter = new errorHelper.BenignErrorReporter(context);
             return await role_to_user.readAllCursor(search, order, pagination, benignErrorReporter);

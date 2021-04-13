@@ -64,7 +64,7 @@ role.prototype.usersConnection = async function({
 }, context) {
     if (await checkAuthorization(context, 'user', 'read') === true) {
         helper.checkCursorBasedPaginationArgument(pagination);
-        let limit = pagination.first !== undefined ? pagination.first : pagination.last;
+        let limit = helper.isNotUndefinedAndNotNull(pagination.first) ? pagination.first : pagination.last;
         helper.checkCountAndReduceRecordsLimit(limit, context, "usersConnection");
         return this.usersConnectionImpl({
             search,
@@ -107,15 +107,20 @@ role.prototype.countFilteredUsers = async function({
  * @param {BenignErrorReporter} benignErrorReporter Error Reporter used for reporting Errors from remote zendro services
  */
 role.prototype.handleAssociations = async function(input, benignErrorReporter) {
-    let promises = [];
+
+    let promises_add = [];
     if (helper.isNonEmptyArray(input.addUsers)) {
-        promises.push(this.add_users(input, benignErrorReporter));
-    }
-    if (helper.isNonEmptyArray(input.removeUsers)) {
-        promises.push(this.remove_users(input, benignErrorReporter));
+        promises_add.push(this.add_users(input, benignErrorReporter));
     }
 
-    await Promise.all(promises);
+    await Promise.all(promises_add);
+    let promises_remove = [];
+    if (helper.isNonEmptyArray(input.removeUsers)) {
+        promises_remove.push(this.remove_users(input, benignErrorReporter));
+    }
+
+    await Promise.all(promises_remove);
+
 }
 /**
  * add_users - field Mutation for to_many associations to add
@@ -220,7 +225,7 @@ module.exports = {
     }, context) {
         if (await checkAuthorization(context, 'role', 'read') === true) {
             helper.checkCursorBasedPaginationArgument(pagination);
-            let limit = pagination.first !== undefined ? pagination.first : pagination.last;
+            let limit = helper.isNotUndefinedAndNotNull(pagination.first) ? pagination.first : pagination.last;
             helper.checkCountAndReduceRecordsLimit(limit, context, "rolesConnection");
             let benignErrorReporter = new errorHelper.BenignErrorReporter(context);
             return await role.readAllCursor(search, order, pagination, benignErrorReporter);
