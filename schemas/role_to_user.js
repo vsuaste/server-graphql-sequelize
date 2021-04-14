@@ -6,20 +6,21 @@ module.exports = `
     id: ID
     """
     @original-field
-
+    
     """
     userId: Int
 
     """
     @original-field
-
+    
     """
     roleId: Int
 
-
+      
     }
 type Role_to_userConnection{
   edges: [Role_to_userEdge]
+  role_to_users: [role_to_user]
   pageInfo: pageInfo!
 }
 

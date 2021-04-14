@@ -17,8 +17,6 @@ const helper = require('../../utils/helper');
 const models = require(path.join(__dirname, '..', 'index.js'));
 const moment = require('moment');
 const errorHelper = require('../../utils/errors');
-const bcrypt = require('bcrypt');
-
 // An exact copy of the the model definition that comes from the .json file
 const definition = {
     model: 'user',
@@ -82,15 +80,15 @@ module.exports = class user extends Sequelize.Model {
     }
 
     /**
-      * Cast array to JSON string for the storage.
-      * @param  {object} record  Original data record.
-      * @return {object}         Record with JSON string if necessary.
-      */
-    static preWriteCast(record){
-        for(let attr in definition.attributes){
-            let type = definition.attributes[ attr ].replace(/\s+/g, '');
-            if(type[0]==='[' && record[ attr ]!== undefined && record[ attr ]!== null){
-                record[ attr ] = JSON.stringify(record[attr]);
+     * Cast array to JSON string for the storage.
+     * @param  {object} record  Original data record.
+     * @return {object}         Record with JSON string if necessary.
+     */
+    static preWriteCast(record) {
+        for (let attr in definition.attributes) {
+            let type = definition.attributes[attr].replace(/\s+/g, '');
+            if (type[0] === '[' && record[attr] !== undefined && record[attr] !== null) {
+                record[attr] = JSON.stringify(record[attr]);
             }
         }
         return record;
@@ -101,11 +99,11 @@ module.exports = class user extends Sequelize.Model {
      * @param  {object} record  Record with JSON string if necessary.
      * @return {object}         Parsed data record.
      */
-    static postReadCast(record){
-        for(let attr in definition.attributes){
-            let type = definition.attributes[ attr ].replace(/\s+/g, '');
-            if(type[0]==='[' && record[attr] !== undefined && record[ attr ]!== null){
-                record[ attr ] = JSON.parse(record[attr]);
+    static postReadCast(record) {
+        for (let attr in definition.attributes) {
+            let type = definition.attributes[attr].replace(/\s+/g, '');
+            if (type[0] === '[' && record[attr] !== undefined && record[attr] !== null) {
+                record[attr] = JSON.parse(record[attr]);
             }
         }
         return record;
@@ -139,8 +137,7 @@ module.exports = class user extends Sequelize.Model {
         //use default BenignErrorReporter if no BenignErrorReporter defined
         benignErrorReporter = errorHelper.getDefaultBenignErrorReporterIfUndef(benignErrorReporter);
         // build the sequelize options object for limit-offset-based pagination
-        let options = helper.buildLimitOffsetSequelizeOptions(search, order, pagination, 
-            this.idAttribute(), user.definition.attributes);
+        let options = helper.buildLimitOffsetSequelizeOptions(search, order, pagination, this.idAttribute(), user.definition.attributes);
         let records = await super.findAll(options);
         records = records.map(x => user.postReadCast(x))
         // validationCheck after read
@@ -152,28 +149,31 @@ module.exports = class user extends Sequelize.Model {
         benignErrorReporter = errorHelper.getDefaultBenignErrorReporterIfUndef(benignErrorReporter);
 
         // build the sequelize options object for cursor-based pagination
-        let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, 
-            this.idAttribute(), user.definition.attributes);
+        let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, this.idAttribute(), user.definition.attributes);
         let records = await super.findAll(options);
 
         records = records.map(x => user.postReadCast(x))
+
         // validationCheck after read
         records = await validatorUtil.bulkValidateData('validateAfterRead', this, records, benignErrorReporter);
         // get the first record (if exists) in the opposite direction to determine pageInfo.
         // if no cursor was given there is no need for an extra query as the results will start at the first (or last) page.
         let oppRecords = [];
         if (pagination && (pagination.after || pagination.before)) {
-            let oppOptions = helper.buildOppositeSearchSequelize(search, order, 
-                {...pagination, includeCursor: false}, 
-                this.idAttribute(), user.definition.attributes);
+            let oppOptions = helper.buildOppositeSearchSequelize(search, order, {
+                ...pagination,
+                includeCursor: false
+            }, this.idAttribute(), user.definition.attributes);
             oppRecords = await super.findAll(oppOptions);
         }
         // build the graphql Connection Object
         let edges = helper.buildEdgeObject(records);
         let pageInfo = helper.buildPageInfo(edges, oppRecords, pagination);
+        let nodes = edges.map(edge => edge.node);
         return {
             edges,
-            pageInfo
+            pageInfo,
+            users: nodes
         };
     }
 
@@ -182,8 +182,6 @@ module.exports = class user extends Sequelize.Model {
         await validatorUtil.validateData('validateForCreate', this, input);
         input = user.preWriteCast(input)
         try {
-            let hash = await bcrypt.hash(input.password, globals.SALT_ROUNDS);
-            input.password = hash;
             const result = await this.sequelize.transaction(async (t) => {
                 let item = await super.create(input, {
                     transaction: t
@@ -219,31 +217,23 @@ module.exports = class user extends Sequelize.Model {
         await validatorUtil.validateData('validateForUpdate', this, input);
         input = user.preWriteCast(input)
         try {
-            //check if password wants to be updated:
-            if(input.password !== undefined){
-              let hash = await bcrypt.hash(input.password, globals.SALT_ROUNDS);
-              input.password = hash;
-            }
             let result = await this.sequelize.transaction(async (t) => {
-                let updated = await super.update(input, {
-                    where: {
-                        [this.idAttribute()]: input[this.idAttribute()]
-                    },
-                    returning: true,
+                let to_update = await super.findByPk(input[this.idAttribute()]);
+                if (to_update === null) {
+                    throw new Error(`Record with ID = ${input[this.idAttribute()]} does not exist`);
+                }
+
+                let updated = await to_update.update(input, {
                     transaction: t
                 });
                 return updated;
             });
-            user.postReadCast(result[1][0].dataValues)
-            user.postReadCast(result[1][0]._previousDataValues)
-            if (result[0] === 0) {
-                throw new Error(`Record with ID = ${input[this.idAttribute()]} does not exist`);
-            }
-            return result[1][0];
+            user.postReadCast(result.dataValues)
+            user.postReadCast(result._previousDataValues)
+            return result;
         } catch (error) {
             throw error;
         }
-
     }
 
     static bulkAddCsv(context) {
@@ -320,8 +310,7 @@ module.exports = class user extends Sequelize.Model {
         pagination
     }) {
         // build the sequelize options object for limit-offset-based pagination
-        let options = helper.buildLimitOffsetSequelizeOptions(search, order, pagination, 
-            models.role.idAttribute(), models.role.definition.attributes);
+        let options = helper.buildLimitOffsetSequelizeOptions(search, order, pagination, models.role.idAttribute(), models.role.definition.attributes);
         return this.getRoles(options);
     }
 
@@ -332,24 +321,26 @@ module.exports = class user extends Sequelize.Model {
         pagination
     }) {
         // build the sequelize options object for cursor-based pagination
-        let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, 
-            models.role.idAttribute(), models.role.definition.attributes);
+        let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, models.role.idAttribute(), models.role.definition.attributes);
         let records = await this.getRoles(options);
         // get the first record (if exists) in the opposite direction to determine pageInfo.
         // if no cursor was given there is no need for an extra query as the results will start at the first (or last) page.
         let oppRecords = [];
         if (pagination && (pagination.after || pagination.before)) {
-            let oppOptions = helper.buildOppositeSearchSequelize(search, order, 
-                {...pagination, includeCursor: false}, 
-                models.role.idAttribute(), models.role.definition.attributes);
+            let oppOptions = helper.buildOppositeSearchSequelize(search, order, {
+                ...pagination,
+                includeCursor: false
+            }, models.role.idAttribute(), models.role.definition.attributes);
             oppRecords = await this.getRoles(oppOptions);
         }
         // build the graphql Connection Object
         let edges = helper.buildEdgeObject(records);
         let pageInfo = helper.buildPageInfo(edges, oppRecords, pagination);
+        let nodes = edges.map(edge => edge.node);
         return {
             edges,
-            pageInfo
+            pageInfo,
+            roles: nodes
         };
     }
 
@@ -357,7 +348,7 @@ module.exports = class user extends Sequelize.Model {
         search
     }) {
         let options = {}
-        options['where'] = helper.searchConditionsToSequelize(search, models.role.definition.attributes);
+        options['where'] = helper.searchConditionsToSequelize(search);
         return this.countRoles(options);
     }
 
@@ -391,6 +382,8 @@ module.exports = class user extends Sequelize.Model {
         });
         return updated;
     }
+
+
 
 
 

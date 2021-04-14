@@ -80,15 +80,15 @@ module.exports = class role extends Sequelize.Model {
     }
 
     /**
-      * Cast array to JSON string for the storage.
-      * @param  {object} record  Original data record.
-      * @return {object}         Record with JSON string if necessary.
-      */
-    static preWriteCast(record){
-        for(let attr in definition.attributes){
-            let type = definition.attributes[ attr ].replace(/\s+/g, '');
-            if(type[0]==='[' && record[ attr ]!== undefined && record[ attr ]!== null){
-                record[ attr ] = JSON.stringify(record[attr]);
+     * Cast array to JSON string for the storage.
+     * @param  {object} record  Original data record.
+     * @return {object}         Record with JSON string if necessary.
+     */
+    static preWriteCast(record) {
+        for (let attr in definition.attributes) {
+            let type = definition.attributes[attr].replace(/\s+/g, '');
+            if (type[0] === '[' && record[attr] !== undefined && record[attr] !== null) {
+                record[attr] = JSON.stringify(record[attr]);
             }
         }
         return record;
@@ -99,11 +99,11 @@ module.exports = class role extends Sequelize.Model {
      * @param  {object} record  Record with JSON string if necessary.
      * @return {object}         Parsed data record.
      */
-    static postReadCast(record){
-        for(let attr in definition.attributes){
-            let type = definition.attributes[ attr ].replace(/\s+/g, '');
-            if(type[0]==='[' && record[attr] !== undefined && record[ attr ]!== null){
-                record[ attr ] = JSON.parse(record[attr]);
+    static postReadCast(record) {
+        for (let attr in definition.attributes) {
+            let type = definition.attributes[attr].replace(/\s+/g, '');
+            if (type[0] === '[' && record[attr] !== undefined && record[attr] !== null) {
+                record[attr] = JSON.parse(record[attr]);
             }
         }
         return record;
@@ -137,8 +137,7 @@ module.exports = class role extends Sequelize.Model {
         //use default BenignErrorReporter if no BenignErrorReporter defined
         benignErrorReporter = errorHelper.getDefaultBenignErrorReporterIfUndef(benignErrorReporter);
         // build the sequelize options object for limit-offset-based pagination
-        let options = helper.buildLimitOffsetSequelizeOptions(search, order, pagination, 
-            this.idAttribute(), role.definition.attributes);
+        let options = helper.buildLimitOffsetSequelizeOptions(search, order, pagination, this.idAttribute(), role.definition.attributes);
         let records = await super.findAll(options);
         records = records.map(x => role.postReadCast(x))
         // validationCheck after read
@@ -150,11 +149,11 @@ module.exports = class role extends Sequelize.Model {
         benignErrorReporter = errorHelper.getDefaultBenignErrorReporterIfUndef(benignErrorReporter);
 
         // build the sequelize options object for cursor-based pagination
-        let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, 
-            this.idAttribute(), role.definition.attributes);
+        let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, this.idAttribute(), role.definition.attributes);
         let records = await super.findAll(options);
 
         records = records.map(x => role.postReadCast(x))
+
         // validationCheck after read
         records = await validatorUtil.bulkValidateData('validateAfterRead', this, records, benignErrorReporter);
         // get the first record (if exists) in the opposite direction to determine pageInfo.
@@ -162,7 +161,7 @@ module.exports = class role extends Sequelize.Model {
         let oppRecords = [];
         if (pagination && (pagination.after || pagination.before)) {
             let oppOptions = helper.buildOppositeSearchSequelize(search, order, {
-                ...pagination, 
+                ...pagination,
                 includeCursor: false
             }, this.idAttribute(), role.definition.attributes);
             oppRecords = await super.findAll(oppOptions);
@@ -170,9 +169,11 @@ module.exports = class role extends Sequelize.Model {
         // build the graphql Connection Object
         let edges = helper.buildEdgeObject(records);
         let pageInfo = helper.buildPageInfo(edges, oppRecords, pagination);
+        let nodes = edges.map(edge => edge.node);
         return {
             edges,
-            pageInfo
+            pageInfo,
+            roles: nodes
         };
     }
 
@@ -217,25 +218,22 @@ module.exports = class role extends Sequelize.Model {
         input = role.preWriteCast(input)
         try {
             let result = await this.sequelize.transaction(async (t) => {
-                let updated = await super.update(input, {
-                    where: {
-                        [this.idAttribute()]: input[this.idAttribute()]
-                    },
-                    returning: true,
+                let to_update = await super.findByPk(input[this.idAttribute()]);
+                if (to_update === null) {
+                    throw new Error(`Record with ID = ${input[this.idAttribute()]} does not exist`);
+                }
+
+                let updated = await to_update.update(input, {
                     transaction: t
                 });
                 return updated;
             });
-            role.postReadCast(result[1][0].dataValues)
-            role.postReadCast(result[1][0]._previousDataValues)
-            if (result[0] === 0) {
-                throw new Error(`Record with ID = ${input[this.idAttribute()]} does not exist`);
-            }
-            return result[1][0];
+            role.postReadCast(result.dataValues)
+            role.postReadCast(result._previousDataValues)
+            return result;
         } catch (error) {
             throw error;
         }
-
     }
 
     static bulkAddCsv(context) {
@@ -312,8 +310,7 @@ module.exports = class role extends Sequelize.Model {
         pagination
     }) {
         // build the sequelize options object for limit-offset-based pagination
-        let options = helper.buildLimitOffsetSequelizeOptions(search, order, pagination, 
-            models.user.idAttribute(), models.user.definition.attributes);
+        let options = helper.buildLimitOffsetSequelizeOptions(search, order, pagination, models.user.idAttribute(), models.user.definition.attributes);
         return this.getUsers(options);
     }
 
@@ -324,25 +321,26 @@ module.exports = class role extends Sequelize.Model {
         pagination
     }) {
         // build the sequelize options object for cursor-based pagination
-        let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, 
-            models.user.idAttribute(), models.user.definition.attributes);
+        let options = helper.buildCursorBasedSequelizeOptions(search, order, pagination, models.user.idAttribute(), models.user.definition.attributes);
         let records = await this.getUsers(options);
         // get the first record (if exists) in the opposite direction to determine pageInfo.
-        // if no cursor was given there is no need for an extra query 
-        // as the results will start at the first (or last) page.
+        // if no cursor was given there is no need for an extra query as the results will start at the first (or last) page.
         let oppRecords = [];
         if (pagination && (pagination.after || pagination.before)) {
-            let oppOptions = helper.buildOppositeSearchSequelize(search, order, 
-                {...pagination, includeCursor: false}, 
-                models.user.idAttribute(), models.user.definition.attributes);
+            let oppOptions = helper.buildOppositeSearchSequelize(search, order, {
+                ...pagination,
+                includeCursor: false
+            }, models.user.idAttribute(), models.user.definition.attributes);
             oppRecords = await this.getUsers(oppOptions);
         }
         // build the graphql Connection Object
         let edges = helper.buildEdgeObject(records);
         let pageInfo = helper.buildPageInfo(edges, oppRecords, pagination);
+        let nodes = edges.map(edge => edge.node);
         return {
             edges,
-            pageInfo
+            pageInfo,
+            users: nodes
         };
     }
 
@@ -350,7 +348,7 @@ module.exports = class role extends Sequelize.Model {
         search
     }) {
         let options = {}
-        options['where'] = helper.searchConditionsToSequelize(search, models.user.definition.attributes);
+        options['where'] = helper.searchConditionsToSequelize(search);
         return this.countUsers(options);
     }
 
@@ -384,6 +382,8 @@ module.exports = class role extends Sequelize.Model {
         });
         return updated;
     }
+
+
 
 
 

@@ -6,17 +6,17 @@ module.exports = `
     id: ID
     """
     @original-field
-
+    
     """
     name: String
 
     """
     @original-field
-
+    
     """
     description: String
 
-
+      
     """
     @search-request
     """
@@ -32,10 +32,11 @@ module.exports = `
     @count-request
     """
     countFilteredUsers(search: searchUserInput) : Int
-
+  
     }
 type RoleConnection{
   edges: [RoleEdge]
+  roles: [role]
   pageInfo: pageInfo!
 }
 
