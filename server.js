@@ -1,23 +1,36 @@
-var express = require('express');
-var path = require('path');
-var graphqlHTTP = require('express-graphql');
-var jwt = require('express-jwt');
-const fileUpload = require('express-fileupload');
-const auth = require('./utils/login');
-const bodyParser = require('body-parser');
-const globals = require('./config/globals');
-const simpleExport = require('./utils/simple-export');
-const execute = require('./utils/custom-graphql-execute');
-const checkAuthorization = require('./utils/check-authorization');
-const helper = require('./utils/helper');
-const nodejq = require('node-jq')
-const { JSONPath } = require('jsonpath-plus');
-const errors = require('./utils/errors');
-const { formatError } = require('graphql');
+var express = require("express");
+var path = require("path");
+var graphqlHTTP = require("express-graphql");
+var jwt = require("express-jwt");
+const fileUpload = require("express-fileupload");
+const auth = require("./utils/login");
+const bodyParser = require("body-parser");
+const globals = require("./config/globals");
+const execute = require("./utils/custom-graphql-execute");
+const checkAuthorization = require("./utils/check-authorization");
+const helper = require("./utils/helper");
+const nodejq = require("node-jq");
+const { JSONPath } = require("jsonpath-plus");
+const errors = require("./utils/errors");
+const { formatError } = require("graphql");
+let models = require(path.join(__dirname, "models", "index.js"));
+const initializeStorageHandlersForModels = require(path.join(
+  __dirname,
+  "utils",
+  "helper.js"
+)).initializeStorageHandlersForModels;
+let adapters = require(path.join(__dirname, "models", "adapters", "index.js"));
+const initializeStorageHandlersForAdapters = require(path.join(
+  __dirname,
+  "utils",
+  "helper.js"
+)).initializeStorageHandlersForAdapters;
 
 var acl = null;
+let resolvers = null;
+let simpleExport = null;
 
-var cors = require('cors');
+var cors = require("cors");
 
 /* Server */
 const APP_PORT = globals.PORT;
@@ -26,7 +39,7 @@ const app = express();
 app.use((req, res, next) => {
   // Website you wish to allow to connect
   if (globals.REQUIRE_SIGN_IN) {
-    res.setHeader('Access-Control-Allow-Origin', globals.ALLOW_ORIGIN);
+    res.setHeader("Access-Control-Allow-Origin", globals.ALLOW_ORIGIN);
   }
   next();
 });
@@ -34,67 +47,61 @@ app.use((req, res, next) => {
 // Force users to sign in to get access to anything else than '/login'
 console.log("REQUIRE: ", globals.REQUIRE_SIGN_IN);
 if (globals.REQUIRE_SIGN_IN) {
-  app.use(jwt({ secret: 'something-secret' }).unless({ path: ['/login'] }));
+  app.use(jwt({ secret: "something-secret" }).unless({ path: ["/login"] }));
 }
 
 /* Temporary solution:  acl rules set */
-if (process.argv.length > 2 && process.argv[2] == 'acl') {
-  let node_acl = require('acl');
-  let {
-    aclRules
-  } = require('./acl_rules');
+if (process.argv.length > 2 && process.argv[2] == "acl") {
+  let node_acl = require("acl");
+  let { aclRules } = require("./acl_rules");
   acl = new node_acl(new node_acl.memoryBackend());
 
   /* set authorization rules from file acl_rules.js */
   acl.allow(aclRules);
   console.log("Authoization rules set!");
-
 } else {
   console.log("Open server, no authorization rules");
 }
 
 /* Schema */
-console.log('Merging Schema');
-let Schema = helper.mergeSchemaSetScalarTypes(path.join(__dirname, './schemas'));
+console.log("Merging Schema");
+let Schema = helper.mergeSchemaSetScalarTypes(
+  path.join(__dirname, "./schemas")
+);
 
-
-/* Resolvers*/
-let resolvers = require('./resolvers/index');
-const { leftShift } = require('mathjs');
-
-
+const { leftShift } = require("mathjs");
 /* Parse urlencoded bodies and JSON by bodyParser middlewares*/
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ limit: globals.POST_REQUEST_MAX_BODY_SIZE }));
 
-app.use('/login', cors(), async (req, res) => {
+app.use("/login", cors(), async (req, res) => {
   try {
-    const token = await (auth.login(req.body))
-    res.json({ token: token })
+    const token = await auth.login(req.body);
+    res.json({ token: token });
   } catch (err) {
-    res.status(500).send({ error: `${err}. Please check your credentials.` })
+    res.status(500).send({ error: `${err}. Please check your credentials.` });
   }
 });
 
-app.use('/export', cors(), async (req, res) => {
+app.use("/export", cors(), async (req, res) => {
   //set checker for using in the local method simpleExport
-  res['responseSent'] = false;
+  res["responseSent"] = false;
 
   //set MAX_TIME_OUT
   res.setTimeout(globals.EXPORT_TIME_OUT * 1000, function () {
     res.end("TIMEOUT EXCEEDS");
   });
 
-  res.on('finish', () => {
-    res['responseSent'] = true;
+  res.on("finish", () => {
+    res["responseSent"] = true;
   });
 
   let context = {
     request: req,
     acl: acl,
     benignErrors: [],
-    recordsLimit: globals.LIMIT_RECORDS
-  }
+    recordsLimit: globals.LIMIT_RECORDS,
+  };
 
   let body_info = req.query;
 
@@ -112,46 +119,51 @@ app.use('/export', cors(), async (req, res) => {
 
 app.use(fileUpload());
 /*request is passed as context by default  */
-app.use('/graphql', cors(), graphqlHTTP((req) => ({
-  schema: Schema,
-  rootValue: resolvers,
-  pretty: true,
-  graphiql: true,
-  context: {
-    request: req,
-    acl: acl,
-    benignErrors: [],
-    recordsLimit: globals.LIMIT_RECORDS
-  },
-  customExecuteFn: execute.execute,
-  customFormatErrorFn: function (error) {
-    errors.customErrorLog(error) // Will log the error either compact (defualt) or verbose dependent on the env variable "ERROR_LOG"
-    let extensions = errors.formatGraphQLErrorExtensions(error);
-    return {
-      message: error.message,
-      locations: error.locations ? error.locations : "",
-      // Either use the extensions of a remote error, or
-      // the local originalError.errors generated by for example validation Errors (AJV):
-      extensions: extensions,
-      path: error.path
-    };
+app.use(
+  "/graphql",
+  cors(),
+  graphqlHTTP((req) => ({
+    schema: Schema,
+    rootValue: resolvers,
+    pretty: true,
+    graphiql: true,
+    context: {
+      request: req,
+      acl: acl,
+      benignErrors: [],
+      recordsLimit: globals.LIMIT_RECORDS,
+    },
+    customExecuteFn: execute.execute,
+    customFormatErrorFn: function (error) {
+      errors.customErrorLog(error); // Will log the error either compact (defualt) or verbose dependent on the env variable "ERROR_LOG"
+      let extensions = errors.formatGraphQLErrorExtensions(error);
+      return {
+        message: error.message,
+        locations: error.locations ? error.locations : "",
+        // Either use the extensions of a remote error, or
+        // the local originalError.errors generated by for example validation Errors (AJV):
+        extensions: extensions,
+        path: error.path,
+      };
+    },
+  }))
+);
 
-  }
-})));
-
-let metaQueryCorsOptions = {allowedHeaders: ['Content-Type', 'Authorization']};
+let metaQueryCorsOptions = {
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 app.options("/meta_query", cors(metaQueryCorsOptions));
-app.post('/meta_query', cors(), async (req, res, next) => {
+app.post("/meta_query", cors(), async (req, res, next) => {
   try {
     let context = {
       request: req,
       acl: acl,
       benignErrors: [],
-      recordsLimit: globals.LIMIT_RECORDS
-    }
+      recordsLimit: globals.LIMIT_RECORDS,
+    };
 
     if (req != null) {
-      if (await checkAuthorization(context, 'meta_query', '') === true) {
+      if ((await checkAuthorization(context, "meta_query", "")) === true) {
         let queries = req.body.queries;
         let jq = req.body.jq;
         let jsonPath = req.body.jsonPath;
@@ -162,13 +174,28 @@ app.post('/meta_query', cors(), async (req, res, next) => {
           queries = newQueries;
         }
 
-        let graphQlResponses = await helper.handleGraphQlQueriesForMetaQuery(Schema, resolvers, queries, context);
+        let graphQlResponses = await helper.handleGraphQlQueriesForMetaQuery(
+          Schema,
+          resolvers,
+          queries,
+          context
+        );
         let output = null;
 
-        if (helper.isNotUndefinedAndNotNull(jq)) { // jq
-          output = await nodejq.run(jq, graphQlResponses, { input: 'json', output: 'json' }).catch((err) => {throw err});
-        } else { // JSONPath
-          output = JSONPath({ path: jsonPath, json: graphQlResponses, wrap: false });
+        if (helper.isNotUndefinedAndNotNull(jq)) {
+          // jq
+          output = await nodejq
+            .run(jq, graphQlResponses, { input: "json", output: "json" })
+            .catch((err) => {
+              throw err;
+            });
+        } else {
+          // JSONPath
+          output = JSONPath({
+            path: jsonPath,
+            json: graphQlResponses,
+            wrap: false,
+          });
         }
         res.json(output);
         next();
@@ -183,19 +210,25 @@ app.post('/meta_query', cors(), async (req, res, next) => {
 /**
  * uncaughtException handler needed to prevent node from crashing upon receiving a malformed jq filter.
  */
-process.on('uncaughtException', err => {console.log("!!uncaughtException:", err)});
+process.on("uncaughtException", (err) => {
+  console.log("!!uncaughtException:", err);
+});
 
 // Error handling
 app.use(function (err, req, res, next) {
-  if (err.name === 'UnauthorizedError') { // Send the error rather than to show it on the console
+  if (err.name === "UnauthorizedError") {
+    // Send the error rather than to show it on the console
     res.status(401).send(err);
-  }
-  else {
+  } else {
     next(err);
   }
 });
 
-var server = app.listen(APP_PORT, () => {
+var server = app.listen(APP_PORT, async () => {
+  await initializeStorageHandlersForModels(models);
+  await initializeStorageHandlersForAdapters(adapters);
+  resolvers = require("./resolvers/index");
+  simpleExport = require("./utils/simple-export");
   console.log(`App listening on port ${APP_PORT}`);
 });
 

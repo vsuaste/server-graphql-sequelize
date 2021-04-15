@@ -1,129 +1,67 @@
-const { existsSync } = require('fs');
-const { join }       = require('path');
-const { Sequelize }  = require('sequelize');
-//
-const { getConnection, ConnectionError, getAndConnectDataModelClass } = require('../connection');
-const { getModulesSync } = require('../utils/module-helpers');
+const { existsSync } = require("fs");
+const { join } = require("path");
+const { getModulesSync } = require("../utils/module-helpers");
 
-
-var models = {};
+let models = {
+  sql: {},
+  mongodb: {},
+  cassandra: {},
+  amazonS3: {},
+};
+const storageTypes = Object.keys(models);
 module.exports = models;
 
 // ****************************************************************************
-// IMPORT SEQUELIZE MODELS
+// IMPORT GENERIC MODELS / ZENDRO SERVICES / DISTRIBUTED MODELS
+let folders = ["/generic", "/zendro-server", "/distributed"];
+for (let folder of folders) {
+  getModulesSync(__dirname + folder).forEach((file) => {
+    console.log("loaded model: " + file);
+    let model = require(`./${join(folder, file)}`);
+
+    let validator_patch = join("./validations", file);
+    if (existsSync(validator_patch)) {
+      model = require(`../${validator_patch}`).validator_patch(model);
+    }
+
+    let patches_patch = join("./patches", file);
+    if (existsSync(patches_patch)) {
+      model = require(`../${patches_patch}`).logic_patch(model);
+    }
+
+    if (model.name in models)
+      throw Error(`Duplicated model name ${model.name}`);
+
+    models[model.name] = model;
+  });
+}
+
+// ****************************************************************************
+// IMPORT SEQUELIZE / MONGODB / CASSANDRA / MINIO MODELS
 
 /**
  * Grabs all the models in your models folder, adds them to the models object
  */
-getModulesSync(__dirname + "/sql").forEach(file => {
+for (let storageType of storageTypes) {
+  getModulesSync(__dirname + "/" + storageType).forEach((file) => {
+    console.log("loaded model: " + file);
+    let model = require(join(__dirname, storageType, file));
 
-  console.log("loaded model: " + file);
-  let modelFile = require(join(__dirname,'sql', file));
+    models[storageType][model.name] = model.definition;
 
-  const { database } = modelFile.definition;
-  const connection = getConnection(database || 'default-sql');
-  if (!connection) throw new ConnectionError(modelFile.definition);
+    let validator_patch = join("./validations", file);
+    if (existsSync(validator_patch)) {
+      model = require(`../${validator_patch}`).validator_patch(model);
+    }
 
-  // setup storageHandler
-  getAndConnectDataModelClass(modelFile, connection);
+    let patches_patch = join("./patches", file);
+    if (existsSync(patches_patch)) {
+      model = require(`../${patches_patch}`).logic_patch(model);
+    }
 
-  let model = modelFile.init(connection, Sequelize);
+    if (model.name in models)
+      throw Error(`Duplicated model name ${model.name}`);
 
-  let validator_patch = join('./validations', file);
-  if(existsSync(validator_patch)){
-    model = require(`../${validator_patch}`).validator_patch(model);
-  }
-
-  let patches_patch = join('./patches', file);
-  if(existsSync(patches_patch)){
-    model = require(`../${patches_patch}`).logic_patch(model);
-  }
-
-  if(model.name in models) throw Error(`Duplicated model name ${model.name}`);
-
-  models[model.name] = model;
-});
-
-/**
- * Important: creates associations based on associations defined in associate
- * function of the model files
- */
-Object.keys(models).forEach(function(modelName) {
-  if (models[modelName].associate) {
-    models[modelName].associate(models);
-  }
-});
-
-/**
- * Update tables with association (temporary, just for testing purposes)
- * This part is supposed to be done in the migration file
- */
-// sequelize.sync({force: true});
-
-
-// ****************************************************************************
-// IMPORT GENERIC MODELS
-
-getModulesSync(__dirname + "/generic").forEach(file => {
-
-  console.log("loaded model: " + file);
-  let model = require(`./${join("./generic", file)}`);
-
-  let validator_patch = join('./validations', file);
-  if(existsSync(validator_patch)){
-    model = require(`../${validator_patch}`).validator_patch(model);
-  }
-
-  let patches_patch = join('./patches',file);
-  if(existsSync(patches_patch)){
-    model = require(`../${patches_patch}`).logic_patch(model);
-  }
-
-  if(model.name in models) throw Error(`Duplicated model name ${model.name}`);
-
-  models[model.name] = model;
-
-});
-
-// ****************************************************************************
-// IMPORT ZENDRO SERVICES
-
-getModulesSync(__dirname + "/zendro-server").forEach(file => {
-
-  console.log("loaded model: " + file);
-  let model = require(`./${join("./zendro-server", file)}`);
-
-  let validator_patch = join('./validations', file);
-  if(existsSync(validator_patch)){
-    model = require(`../${validator_patch}`).validator_patch(model);
-  }
-
-  let patches_patch = join('./patches',file);
-  if(existsSync(patches_patch)){
-    model = require(`../${patches_patch}`).logic_patch(model);
-  }
-
-  if(model.name in models) throw Error(`Duplicated model name ${model.name}`);
-
-  models[model.name] = model;
-
-});
-
-// ****************************************************************************
-// IMPORT DISTRIBUTED MODELS
-
-getModulesSync(__dirname + "/distributed").forEach(file => {
-
-  console.log("loaded model: " + file);
-  let model = require(`./${join("./distributed", file)}`);
-
-  let validator_patch = join('./validations', file);
-  if(existsSync(validator_patch)){
-    model = require(`../${validator_patch}`).validator_patch(model);
-  }
-
-  if(model.name in models) throw Error(`Duplicated model name ${model.name}`);
-
-  models[model.name] = model;
-
-});
+    models[model.name] = model;
+  });
+}

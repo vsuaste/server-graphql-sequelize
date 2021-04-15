@@ -108,7 +108,7 @@ exports.replacePojoNullValueWithLiteralNull = function(pojo) {
  * @param  {Object} attributes_type Key is the name of the attribute/column as given in the json file of the model, value is the type of the attribute.
  * @return {any}                 The value casted according to the attribute type given in attributes_type.
  */
-castCsv = function( value, column, attributes_type){
+castCsv = function( value, column, attributes_type, array_delimiter=";"){
   if(!(typeof value === "string" && value.match(/\s*null\s*/i) )){
     switch ( attributes_type[column] ) {
       case 'String':
@@ -123,7 +123,7 @@ castCsv = function( value, column, attributes_type){
       case 'Time':
         value = String(value);
         break;
-      case 'Date':
+      case 'DateTime':
         value = String(value);
         break;
       case 'Boolean':
@@ -133,6 +133,28 @@ castCsv = function( value, column, attributes_type){
       case 'Float':
         value = Number(value);
         break;
+      case '[String]':
+        value = value.split(array_delimiter)
+        break;
+      case '[Int]':
+        value = value.split(array_delimiter).map(x=>parseInt(x))
+        break;
+      case '[Date]':
+        value = value.split(array_delimiter)
+        break;
+      case '[Time]':
+        value = value.split(array_delimiter)
+        break;
+      case '[DateTime]':
+        value = value.split(array_delimiter)
+        break;
+      case '[Boolean]':
+        value.split(array_delimiter).map(x=> x === 'true')
+        break;
+      case '[Float]':
+        value = value.split(array_delimiter).map(x=>parseFloat(x))
+        break;
+
       default:
         value = String(value);
         break;
@@ -149,14 +171,23 @@ castCsv = function( value, column, attributes_type){
  * @param {object} model - Sequelize model, record will be created through this model.
  * @param {string} delim - Set the field delimiter in the csv file. One or multiple character.
  * @param {array|boolean|function} cols - Columns as in csv-parser options.(true if auto-discovered in the first CSV line).
+ * @param {string} storageType - Set the storage type(default: "sql").
  */
-exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
+exports.parseCsvStream = async function(csvFilePath, model, delim, cols, storageType = "sql", arrayDelim=";") {
 
   if (!delim) delim = ",";
   if (typeof cols === 'undefined') cols = true;
   console.log("TYPEOF", typeof model);
-  // Wrap all database actions within a transaction:
-  let transaction = await model.sequelize.transaction();
+  // Wrap all database actions within a transaction for sequelize:
+  let transaction;
+  // define mongoDb collection
+  let collection;
+  if (storageType === "sql"){
+    transaction = await model.sequelize.transaction();
+  } else if (storageType === "mongodb"){
+    const db = await model.storageHandler
+    collection = await db.collection('animal')
+  }
 
   let addedFilePath = csvFilePath.substr(0, csvFilePath.lastIndexOf(".")) +
     ".json";
@@ -174,7 +205,7 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
           delimiter: delim,
           columns: cols,
           cast: function( value, context){
-            return castCsv(value, context.column, model.definition.attributes );
+            return castCsv(value, context.column, model.definition.attributes, arrayDelim);
           }
         })
       )
@@ -189,31 +220,37 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
     let errors = [];
 
     while (null !== (record = await csvStream.readAsync())) {
-
-      console.log(record);
       record = exports.replacePojoNullValueWithLiteralNull(record);
-      console.log(record);
-
-
       try {
-        let result = await validatorUtil.validateData(
-          'validateForCreate', model, record);
-        //console.log(result);
-        await model.create(record, {
-          transaction: transaction
-        }).then(created => {
+        let result = await validatorUtil.validateData('validateForCreate', model, record);
+        if (storageType === "sql"){
+          await model.create(record, {
+            transaction: transaction
+          }).then(created => {
+            // this is async, here we just push new line into the parallel thread
+            // synchronization goes at endAsync;
+            addedRecords.writeAsync(`${JSON.stringify(created)}\n`);
 
-          // this is async, here we just push new line into the parallel thread
-          // synchronization goes at endAsync;
-          addedRecords.writeAsync(`${JSON.stringify(created)}\n`);
-
-        }).catch(error => {
-          console.log(
-            `Caught sequelize error during CSV batch upload: ${JSON.stringify(error)}`
-          );
-          error.record = record;
-          errors.push(error);
-        })
+          }).catch(error => {
+            console.log(
+              `Caught sequelize error during CSV batch upload: ${JSON.stringify(error)}`
+            );
+            error.record = record;
+            errors.push(error);
+          })
+        } else if (storageType === "mongodb"){
+          try {
+            const response = await collection.insertOne(record);
+            addedRecords.writeAsync(`${JSON.stringify(response.ops[0])}\n`);
+          } catch (error){
+            console.log(
+              `Caught MongoDb error during CSV batch upload: ${JSON.stringify(error)}`
+            );
+            error.record = record;
+            errors.push(error);
+          }
+        }
+        
       } catch (error) {
         console.log(
           `Validation error during CSV batch upload: ${JSON.stringify(error)}`
@@ -245,7 +282,9 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols) {
       throw new Error(message.slice(0, message.length - 1));
     }
 
-    await transaction.commit();
+    if (storageType === "sql"){
+      await transaction.commit();
+    }
 
     // zip comitted data and return a corresponding file path
     let zipper = new admZip();

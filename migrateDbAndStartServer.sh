@@ -12,7 +12,6 @@ do
   waited=$(expr $waited + 2)
 done
 
-
 # Read config and migrate/seed databases
 CONFIG="./config/data_models_storage_config.json"
 SEQUELIZE="./node_modules/.bin/sequelize"
@@ -52,9 +51,13 @@ for object in ${DB_KEYS[@]}; do
     fi
 
   fi
+  
+  if [[ "$storageType" == "cassandra" ]]; then
+    # Run the migrations
+    node ./scripts/setup_cassandra_db.js
+  fi
 
 done
-
 
 # Start GraphQL-server
 npm start # acl
