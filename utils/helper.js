@@ -2508,7 +2508,6 @@ module.exports.buildPageInfo = function (edges, oppRecords, pagination) {
     }
     // reverse edges for correct output order
     edges = edges.reverse();
-    
     let cursor = pagination.before ? pagination.before : null;
     let hasNextPage = false;
     if (cursor && oppRecords.length === 0) {
@@ -2516,7 +2515,6 @@ module.exports.buildPageInfo = function (edges, oppRecords, pagination) {
         hasNextPage = true;
       }
     }
-    
     pageInfo = {
       hasPreviousPage: hasPreviousPage,
       hasNextPage: oppRecords.length > 0 || hasNextPage ? true : false,
@@ -2576,7 +2574,7 @@ module.exports.initializeStorageHandlersForModels = async (models) => {
     }
   });
 
-  const storageTypes = ["mongodb", "cassandra", "amazonS3"];
+  const storageTypes = ["mongodb", "cassandra", "amazonS3", "trino", "presto"];
   for (let storage of storageTypes) {
     console.log(`assign storage handler to ${storage} models`);
 
@@ -2615,9 +2613,9 @@ module.exports.initializeStorageHandlersForAdapters = async (adapters) => {
     console.log("assign storage handler to adapter: " + name);
   }
 
-  const storageTypes = ["mongodb", "cassandra", "amazonS3"];
+  const storageTypes = ["mongodb", "cassandra", "amazonS3", "trino", "presto"];
   for (let storage of storageTypes) {
-    console.log(`assign storage handler to ${storage} models`);
+    console.log(`assign storage handler to ${storage} adapters`);
 
     for (let name of Object.keys(adapters[storage])) {
       const database = adapters[storage][name].database;
