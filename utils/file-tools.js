@@ -223,8 +223,8 @@ exports.parseCsvStream = async function(csvFilePath, model, delim, cols, storage
       record = exports.replacePojoNullValueWithLiteralNull(record);
       try {
         await validatorUtil.validateData('validateForCreate', model, record);
-        record = model.preWriteCast(record);
         if (storageType === "sql"){
+          record = model.preWriteCast(record);
           await model.create(record, {
             transaction: transaction
           }).then(created => {
