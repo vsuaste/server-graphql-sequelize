@@ -1361,7 +1361,7 @@ module.exports.addSearchField = function (
       search.operator === undefined ||
       (search.value === undefined && search.search === undefined)
     ) {
-      search = {
+      nsearch = {
         field: field,
         value: value,
         operator: operator,
@@ -2328,11 +2328,13 @@ module.exports.buildCursorBasedSequelizeOptions = function (
     idAttribute
   );
   // add +1 to the LIMIT to get information about following pages.
-  options["limit"] = this.isNotUndefinedAndNotNull(pagination.first)
-    ? pagination.first + 1
-    : this.isNotUndefinedAndNotNull(pagination.last)
-    ? pagination.last + 1
-    : undefined;
+  if (pagination) {
+    options["limit"] = this.isNotUndefinedAndNotNull(pagination.first)
+      ? pagination.first + 1
+      : this.isNotUndefinedAndNotNull(pagination.last)
+      ? pagination.last + 1
+      : undefined;
+  }
   return options;
 };
 
@@ -2379,11 +2381,15 @@ module.exports.buildCursorBasedGenericOptions = function (
     idAttribute
   );
   // add +1 to the LIMIT to get information about following pages.
-  genericOptions["pagination"] = this.isNotUndefinedAndNotNull(pagination.first)
-    ? { limit: pagination.first + 1 }
-    : this.isNotUndefinedAndNotNull(pagination.last)
-    ? { limit: pagination.last + 1 }
-    : undefined;
+  if (pagination) {
+    genericOptions["pagination"] = this.isNotUndefinedAndNotNull(
+      pagination.first
+    )
+      ? { limit: pagination.first + 1 }
+      : this.isNotUndefinedAndNotNull(pagination.last)
+      ? { limit: pagination.last + 1 }
+      : undefined;
+  }
   return genericOptions;
 };
 
