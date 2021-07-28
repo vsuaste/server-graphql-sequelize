@@ -28,6 +28,8 @@ _NOTE: Databases should be already configured locally in `config/data_models_sto
 
 ## Environment Variables
 
+Create a `.env` file with your desired environment variables.
+
 ### Mandatory
 * `ALLOW_ORIGIN` - Sets the `Access-Control-Allow-Origin` header to the specified value.
 * `JWT_SECRET` - The secret string used to sign authorization tokens.
