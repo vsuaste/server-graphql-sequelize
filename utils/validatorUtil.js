@@ -161,7 +161,7 @@ module.exports.addDateTimeAjvKeywords = function(ajv) {
 }
 
 /**
- * Adds AJV asynchronous keyword to the custom validation function 
+ * Adds AJV asynchronous keyword to the custom validation function
  *
  * @param {object} ajv - An instance of AJV (see package 'ajv' for details).
  *
@@ -181,3 +181,75 @@ module.exports.addValidatorFunc = function addValFuncKeyword(ajv) {
   })
   return ajv
 }
+
+/**
+ *
+ * @param {string} id record id to check in the database
+ * @param {Model} model data model class
+ */
+module.exports.validateUniquenessOfPrimaryKey = async function (id, model) {
+    let exists = false;
+    let error;
+
+    try {
+      const res = await model.readById(id);
+      exists = true;
+      error = new Ajv.ValidationError([{
+          keyword: 'asyncValidatorFunction',
+          message: `The requested primary key already exists.`,
+      }])
+    }
+    catch (err) {
+      if (err.message !== `Record with ID = "${id}" does not exist`) {
+        error = err;
+      }
+    }
+
+    return {
+      exists,
+      error,
+    };
+}
+
+/**
+ * Uses the data model abstraction to query the argument data model's argument
+ * field with the argument value to check whether there exist any persistent
+ * records that have the respective field set to the respective value.
+ * Functions simulates SQL UNIQUE constraint.
+ *
+ * @param {string} fieldName - the name of the field to be checked for
+ * persistent uniqueness. 
+ * @param {(number|string|boolean)} fieldValue - the value of the field to be
+ * checked for persistent uniqueness. 
+ * @param {Model} model - data model class
+ */
+module.exports.validateUniquenessOfField =
+  async function(fieldName, fieldValue, model) {
+    let error;
+    const fieldType = model.definition.attributes[fieldName];
+    const searchArg = {
+      field: fieldName,
+      operator: 'eq',
+      value: fieldValue,
+      valueType: fieldType
+    };
+    // one found record is enough to reject uniqueness:
+    const paginationArg = {
+      first: 1
+    };
+
+    const modelConnection = await model.readAllCursor(searchArg, undefined,
+      paginationArg);
+    const exists = modelConnection.edges.length > 0;
+    if (exists === true) {
+      error = new Ajv.ValidationError([{
+        keyword: 'asyncValidatorFunction',
+        message: `A record of type ${model.name} with ${fieldName}: ${fieldValue} already exists.`,
+      }])
+    }
+
+    return {
+      exists,
+      error,
+    };
+  }
