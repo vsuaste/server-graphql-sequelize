@@ -45,7 +45,7 @@ app.use((req, res, next) => {
 });
 
 // Force users to sign in to get access to anything else than '/login'
-console.log("REQUIRE: ", globals.REQUIRE_SIGN_IN);
+console.log("Authentication (JWT Bearer Token) required? ", globals.REQUIRE_SIGN_IN);
 if (globals.REQUIRE_SIGN_IN) {
   app.use(jwt({ secret: globals.JWT_SECRET }).unless({ path: ['/login'] }));
 }
@@ -58,9 +58,11 @@ if (process.argv.length > 2 && process.argv[2] == "acl") {
 
   /* set authorization rules from file acl_rules.js */
   acl.allow(aclRules);
-  console.log("Authoization rules set!");
+  console.log("Authorization rules set!");
 } else {
-  console.log("Open server, no authorization rules");
+  console.log(
+    "Server started without Authorization-Check. Start with command " + 
+    "line argument 'acl', if Rule Based Authorization is wanted.");
 }
 
 /* Schema */
