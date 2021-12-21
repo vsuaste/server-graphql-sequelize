@@ -7,28 +7,18 @@ const auth = require("./utils/login");
 const bodyParser = require("body-parser");
 const globals = require("./config/globals");
 const execute = require("./utils/custom-graphql-execute");
-const checkAuthorization = require("./utils/check-authorization");
 const helper = require("./utils/helper");
 const nodejq = require("node-jq");
 const { JSONPath } = require("jsonpath-plus");
 const errors = require("./utils/errors");
 const { formatError, graphql } = require("graphql");
-let models = require(path.join(__dirname, "models", "index.js"));
-const initializeStorageHandlersForModels = require(path.join(
-  __dirname,
-  "utils",
-  "helper.js"
-)).initializeStorageHandlersForModels;
-let adapters = require(path.join(__dirname, "models", "adapters", "index.js"));
-const initializeStorageHandlersForAdapters = require(path.join(
-  __dirname,
-  "utils",
-  "helper.js"
-)).initializeStorageHandlersForAdapters;
+const models = require("./models/index.js");
+const adapters = require("./models/adapters/index.js");
+const { initializeStorageHandlers } = require("./utils/helper.js");
 
 var acl = null;
-let resolvers = null;
-let simpleExport = null;
+let resolvers = require("./resolvers/index");
+let simpleExport = require("./utils/simple-export");
 
 var cors = require("cors");
 
@@ -223,10 +213,8 @@ app.use(function (err, req, res, next) {
 });
 
 var server = app.listen(APP_PORT, async () => {
-  await initializeStorageHandlersForModels(models);
-  await initializeStorageHandlersForAdapters(adapters);
-  resolvers = require("./resolvers/index");
-  simpleExport = require("./utils/simple-export");
+  await initializeStorageHandlers(models);
+  await initializeStorageHandlers(adapters, "adapter");
   console.log(`App listening on port ${APP_PORT}`);
 });
 
