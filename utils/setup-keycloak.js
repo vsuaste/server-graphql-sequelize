@@ -269,18 +269,30 @@ async function associateCompositeAdminRoles(token) {
     "realm-management"
   );
 
-  const realmManagementRoleUUIDs = (
+  const realmRoleId = (
     await keycloakGetRequest(
       token,
-      `auth/admin/realms/${KEYCLOAK_REALM}/clients/${realmManagementClientUUID}/roles`
+      `auth/admin/realms/${KEYCLOAK_REALM}/roles/realm-administrator`
     )
-  ).map((role) => role.id);
+  ).data.id;
 
+  const realmManagementRoles = await keycloakGetRequest(
+    token,
+    `auth/admin/realms/${KEYCLOAK_REALM}/clients/${realmManagementClientUUID}/roles`
+  );
+
+  const realmManagementRoleUUIDs = realmManagementRoles.data.map((role) => {
+    return { id: role.id };
+  });
   // make the role composite by associating the respective client role
   await keycloakPostRequest(
     token,
     `auth/admin/realms/${KEYCLOAK_REALM}/roles-by-id/${realmRoleId}/composites`,
     realmManagementRoleUUIDs
+  );
+
+  console.log(
+    `Keycloak realm management roles associated to realm-administrator`
   );
 }
 
