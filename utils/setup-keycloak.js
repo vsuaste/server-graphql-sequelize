@@ -338,10 +338,7 @@ async function setupKeyCloak() {
   await associateCompositeAdminRoles(token);
   await createDefaultUser(token);
 
-  let KEYCLOAK_PUBLIC_KEY = await keycloakGetRequest(
-    token,
-    "auth/realms/zendro"
-  );
+  let KEYCLOAK_PUBLIC_KEY = await keycloakGetRequest(token, "realms/zendro");
 
   KEYCLOAK_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----\\n${KEYCLOAK_PUBLIC_KEY.data.public_key}\\n-----END PUBLIC KEY-----`;
 
