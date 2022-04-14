@@ -80,7 +80,7 @@ async function keycloakDeleteRequest(token, url) {
 async function getMasterToken() {
   const res = await axios({
     method: "post",
-    url: `${KEYCLOAK_BASEURL}/auth/realms/master/protocol/openid-connect/token`,
+    url: `${KEYCLOAK_BASEURL}/realms/master/protocol/openid-connect/token`,
     data: `username=${KEYCLOAK_USER}&password=${KEYCLOAK_PASSWORD}&grant_type=password&client_id=admin-cli`,
     headers: {
       "content-type": "application/x-www-form-urlencoded;charset=utf-8",
