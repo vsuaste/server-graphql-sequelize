@@ -100,7 +100,7 @@ async function createDefaultRealm(token) {
   const res = await keycloakPostRequest(token, `admin/realms`, {
     id: KEYCLOAK_REALM,
     realm: KEYCLOAK_REALM,
-    accessTokenLifespan: 600,
+    accessTokenLifespan: 1800,
     enabled: true,
   });
   if (res && res.status === 201) {
@@ -325,11 +325,13 @@ async function setupKeyCloak() {
   const KEYCLOAK_GIQL_CLIENT_SECRET = await registerClient(token, {
     clientId: KEYCLOAK_GIQL_CLIENT,
     redirectUris: GRAPHIQL_REDIRECT_URI,
+    attributes: {"post.logout.redirect.uris": SPA_REDIRECT_URI[0]},
     publicClient: false,
   });
   const KEYCLOAK_SPA_CLIENT_SECRET = await registerClient(token, {
     clientId: KEYCLOAK_SPA_CLIENT,
     redirectUris: SPA_REDIRECT_URI,
+    attributes: {"post.logout.redirect.uris": SPA_REDIRECT_URI[0]},
     publicClient: false,
   });
   await createDefaultRealmRoles(token);
