@@ -102,6 +102,8 @@ const config = {
   DOWN_MIGRATION,
   GRAPHIQL_REDIRECT_URI,
   SPA_REDIRECT_URI,
+  MIGRATION_USERNAME,
+  MIGRATION_PASSWORD,
 };
 
 module.exports = config;
