@@ -140,7 +140,7 @@ module.exports.handleErrorsInGraphQlResponse = function (
 * @return {object} the extensions object.
 */
 module.exports.formatGraphQLErrorExtensions = function (error) {
-  if (helper.isNotUndefinedAndNotNull(error.extensions)) {
+  if (helper.isNotUndefinedAndNotNull(error.extensions) && Object.keys(error.extensions).length > 0) {
     return error.extensions;
   } else if (error.message === "validation failed") {
     return {
