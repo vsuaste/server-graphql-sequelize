@@ -183,7 +183,7 @@ module.exports.handleCaughtErrorAndBenignErrors = function (
   if (!module.exports.isRemoteGraphQlError(error)) {
     // Non remote error:
     // Was it a time out of the connection?
-    module.exports.ifTimeOutErrorAdjustMessage(error);
+    module.exports.ifTimeOutErrorAdjustMessage(error, url);
     throw error;
   } else {
     // STATUS CODE is NOT 200,
