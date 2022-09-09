@@ -78,19 +78,27 @@ async function keycloakDeleteRequest(token, url) {
  * getMasterToken - get Accesstoken for keycloak rest API
  */
 async function getMasterToken() {
-  const res = await axios({
-    method: "post",
-    url: `${KEYCLOAK_BASEURL}/realms/master/protocol/openid-connect/token`,
-    data: `username=${KEYCLOAK_USER}&password=${KEYCLOAK_PASSWORD}&grant_type=password&client_id=admin-cli`,
-    headers: {
-      "content-type": "application/x-www-form-urlencoded;charset=utf-8",
-    },
-  });
-  if (res && res.data) {
-    return res.data.access_token;
-  } else {
-    throw new Error("Failed requesting an API token");
-  }
+
+    const retries = 5;
+    for (let i = 0; i < retries; i++) {
+      try {
+        const res = await axios({
+          method: "post",
+          url: `${KEYCLOAK_BASEURL}/realms/master/protocol/openid-connect/token`,
+          data: `username=${KEYCLOAK_USER}&password=${KEYCLOAK_PASSWORD}&grant_type=password&client_id=admin-cli`,
+          headers: {
+            "content-type": "application/x-www-form-urlencoded;charset=utf-8",
+          },
+        });
+        if (res && res.data) {
+          return res.data.access_token;
+        } else {
+          console.error("Failed requesting an API token, ...retrying");
+        }
+      } catch (error) {
+        throw new Error("Failed requesting an API token"); 
+      }
+    }
 }
 
 /**
