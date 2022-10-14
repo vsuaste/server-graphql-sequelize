@@ -215,13 +215,15 @@ module.exports.csvTableTemplate = function (modelDefinition) {
 
   let addAssociations = {};
   const associations = modelDefinition.associations;
-  for (const [assocName, assocObj] of Object.entries(associations)) {
-    let addAssocName =
-      "add" + assocName.slice(0, 1).toUpperCase() + assocName.slice(1);
-    if (assocObj.sourceKey) {
-      addAssociations[assocObj.sourceKey] = addAssocName;
-    } else if (assocObj.keysIn === modelDefiniton.model) {
-      addAssociations[assocObj.targetKey] = addAssocName;
+  if (associations) {
+    for (const [assocName, assocObj] of Object.entries(associations)) {
+      let addAssocName =
+        "add" + assocName.slice(0, 1).toUpperCase() + assocName.slice(1);
+      if (assocObj.sourceKey) {
+        addAssociations[assocObj.sourceKey] = addAssocName;
+      } else if (assocObj.keysIn === modelDefinition.model) {
+        addAssociations[assocObj.targetKey] = addAssocName;
+      }
     }
   }
   /**
