@@ -13,12 +13,12 @@ runCheck(() => {
       'run',
       'dev'
       // ,'acl'
-    ], {stdio: "inherit"});
+    ], {stdio: "inherit", shell: process.platform === "win32"});
   else
     childProcess.spawnSync('npm', [
       'start'
       //,'acl'
-    ], {stdio: "inherit"});
+    ], {stdio: "inherit", shell: process.platform === "win32"});
 });
  
 /**
